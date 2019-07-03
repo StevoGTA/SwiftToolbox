@@ -48,10 +48,10 @@ struct SQLiteDatabase {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func table(name :String, options :SQLiteTable.Options, tableColumnInfos :[SQLiteTableColumnInfo],
-			referenceInfos :[SQLiteTableColumnReferencesInfo] = []) -> SQLiteTable {
+	func table(name :String, options :SQLiteTable.Options, tableColumns :[SQLiteTableColumn],
+			references :[SQLiteTableColumn.Reference] = []) -> SQLiteTable {
 		// Create table
-		return SQLiteTable(name: name, options: options, tableColumnInfos: tableColumnInfos,
-				referenceInfos: referenceInfos, statementPerformer: self.statementPerformer)
+		return SQLiteTable(name: name, options: options, tableColumns: tableColumns, references: references,
+				statementPerformer: self.statementPerformer)
 	}
 }

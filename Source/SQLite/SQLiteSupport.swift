@@ -8,56 +8,55 @@
 import SQLite3
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: SQLiteColumnType
-enum SQLiteColumnType {
-	// Values
-	// INTEGER values are whole numbers (either positive or negative). An integer can have variable sizes such as 1,
-	//	2,3, 4, or 8 bytes.
-	case integer(size :Int?, default :Int?)
+// MARK: SQLiteTableColumn
+struct SQLiteTableColumn {
 
-	// REAL values are real numbers with decimal values that use 8-byte floats.
-	case real(default :Float?)
+	// MARK: Kind
+	enum Kind {
+		// Values
+		// INTEGER values are whole numbers (either positive or negative). An integer can have variable sizes such as 1,
+		//	2,3, 4, or 8 bytes.
+		case integer(size :Int?, default :Int?)
 
-	// TEXT is used to store character data. The maximum length of TEXT is unlimited. SQLite supports various
-	//	character encodings.
-	case text(size :Int?, default :String?)
+		// REAL values are real numbers with decimal values that use 8-byte floats.
+		case real(default :Float?)
 
-	// BLOB stands for a binary large object that can be used to store any kind of data. The maximum size of BLOBs
-	//	is unlimited
-	case blob
-}
+		// TEXT is used to store character data. The maximum length of TEXT is unlimited. SQLite supports various
+		//	character encodings.
+		case text(size :Int?, default :String?)
 
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - ColumnOptions
-enum SQLiteColumnOptions {
-	case primaryKey
-	case autoincrement
-	case notNull
-	case unique
-	case check
-}
+		// BLOB stands for a binary large object that can be used to store any kind of data. The maximum size of BLOBs
+		//	is unlimited
+		case blob
+	}
 
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - Types
-typealias SQLiteTableColumnReferencesInfo =
-				(tableColumnInfo :SQLiteTableColumnInfo, referencedTable :SQLiteTable,
-						referencedTableColumnInfo :SQLiteTableColumnInfo)
+	// MARK: Options
+	enum Options {
+		case primaryKey
+		case autoincrement
+		case notNull
+		case unique
+		case check
+	}
 
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - SQLiteTableColumnInfo
-struct SQLiteTableColumnInfo {
+	// Types
+	typealias Reference =
+				(tableColumn :SQLiteTableColumn, referencedTable :SQLiteTable, referencedTableColumn :SQLiteTableColumn)
 
 	// MARK: Properties
 	let	name :String
-	let	type :SQLiteColumnType
-	let	options :[SQLiteColumnOptions]
+//	let	type :SQLiteColumnType
+	let	kind :Kind
+	let	options :[Options]
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(_ name :String, _ type :SQLiteColumnType, _ options :[SQLiteColumnOptions]) {
+//	init(_ name :String, _ type :SQLiteColumnType, _ options :[Options]) {
+	init(_ name :String, _ kind :Kind, _ options :[Options]) {
 		// Store
 		self.name = name
-		self.type = type
+//		self.type = type
+		self.kind = kind
 		self.options = options
 	}
 }
@@ -208,10 +207,10 @@ class SQLiteResults {
 	func next() -> Bool { return sqlite3_step(self.statement) == SQLITE_ROW }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func integer<T : SignedInteger>(for tableColumnInfo :SQLiteTableColumnInfo) -> T {
+	func integer<T : SignedInteger>(for tableColumn :SQLiteTableColumn) -> T {
 		// Preflight
-		let	name = tableColumnInfo.name
-		guard case .integer(_, _) = tableColumnInfo.type else
+		let	name = tableColumn.name
+		guard case .integer(_, _) = tableColumn.kind else
 			{ fatalError("SQLiteResults column type mismatch: \"\(name)\" is not the expected type of integer") }
 		guard let index = self.columnNameInfoMap[name] else
 			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
@@ -220,36 +219,36 @@ class SQLiteResults {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func real(for tableColumnInfo :SQLiteTableColumnInfo) -> Double {
+	func real(for tableColumn :SQLiteTableColumn) -> Double {
 		// Preflight
-		let	name = tableColumnInfo.name
-		guard case .real(_) = tableColumnInfo.type else
+		let	name = tableColumn.name
+		guard case .real(_) = tableColumn.kind else
 			{ fatalError("SQLiteResults column type mismatch: \"\(name)\" is not the expected type of real") }
-		guard let index = self.columnNameInfoMap[tableColumnInfo.name] else
+		guard let index = self.columnNameInfoMap[tableColumn.name] else
 			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
 
 		return sqlite3_column_double(self.statement, index)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func text(for tableColumnInfo :SQLiteTableColumnInfo) -> String {
+	func text(for tableColumn :SQLiteTableColumn) -> String {
 		// Preflight
-		let	name = tableColumnInfo.name
-		guard case .text(_, _) = tableColumnInfo.type else
+		let	name = tableColumn.name
+		guard case .text(_, _) = tableColumn.kind else
 			{ fatalError("SQLiteResults column type mismatch: \"\(name)\" is not the expected type of text") }
-		guard let index = self.columnNameInfoMap[tableColumnInfo.name] else
+		guard let index = self.columnNameInfoMap[tableColumn.name] else
 			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
 
 		return String(cString: sqlite3_column_text(self.statement, index))
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func blob(for tableColumnInfo :SQLiteTableColumnInfo) -> Data {
+	func blob(for tableColumn :SQLiteTableColumn) -> Data {
 		// Preflight
-		let	name = tableColumnInfo.name
-		guard case .blob = tableColumnInfo.type else
+		let	name = tableColumn.name
+		guard case .blob = tableColumn.kind else
 			{ fatalError("SQLiteResults column type mismatch: \"\(name)\" is not the expected type of blob") }
-		guard let index = self.columnNameInfoMap[tableColumnInfo.name] else
+		guard let index = self.columnNameInfoMap[tableColumn.name] else
 			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
 
 		return Data(bytes: sqlite3_column_blob(self.statement, index),
