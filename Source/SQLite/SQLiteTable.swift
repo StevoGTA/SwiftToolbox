@@ -107,7 +107,7 @@ struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	func select(tableColumns :[SQLiteTableColumn]? = nil,
 			innerJoin :(table :SQLiteTable, tableColumn :SQLiteTableColumn)? = nil,
-			where whereInfo :(tableColumn :SQLiteTableColumn, columnValue :Any)? = nil,
+			where whereInfo :(tableColumn :SQLiteTableColumn, value :Any)? = nil,
 			resultsProc :(_ results :SQLiteResults) -> Void) {
 		// Compose statement
 		let	statement =
@@ -121,7 +121,7 @@ struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	func select(tableColumns :[SQLiteTableColumn]? = nil,
 			innerJoin :(table :SQLiteTable, tableColumn :SQLiteTableColumn)? = nil,
-			where whereInfo :(tableColumn :SQLiteTableColumn, columnValues :[Any]),
+			where whereInfo :(tableColumn :SQLiteTableColumn, values :[Any]),
 			resultsProc :(_ results :SQLiteResults) -> Void) {
 		// Compose statement
 		let	statement =
@@ -129,7 +129,7 @@ struct SQLiteTable {
 							string(for: innerJoin) + string(for: whereInfo)
 
 		// Perform
-		self.statementPerformer.perform(statement: statement, values: whereInfo.columnValues, resultsProc: resultsProc)
+		self.statementPerformer.perform(statement: statement, values: whereInfo.values, resultsProc: resultsProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -201,16 +201,16 @@ struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	private func string(for whereInfo :(tableColumn :SQLiteTableColumn, columnValue :Any)?) -> String {
+	private func string(for whereInfo :(tableColumn :SQLiteTableColumn, value :Any)?) -> String {
 		// Return string
 		return (whereInfo != nil) ?
-				" WHERE \(self.name).\(whereInfo!.tableColumn.name) = \"\(whereInfo!.columnValue)\"" : ""
+				" WHERE \(self.name).\(whereInfo!.tableColumn.name) = \"\(whereInfo!.value)\"" : ""
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	private func string(for whereInfo :(tableColumn :SQLiteTableColumn, columnValues :[Any])) -> String {
+	private func string(for whereInfo :(tableColumn :SQLiteTableColumn, values :[Any])) -> String {
 		// Return string
 		return " WHERE \(self.name).\(whereInfo.tableColumn.name) IN (" +
-				String(combining: Array(repeating: "?", count: whereInfo.columnValues.count), with: ",") + ")"
+				String(combining: Array(repeating: "?", count: whereInfo.values.count), with: ",") + ")"
 	}
 }
