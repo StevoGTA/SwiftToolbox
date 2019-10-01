@@ -5,6 +5,8 @@
 //  Copyright © 2016 Promere LLC. All rights reserved.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Date Error
 enum DateError {
@@ -28,16 +30,17 @@ extension DateError : LocalizedError {
 extension Date {
 
 	// MARK: Properties
-	static	let	`nil` :Date? = nil
-	static	let	standardizedDateFormatter :DateFormatter = {
-						let	dateFormatter = DateFormatter()
-						dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-						
-						return dateFormatter
-					}()
+	static	public	let	`nil` :Date? = nil
 
-			var	standardized :String { return Date.standardizedDateFormatter.string(from: self) }
-	
+	static			let	standardizedDateFormatter :DateFormatter = {
+								let	dateFormatter = DateFormatter()
+								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+
+								return dateFormatter
+							}()
+
+					var	standardized :String { return Date.standardizedDateFormatter.string(from: self) }
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(fromStandardized standardizedString :String) throws {

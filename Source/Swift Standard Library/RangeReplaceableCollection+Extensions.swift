@@ -9,8 +9,9 @@
 // MARK: RangeReplaceableCollection Equatable Extension
 extension RangeReplaceableCollection where Iterator.Element : Equatable {  
 
+	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	mutating func remove(_ object: Self.Iterator.Element) {
+	public mutating func remove(_ object: Self.Iterator.Element) {
 		// Find
 		if let found = self.index(of: object) {
 			// Remove
@@ -23,6 +24,7 @@ extension RangeReplaceableCollection where Iterator.Element : Equatable {
 // MARK: - RangeReplaceableCollection Hashable Extension
 extension RangeReplaceableCollection where Self.Iterator.Element: Hashable {
 
+	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func uniq() -> Self {
 		// Setup

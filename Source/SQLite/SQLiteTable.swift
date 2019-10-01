@@ -7,21 +7,22 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SQLiteTable
-struct SQLiteTable {
+public struct SQLiteTable {
 
 	// MARK: Options
-	struct Options : OptionSet {
+	public	struct Options : OptionSet {
 
-		static	let	withoutRowID = Options(rawValue: 1 << 0)
+				static	public	let	withoutRowID = Options(rawValue: 1 << 0)
 
-				let	rawValue :Int
+						public	let	rawValue :Int
 
-		// MARK: Lifecycle methods
-		init(rawValue :Int) { self.rawValue = rawValue }
-	}
+				// MARK: Lifecycle methods
+				public init(rawValue :Int) { self.rawValue = rawValue }
+			}
 
 	// MARK: Properties
-	private	let	name :String
+			let	name :String
+
 	private	let	options :Options
 	private	let	tableColumns :[SQLiteTableColumn]
 	private	let	references :[SQLiteTableColumn.Reference]
@@ -29,7 +30,7 @@ struct SQLiteTable {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(name :String, options :Options, tableColumns :[SQLiteTableColumn],
+	public init(name :String, options :Options, tableColumns :[SQLiteTableColumn],
 			references :[SQLiteTableColumn.Reference] = [], statementPerformer :SQLiteStatementPerfomer) {
 		// Store
 		self.name = name
@@ -41,7 +42,7 @@ struct SQLiteTable {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func create(ifNotExists :Bool = true) {
+	public func create(ifNotExists :Bool = true) {
 		// Setup
 		var	tableColumnReferenceMap = [/* column name */ String : SQLiteTableColumn.Reference]()
 		self.references.forEach() { tableColumnReferenceMap[$0.tableColumn.name] = $0 }
@@ -96,7 +97,7 @@ struct SQLiteTable {
 
 		// Compose create statement
 		let	statement =
-					"CREATE TABLE" + (ifNotExists ? " IF NOT EXISTS" : "") + " \(self.name)" +
+					"CREATE TABLE" + (ifNotExists ? " IF NOT EXISTS" : "") + " `\(self.name)`" +
 							" (" + String(combining: columnInfos, with: ", ") + ")" +
 							(self.options.contains(.withoutRowID) ? " WITHOUT ROWID" : "")
 
@@ -105,40 +106,25 @@ struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func select(tableColumns :[SQLiteTableColumn]? = nil,
+	public func select(tableColumns :[SQLiteTableColumn]? = nil,
 			innerJoin :(table :SQLiteTable, tableColumn :SQLiteTableColumn)? = nil,
-			where whereInfo :(tableColumn :SQLiteTableColumn, value :Any)? = nil,
-			resultsProc :(_ results :SQLiteResults) -> Void) {
+			where sqliteWhere :SQLiteWhere? = nil, resultsProc :(_ results :SQLiteResults) -> Void) {
 		// Compose statement
 		let	statement =
-					"SELECT " + columnNamesString(for: tableColumns) + " FROM \(self.name)" +
-							string(for: innerJoin) + string(for: whereInfo)
+					"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
+							string(for: innerJoin) + ((sqliteWhere != nil) ? sqliteWhere!.string : "")
 
 		// Perform
-		self.statementPerformer.perform(statement: statement, resultsProc: resultsProc)
+		self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values, resultsProc: resultsProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func select(tableColumns :[SQLiteTableColumn]? = nil,
-			innerJoin :(table :SQLiteTable, tableColumn :SQLiteTableColumn)? = nil,
-			where whereInfo :(tableColumn :SQLiteTableColumn, values :[Any]),
-			resultsProc :(_ results :SQLiteResults) -> Void) {
-		// Compose statement
-		let	statement =
-					"SELECT " + columnNamesString(for: tableColumns) + " FROM \(self.name)" +
-							string(for: innerJoin) + string(for: whereInfo)
-
-		// Perform
-		self.statementPerformer.perform(statement: statement, values: whereInfo.values, resultsProc: resultsProc)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func insert(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
+	public func insert(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
 		// Setup
 		let	tableColumns = info.map() { $0.tableColumn }
 		let	values = info.map() { $0.value }
 		let	statement =
-					"INSERT INTO \(self.name) (" + columnNamesString(for: tableColumns) + ") VALUES (" +
+					"INSERT INTO `\(self.name)` (" + columnNamesString(for: tableColumns) + ") VALUES (" +
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
@@ -146,12 +132,12 @@ struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func insertOrReplace(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
+	public func insertOrReplace(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
 		// Setup
 		let	tableColumns = info.map() { $0.tableColumn }
 		let	values = info.map() { $0.value }
 		let	statement =
-					"INSERT OR REPLACE INTO \(self.name) (" + columnNamesString(for: tableColumns) + ") VALUES (" +
+					"INSERT OR REPLACE INTO `\(self.name)` (" + columnNamesString(for: tableColumns) + ") VALUES (" +
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
@@ -159,23 +145,21 @@ struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func update(_ info :[(tableColumn :SQLiteTableColumn, value :Any)],
-			where whereInfo :(tableColumn :SQLiteTableColumn, columnValue :Any)) {
+	public func update(_ info :[(tableColumn :SQLiteTableColumn, value :Any)], where sqliteWhere :SQLiteWhere) {
 		// Setup
 		let	statement =
-					"UPDATE \(self.name) SET " +
+					"UPDATE `\(self.name)` SET " +
 							String(combining: info.map({ "\($0.tableColumn.name) = ?" }), with: ", ") +
-							" WHERE \(whereInfo.tableColumn.name) = \"\(whereInfo.columnValue)\""
+							sqliteWhere.string
 
 		// Perform
 		_ = self.statementPerformer.perform(statement: statement, values: info.map({ $0.value }))
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func delete<T>(where whereInfo :(tableColumn :SQLiteTableColumn, columnValue :T)) {
+	public func delete(where sqliteWhere :SQLiteWhere) {
 		// Setup
-		let	statement =
-					"DELETE FROM \(self.name) WHERE \(whereInfo.tableColumn.name) = \"\(whereInfo.columnValue)\""
+		let	statement = "DELETE FROM `\(self.name)`" + sqliteWhere.string
 
 		// Perform
 		self.statementPerformer.perform(statement: statement)
@@ -194,23 +178,9 @@ struct SQLiteTable {
 	private func string(for innerJoin :(table :SQLiteTable, tableColumn :SQLiteTableColumn)?) -> String {
 		// Return string
 		return (innerJoin != nil) ?
-				" INNER JOIN \(innerJoin!.table.name) ON " +
-						"\(innerJoin!.table.name).\(innerJoin!.tableColumn.name) = " +
-						"\(self.name).\(innerJoin!.tableColumn.name)" :
+				" INNER JOIN `\(innerJoin!.table.name)` ON " +
+						"`\(innerJoin!.table.name)`.`\(innerJoin!.tableColumn.name)` = " +
+						"`\(self.name)`.`\(innerJoin!.tableColumn.name)`" :
 				""
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	private func string(for whereInfo :(tableColumn :SQLiteTableColumn, value :Any)?) -> String {
-		// Return string
-		return (whereInfo != nil) ?
-				" WHERE \(self.name).\(whereInfo!.tableColumn.name) = \"\(whereInfo!.value)\"" : ""
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	private func string(for whereInfo :(tableColumn :SQLiteTableColumn, values :[Any])) -> String {
-		// Return string
-		return " WHERE \(self.name).\(whereInfo.tableColumn.name) IN (" +
-				String(combining: Array(repeating: "?", count: whereInfo.values.count), with: ",") + ")"
 	}
 }

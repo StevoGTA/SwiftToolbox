@@ -14,12 +14,12 @@ extension String {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(combining :[String], with separator :String) {
+	public init(combining components :[String], with separator :String) {
 		// Setup
 		var	string = ""
 
 		// Iterate all components
-		combining.forEach() {
+		components.forEach() {
 			// Append to string
 			if string.isEmpty {
 				// Start of string
@@ -131,12 +131,12 @@ extension String {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func appending(pathComponent :String) -> String {
+	public func appending(pathComponent :String) -> String {
 		return self.isEmpty ? pathComponent : self + "/" + pathComponent
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func appending(pathExtension :String) -> String {
+	public func appending(pathExtension :String) -> String {
 		return !pathExtension.isEmpty ? self + "." + pathExtension : self
 	}
 }

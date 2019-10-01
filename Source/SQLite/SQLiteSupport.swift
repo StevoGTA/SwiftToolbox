@@ -5,65 +5,114 @@
 //  Copyright © 2018 Stevo Brock. All rights reserved.
 //
 
+import Foundation
 import SQLite3
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SQLiteTableColumn
-struct SQLiteTableColumn {
+public struct SQLiteTableColumn {
 
 	// MARK: Kind
-	enum Kind {
-		// Values
-		// INTEGER values are whole numbers (either positive or negative). An integer can have variable sizes such as 1,
-		//	2,3, 4, or 8 bytes.
-		case integer(size :Int?, default :Int?)
+	public	enum Kind {
+				// Values
+				// INTEGER values are whole numbers (either positive or negative). An integer can have variable sizes
+				//	such as 1, 2, 3, 4, or 8 bytes.
+				case integer(size :Int?, default :Int?)
 
-		// REAL values are real numbers with decimal values that use 8-byte floats.
-		case real(default :Float?)
+				// REAL values are real numbers with decimal values that use 8-byte floats.
+				case real(default :Float?)
 
-		// TEXT is used to store character data. The maximum length of TEXT is unlimited. SQLite supports various
-		//	character encodings.
-		case text(size :Int?, default :String?)
+				// TEXT is used to store character data. The maximum length of TEXT is unlimited. SQLite supports
+				//	various character encodings.
+				case text(size :Int?, default :String?)
 
-		// BLOB stands for a binary large object that can be used to store any kind of data. The maximum size of BLOBs
-		//	is unlimited
-		case blob
-	}
+				// BLOB stands for a binary large object that can be used to store any kind of data. The maximum size
+				//	of BLOBs is unlimited
+				case blob
+			}
 
 	// MARK: Options
-	enum Options {
-		case primaryKey
-		case autoincrement
-		case notNull
-		case unique
-		case check
-	}
+	public	enum Options {
+				case primaryKey
+				case autoincrement
+				case notNull
+				case unique
+				case check
+			}
 
 	// Types
-	typealias Reference =
-				(tableColumn :SQLiteTableColumn, referencedTable :SQLiteTable, referencedTableColumn :SQLiteTableColumn)
+	public typealias Reference =
+						(tableColumn :SQLiteTableColumn, referencedTable :SQLiteTable,
+								referencedTableColumn :SQLiteTableColumn)
 
 	// MARK: Properties
 	let	name :String
-//	let	type :SQLiteColumnType
 	let	kind :Kind
 	let	options :[Options]
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-//	init(_ name :String, _ type :SQLiteColumnType, _ options :[Options]) {
-	init(_ name :String, _ kind :Kind, _ options :[Options]) {
+	public init(_ name :String, _ kind :Kind, _ options :[Options]) {
 		// Store
 		self.name = name
-//		self.type = type
 		self.kind = kind
 		self.options = options
 	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// MARK: - SQLiteWhere
+public class SQLiteWhere {
+
+	// MARK: Properties
+	private(set)	var	string :String
+	private(set)	var	values :[Any]?
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) {
+		// Setup
+		self.string =
+				" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
+						" \(comparison) \"\(value)\""
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public init(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, values :[Any]) {
+		// Setup
+		self.string =
+				" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
+						" IN (" + String(combining: Array(repeating: "?", count: values.count), with: ",") + ")"
+		self.values = values
+	}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func and(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) ->
+			Self {
+		// Append
+		self.string +=
+				" AND " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
+						" \(comparison) \"\(value)\""
+
+		return self
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func or(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) ->
+			Self {
+		// Append
+		self.string +=
+				" OR " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
+						" \(comparison) \"\(value)\""
+
+		return self
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // MARK: - SQLiteStatementPerfomer
-struct SQLiteStatementPerfomer {
+public struct SQLiteStatementPerfomer {
 
 	// MARK: Properties
 	static	private	let	SQLITE_STATIC = unsafeBitCast(0, to: sqlite3_destructor_type.self)
@@ -172,8 +221,8 @@ struct SQLiteStatementPerfomer {
 				sqlite3_bind_blob(statement, Int32($0.offset + 1), (data as NSData).bytes, Int32(data.count),
 						SQLiteStatementPerfomer.SQLITE_STATIC)
 			} else {
-				// Unknown
-				fatalError("SQLiteStatementPerfomer unknown value type: \"\($0.element)\"")
+				// null
+				sqlite3_bind_null(statement, Int32($0.offset + 1))
 			}
 		}
 	}
@@ -181,7 +230,7 @@ struct SQLiteStatementPerfomer {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - SQLiteResults
-class SQLiteResults {
+public class SQLiteResults {
 
 	// MARK: Properties
 	private	let	statement :OpaquePointer
@@ -204,10 +253,10 @@ class SQLiteResults {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func next() -> Bool { return sqlite3_step(self.statement) == SQLITE_ROW }
+	public func next() -> Bool { return sqlite3_step(self.statement) == SQLITE_ROW }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func integer<T : SignedInteger>(for tableColumn :SQLiteTableColumn) -> T {
+	public func integer<T : SignedInteger>(for tableColumn :SQLiteTableColumn) -> T? {
 		// Preflight
 		let	name = tableColumn.name
 		guard case .integer(_, _) = tableColumn.kind else
@@ -215,11 +264,12 @@ class SQLiteResults {
 		guard let index = self.columnNameInfoMap[name] else
 			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
 
-		return T(sqlite3_column_int64(self.statement, index))
+		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
+				T(sqlite3_column_int64(self.statement, index)) : nil
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func real(for tableColumn :SQLiteTableColumn) -> Double {
+	public func real(for tableColumn :SQLiteTableColumn) -> Double? {
 		// Preflight
 		let	name = tableColumn.name
 		guard case .real(_) = tableColumn.kind else
@@ -227,11 +277,12 @@ class SQLiteResults {
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
 			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
 
-		return sqlite3_column_double(self.statement, index)
+		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
+				sqlite3_column_double(self.statement, index) : nil
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func text(for tableColumn :SQLiteTableColumn) -> String {
+	public func text(for tableColumn :SQLiteTableColumn) -> String? {
 		// Preflight
 		let	name = tableColumn.name
 		guard case .text(_, _) = tableColumn.kind else
@@ -239,11 +290,18 @@ class SQLiteResults {
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
 			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
 
-		return String(cString: sqlite3_column_text(self.statement, index))
+		// Get value
+		if let text = sqlite3_column_text(self.statement, index) {
+			// Have value
+			return String(cString: text)
+		} else {
+			// Don't have value
+			return nil
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func blob(for tableColumn :SQLiteTableColumn) -> Data {
+	public func blob(for tableColumn :SQLiteTableColumn) -> Data? {
 		// Preflight
 		let	name = tableColumn.name
 		guard case .blob = tableColumn.kind else
@@ -251,7 +309,13 @@ class SQLiteResults {
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
 			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
 
-		return Data(bytes: sqlite3_column_blob(self.statement, index),
-				count: Int(sqlite3_column_bytes(self.statement, index)))
+		// Get value
+		if let blob = sqlite3_column_blob(self.statement, index) {
+			// Have value
+			return Data(bytes: blob, count: Int(sqlite3_column_bytes(self.statement, index)))
+		} else {
+			// Don't have value
+			return nil
+		}
 	}
 }

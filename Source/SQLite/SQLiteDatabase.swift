@@ -24,14 +24,14 @@ extension SQLiteDatabaseError : LocalizedError {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - SQLiteDatabase
-struct SQLiteDatabase {
+public struct SQLiteDatabase {
 
 	// MARK: Properties
 	private	let	statementPerformer :SQLiteStatementPerfomer
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(url :URL) throws {
+	public init(url :URL) throws {
 		// Setup
 		let	urlUse = (url.pathExtension == "sqlite") ? url : url.appendingPathExtension("sqlite")
 
@@ -48,7 +48,7 @@ struct SQLiteDatabase {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func table(name :String, options :SQLiteTable.Options, tableColumns :[SQLiteTableColumn],
+	public func table(name :String, options :SQLiteTable.Options, tableColumns :[SQLiteTableColumn],
 			references :[SQLiteTableColumn.Reference] = []) -> SQLiteTable {
 		// Create table
 		return SQLiteTable(name: name, options: options, tableColumns: tableColumns, references: references,
