@@ -11,7 +11,7 @@ extension Dictionary where Key == String {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	mutating func appendArrayValueElement<T>(key :Key, value :T) {
+	public mutating func appendArrayValueElement<T>(key :Key, value :T) {
 		// Check if has existing array
 		if var array = (self[key] as? [T]) {
 			// Has existing array

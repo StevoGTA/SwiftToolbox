@@ -7,52 +7,26 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Lock
-class Lock {
+public class Lock {
 
 	// MARK: Properties
 	private	var	mutex = pthread_mutex_t()
 
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init() {
+		// Setup
+		var attr = pthread_mutexattr_t()
+		pthread_mutexattr_init(&attr)
+
+		pthread_mutex_init(&self.mutex, &attr)
+		pthread_mutexattr_destroy(&attr)
+	}
+
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(_ proc :() -> Void) {
-		// Lock
-		pthread_mutex_lock(&self.mutex)
-
-		// Call proc
-		proc()
-
-		// Unlock
-		pthread_mutex_unlock(&self.mutex)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func perform(_ proc :() throws -> Void) throws {
-		// Lock
-		pthread_mutex_lock(&self.mutex)
-
-		// Call proc
-		try proc()
-
-		// Unlock
-		pthread_mutex_unlock(&self.mutex)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func perform<T>(_ proc :() -> T) -> T {
-		// Lock
-		pthread_mutex_lock(&self.mutex)
-
-		// Call proc
-		let	t = proc()
-
-		// Unlock
-		pthread_mutex_unlock(&self.mutex)
-
-		return t
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func perform<T>(_ proc :() throws -> T) throws -> T {
+	@discardableResult
+	public func perform<T>(_ proc :() throws -> T) rethrows -> T {
 		// Lock
 		pthread_mutex_lock(&self.mutex)
 
@@ -68,64 +42,22 @@ class Lock {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - ReadWriteLock
-protocol ReadWriteLock {
+// For more ideas and alternate options: https://www.cs.cmu.edu/~fp/courses/15213-s05/recitations/secF_4-25.pdf
+public protocol ReadWriteLock {
 
 	// MARK: Instance methods
-	func read(_ proc :() -> Void)
-	func read(_ proc :() throws -> Void) throws
-	func read<T>(_ proc :() -> T) -> T
-	func read<T>(_ proc :() throws -> T) throws -> T
-	func write(_ proc :() -> Void)
-	func write(_ proc :() throws -> Void) throws
-	func write<T>(_ proc :() -> T) -> T
-	func write<T>(_ proc :() throws -> T) throws -> T
+	func read<T>(_ proc :() throws -> T) rethrows -> T
+	func write<T>(_ proc :() throws -> T) rethrows -> T
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - ReadPreferringReadWriteLock
-class ReadPreferringReadWriteLock : ReadWriteLock {
+public class ReadPreferringReadWriteLock : ReadWriteLock {
 
 	// MARK: ReadWriteLock implementation
 	//------------------------------------------------------------------------------------------------------------------
-	func read(_ proc :() -> Void) {
-		// Lock
-		pthread_rwlock_rdlock(&self.lock)
-
-		// Call proc
-		proc()
-
-		// Unlock
-		pthread_rwlock_unlock(&self.lock)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func read(_ proc :() throws -> Void) throws {
-		// Lock
-		pthread_rwlock_rdlock(&self.lock)
-
-		// Call proc
-		try proc()
-
-		// Unlock
-		pthread_rwlock_unlock(&self.lock)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func read<T>(_ proc :() -> T) -> T {
-		// Lock
-		pthread_rwlock_rdlock(&self.lock)
-
-		// Call proc
-		let	t = proc()
-
-		// Unlock
-		pthread_rwlock_unlock(&self.lock)
-
-		return t
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func read<T>(_ proc :() throws -> T) throws -> T {
+	@discardableResult
+	public func read<T>(_ proc :() throws -> T) rethrows -> T {
 		// Lock
 		pthread_rwlock_rdlock(&self.lock)
 
@@ -139,45 +71,8 @@ class ReadPreferringReadWriteLock : ReadWriteLock {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func write(_ proc :() -> Void) {
-		// Lock
-		pthread_rwlock_wrlock(&self.lock)
-
-		// Call proc
-		proc()
-
-		// Unlock
-		pthread_rwlock_unlock(&self.lock)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func write(_ proc :() throws -> Void) throws {
-		// Lock
-		pthread_rwlock_wrlock(&self.lock)
-
-		// Call proc
-		try proc()
-
-		// Unlock
-		pthread_rwlock_unlock(&self.lock)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func write<T>(_ proc :() -> T) -> T {
-		// Lock
-		pthread_rwlock_wrlock(&self.lock)
-
-		// Call proc
-		let	t = proc()
-
-		// Unlock
-		pthread_rwlock_unlock(&self.lock)
-
-		return t
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func write<T>(_ proc :() throws -> T) throws -> T {
+	@discardableResult
+	public func write<T>(_ proc :() throws -> T) rethrows -> T {
 		// Lock
 		pthread_rwlock_wrlock(&self.lock)
 
@@ -195,9 +90,13 @@ class ReadPreferringReadWriteLock : ReadWriteLock {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init() {
+	public init() {
 		// Setup
-		pthread_rwlock_init(&self.lock, nil)
+		var attr = pthread_rwlockattr_t()
+		pthread_rwlockattr_init(&attr)
+
+		pthread_rwlock_init(&self.lock, &attr)
+		pthread_rwlockattr_destroy(&attr)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

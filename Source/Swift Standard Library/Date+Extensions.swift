@@ -48,8 +48,6 @@ extension Date {
 		if let date = Date.standardizedDateFormatter.date(from: standardizedString) {
 			// Got date
 			self.init(timeIntervalSinceNow: date.timeIntervalSinceNow)
-			
-			return
 		} else {
 			// Invalid
 			throw DateError.invalidStandardizedForm(string: standardizedString)
