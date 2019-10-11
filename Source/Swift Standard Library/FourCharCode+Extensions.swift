@@ -1,5 +1,6 @@
 //
 //  FourCharCode+Extension.swift
+//  Swift Toolbox
 //
 //  Created by Stevo on 1/25/18.
 //  Copyright © 2018 Stevo Brock. All rights reserved.

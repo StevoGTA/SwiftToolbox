@@ -1,8 +1,9 @@
 //
 //  Date+Extensions.swift
+//  Swift Toolbox
 //
 //  Created by Stevo on 11/23/16.
-//  Copyright © 2016 Promere LLC. All rights reserved.
+//  Copyright © 2016 Stevo Brock. All rights reserved.
 //
 
 import Foundation
