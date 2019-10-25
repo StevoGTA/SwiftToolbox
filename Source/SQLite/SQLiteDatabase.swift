@@ -1,5 +1,6 @@
 //
 //  SQLiteDatabase.swift
+//  Swift Toolbox
 //
 //  Created by Stevo on 10/16/18.
 //  Copyright © 2018 Stevo Brock. All rights reserved.
@@ -26,6 +27,12 @@ extension SQLiteDatabaseError : LocalizedError {
 // MARK: - SQLiteDatabase
 public struct SQLiteDatabase {
 
+	// MARK: Enums
+	public enum TransactionResult {
+		case commit
+		case rollback
+	}
+
 	// MARK: Properties
 	private	let	statementPerformer :SQLiteStatementPerfomer
 
@@ -33,7 +40,10 @@ public struct SQLiteDatabase {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(url :URL) throws {
 		// Setup
-		let	urlUse = (url.pathExtension == "sqlite") ? url : url.appendingPathExtension("sqlite")
+		let	pathExtension = url.pathExtension
+		let	urlUse =
+					((pathExtension == "sqlite") || (pathExtension == "sqlite3")) ?
+							url : url.appendingPathExtension("sqlite")
 
 		// Open
 		var	database :OpaquePointer? = nil
@@ -53,5 +63,17 @@ public struct SQLiteDatabase {
 		// Create table
 		return SQLiteTable(name: name, options: options, tableColumns: tableColumns, references: references,
 				statementPerformer: self.statementPerformer)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func performAsTransaction(_ proc :() -> TransactionResult) {
+		// Trigger statement performer to perform as a transaction
+		self.statementPerformer.performAsTransaction() {
+			// Call proc
+			switch proc() {
+				case .commit:	return .commit
+				case .rollback:	return .rollback
+			}
+		}
 	}
 }

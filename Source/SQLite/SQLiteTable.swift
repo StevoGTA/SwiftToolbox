@@ -1,5 +1,6 @@
 //
 //  SQLiteTable.swift
+//  Swift Toolbox
 //
 //  Created by Stevo on 10/15/18.
 //  Copyright © 2018 Stevo Brock. All rights reserved.
@@ -21,16 +22,18 @@ public struct SQLiteTable {
 			}
 
 	// MARK: Properties
-			let	name :String
+	static	private	let	countAllTableColumn = SQLiteTableColumn("COUNT(*)", .integer(size: nil, default: nil), [])
 
-	private	let	options :Options
-	private	let	tableColumns :[SQLiteTableColumn]
-	private	let	references :[SQLiteTableColumn.Reference]
-	private	let	statementPerformer :SQLiteStatementPerfomer
+					let	name :String
+
+			private	let	options :Options
+			private	let	tableColumns :[SQLiteTableColumn]
+			private	let	references :[SQLiteTableColumn.Reference]
+			private	let	statementPerformer :SQLiteStatementPerfomer
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(name :String, options :Options, tableColumns :[SQLiteTableColumn],
+	init(name :String, options :Options, tableColumns :[SQLiteTableColumn],
 			references :[SQLiteTableColumn.Reference] = [], statementPerformer :SQLiteStatementPerfomer) {
 		// Store
 		self.name = name
@@ -106,9 +109,25 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func count(where sqliteWhere :SQLiteWhere? = nil) -> Int {
+		// Compose statement
+		let	statement = "SELECT COUNT(*) FROM `\(self.name)`" + ((sqliteWhere != nil) ? sqliteWhere!.string : "")
+
+		// Perform
+		var	count = 0
+		self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values) {
+			// Query count
+			$0.next()
+			count = $0.integer(for: type(of: self).countAllTableColumn)!
+		}
+
+		return count
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[SQLiteTableColumn]? = nil,
 			innerJoin :(table :SQLiteTable, tableColumn :SQLiteTableColumn)? = nil,
-			where sqliteWhere :SQLiteWhere? = nil, resultsProc :(_ results :SQLiteResults) -> Void) {
+			where sqliteWhere :SQLiteWhere? = nil, resultsProc :@escaping (_ results :SQLiteResults) -> Void) {
 		// Compose statement
 		let	statement =
 					"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
@@ -119,6 +138,7 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
 	public func insert(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
 		// Setup
 		let	tableColumns = info.map() { $0.tableColumn }
@@ -128,7 +148,23 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
-		return self.statementPerformer.perform(statement: statement, values: values)
+		self.statementPerformer.perform(statement: statement, values: values)
+
+		return self.statementPerformer.lastInsertRowID
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func insert(_ info :[(tableColumn :SQLiteTableColumn, value :Any)],
+			lastInsertRowIDProc :@escaping (_ lastInsertRowID :Int64) -> Void) {
+		// Setup
+		let	tableColumns = info.map() { $0.tableColumn }
+		let	values = info.map() { $0.value }
+		let	statement =
+					"INSERT INTO `\(self.name)` (" + columnNamesString(for: tableColumns) + ") VALUES (" +
+							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
+
+		// Perform
+		self.statementPerformer.perform(statement: statement, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -141,7 +177,23 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
-		return self.statementPerformer.perform(statement: statement, values: values)
+		self.statementPerformer.perform(statement: statement, values: values)
+
+		return self.statementPerformer.lastInsertRowID
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func insertOrReplace(_ info :[(tableColumn :SQLiteTableColumn, value :Any)],
+			lastInsertRowIDProc :@escaping (_ lastInsertRowID :Int64) -> Void) {
+		// Setup
+		let	tableColumns = info.map() { $0.tableColumn }
+		let	values = info.map() { $0.value }
+		let	statement =
+					"INSERT OR REPLACE INTO `\(self.name)` (" + columnNamesString(for: tableColumns) + ") VALUES (" +
+							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
+
+		// Perform
+		self.statementPerformer.perform(statement: statement, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -151,9 +203,10 @@ public struct SQLiteTable {
 					"UPDATE `\(self.name)` SET " +
 							String(combining: info.map({ "\($0.tableColumn.name) = ?" }), with: ", ") +
 							sqliteWhere.string
+		let	values = info.map({ $0.value }) + (sqliteWhere.values ?? [])
 
 		// Perform
-		_ = self.statementPerformer.perform(statement: statement, values: info.map({ $0.value }))
+		self.statementPerformer.perform(statement: statement, values: values)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -162,7 +215,7 @@ public struct SQLiteTable {
 		let	statement = "DELETE FROM `\(self.name)`" + sqliteWhere.string
 
 		// Perform
-		self.statementPerformer.perform(statement: statement)
+		self.statementPerformer.perform(statement: statement, values: sqliteWhere.values)
 	}
 
 	// MARK: Private methods
