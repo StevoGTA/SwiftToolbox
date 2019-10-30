@@ -8,6 +8,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SQLiteTable
+@dynamicMemberLookup
 public struct SQLiteTable {
 
 	// MARK: Options
@@ -41,6 +42,16 @@ public struct SQLiteTable {
 		self.tableColumns = tableColumns
 		self.references = references
 		self.statementPerformer = statementPerformer
+	}
+
+	// MARK: Property methods
+	//------------------------------------------------------------------------------------------------------------------
+	public subscript(dynamicMember member :String) -> SQLiteTableColumn? {
+		// Setup
+		let	tableColumnName = "\(member)TableColumn"
+
+		// Return table column
+		return self.tableColumns.first() { $0.name == tableColumnName }
 	}
 
 	// MARK: Instance methods
