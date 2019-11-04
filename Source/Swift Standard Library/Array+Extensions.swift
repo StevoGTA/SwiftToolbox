@@ -12,6 +12,27 @@ extension Array {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	public func collate<T, U>() -> (ts :[T], us :[U]) {
+		// Setup
+		var	ts = [T]()
+		var	us = [U]()
+
+		// Iterate
+		forEach() {
+			// Check type
+			if let t = $0 as? T {
+				// T
+				ts.append(t)
+			} else {
+				// U
+				us.append($0 as! U)
+			}
+		}
+
+		return (ts, us)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public mutating func remove(for indexSet :IndexSet) {
 		// From https://stackoverflow.com/questions/26173565/removeobjectsatindexes-for-swift-arrays
 		// Preflight
