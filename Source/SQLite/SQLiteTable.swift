@@ -47,11 +47,8 @@ public struct SQLiteTable {
 	// MARK: Property methods
 	//------------------------------------------------------------------------------------------------------------------
 	public subscript(dynamicMember member :String) -> SQLiteTableColumn {
-		// Setup
-		let	tableColumnName = "\(member)TableColumn"
-
 		// Return table column
-		return self.tableColumns.first(where: { $0.name == tableColumnName })!
+		return self.tableColumns.first(where: { "\($0.name)TableColumn" == member })!
 	}
 
 	// MARK: Instance methods
