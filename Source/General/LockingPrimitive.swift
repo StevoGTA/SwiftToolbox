@@ -1,33 +1,45 @@
 //
-//  LockingSet.swift
+//  LockingPrimitive.swift
 //  Swift Toolbox
 //
-//  Created by Stevo on 10/30/19.
+//  Created by Stevo on 11/6/19.
 //  Copyright © 2019 Stevo Brock. All rights reserved.
 //
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: LockingSet
-public class LockingSet<T : Hashable> {
+// MARK: LockingPrimitive
+public class LockingPrimitive<T : Numeric> {
 
 	// MARK: Properties
-	public	var	values :Set<T> { return self.lock.read() { return self.set } }
-	
+	public	var	value :T { return self.lock.read() { return self.valueInternal } }
+
 	private	let	lock = ReadPreferringReadWriteLock()
 
-	private	var	set = Set<T>()
+	private	var	valueInternal :T
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init() {}
+	public init(_ value :T = 0) {
+		// Store
+		self.valueInternal = value
+	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func insert(_ value :T) { self.lock.write() { self.set.insert(value) } }
+	public func set(_ value :T) {
+		// Set
+		self.lock.write() { self.valueInternal = value }
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func remove(_ value :T) { self.lock.write() { self.set.remove(value) } }
+	public func add(_ value :T) {
+		// Add
+		self.lock.write() { self.valueInternal += value }
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func contains(_ value :T) -> Bool { return self.lock.read() { return self.set.contains(value) } }
+	public func subtract(_ value :T) {
+		// Add
+		self.lock.write() { self.valueInternal -= value }
+	}
 }
