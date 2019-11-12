@@ -39,6 +39,18 @@ public class Lock {
 
 		return t
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func performIfAvailable(_ proc :() throws -> Void) rethrows {
+		// Try to lock
+		if pthread_mutex_trylock(&self.mutex) == 0 {
+			// Call proc
+			try proc()
+
+			// Unlock
+			pthread_mutex_unlock(&self.mutex)
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
