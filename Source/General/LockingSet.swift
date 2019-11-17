@@ -26,6 +26,9 @@ public class LockingSet<T : Hashable> {
 	public func insert(_ value :T) { self.lock.write() { self.set.insert(value) } }
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func formUnion(_ values: [T]) { self.lock.write() { self.set.formUnion(values) } }
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func remove(_ value :T) { self.lock.write() { self.set.remove(value) } }
 
 	//------------------------------------------------------------------------------------------------------------------
