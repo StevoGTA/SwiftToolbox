@@ -6,6 +6,8 @@
 //  Copyright © 2015 Stevo Brock. All rights reserved.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: String General extension
 extension String {
@@ -129,6 +131,12 @@ extension String {
 						return (nameComponents.count > 1) ?
 								self.substring(toCharacterIndex: self.count - nameComponents.last!.count - 1) : self
 					}
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init(combiningPathComponents pathComponents :[String]) {
+		self.init(combining: pathComponents, with: "/")
+	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------

@@ -12,6 +12,40 @@ extension DispatchQueue {
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
+	static public func performAsync(performQueue :DispatchQueue = DispatchQueue.global(),
+			performProc :@escaping () -> Void, completionQueue :DispatchQueue = DispatchQueue.main,
+			completionProc :@escaping () -> Void) {
+		// Switch to perform queue
+		performQueue.async() {
+			// Perform
+			performProc()
+
+			// Switch to completion queue
+			completionQueue.async() {
+				// Call completion
+				completionProc()
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	static public func performAsync<T>(performQueue :DispatchQueue = DispatchQueue.global(),
+			performProc :@escaping () -> T, completionQueue :DispatchQueue = DispatchQueue.main,
+			completionProc :@escaping (_ t :T) -> Void) {
+		// Switch to perform queue
+		performQueue.async() {
+			// Perform
+			let	t = performProc()
+
+			// Switch to completion queue
+			completionQueue.async() {
+				// Call completion
+				completionProc(t)
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	static public func performBlocking(_ proc :(_ completionProc :@escaping () -> Void) -> Void) {
 		// Setup
 		let	dispatchGroup = DispatchGroup()
