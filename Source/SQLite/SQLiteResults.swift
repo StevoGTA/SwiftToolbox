@@ -40,7 +40,7 @@ public class SQLiteResults {
 	public func next() -> Bool { return sqlite3_step(self.statement) == SQLITE_ROW }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func integer<T : SignedInteger>(for tableColumn :SQLiteTableColumn) -> T? {
+	public func integer<T : BinaryInteger>(for tableColumn :SQLiteTableColumn) -> T? {
 		// Preflight
 		let	name = tableColumn.name
 		guard case .integer(_, _) = tableColumn.kind else
