@@ -123,12 +123,12 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func count(where sqliteWhere :SQLiteWhere? = nil) -> Int {
+	public func count(where sqliteWhere :SQLiteWhere? = nil) -> UInt {
 		// Compose statement
-		let	statement = "SELECT COUNT(*) FROM `\(self.name)`" + ((sqliteWhere != nil) ? sqliteWhere!.string : "")
+		let	statement = "SELECT COUNT(*) FROM `\(self.name)`" + (sqliteWhere?.string ?? "")
 
 		// Perform
-		var	count = 0
+		var	count :UInt = 0
 		self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values) {
 			// Query count
 			$0.next()
@@ -139,13 +139,12 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func select(tableColumns :[SQLiteTableColumn]? = nil,
-			innerJoin :(table :SQLiteTable, tableColumn :SQLiteTableColumn)? = nil,
+	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
 			where sqliteWhere :SQLiteWhere? = nil, resultsProc :@escaping (_ results :SQLiteResults) -> Void) {
 		// Compose statement
 		let	statement =
 					"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
-							string(for: innerJoin) + ((sqliteWhere != nil) ? sqliteWhere!.string : "")
+							(innerJoin?.string ?? "") + (sqliteWhere?.string ?? "")
 
 		// Perform
 		self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values, resultsProc: resultsProc)
@@ -239,15 +238,5 @@ public struct SQLiteTable {
 		let	columnNames = (tableColumns ?? []).map() { $0.name }
 
 		return !columnNames.isEmpty ? String(combining: columnNames, with: ",") : "*"
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	private func string(for innerJoin :(table :SQLiteTable, tableColumn :SQLiteTableColumn)?) -> String {
-		// Return string
-		return (innerJoin != nil) ?
-				" INNER JOIN `\(innerJoin!.table.name)` ON " +
-						"`\(innerJoin!.table.name)`.`\(innerJoin!.tableColumn.name)` = " +
-						"`\(self.name)`.`\(innerJoin!.tableColumn.name)`" :
-				""
 	}
 }

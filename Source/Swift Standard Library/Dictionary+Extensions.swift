@@ -88,3 +88,34 @@ extension Dictionary where Key == String {
 		}
 	}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: Dictionary extension for comparison
+extension Dictionary where Key == String, Value == Any {
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func equals(_ other :[Key : Value]) -> Bool {
+		// Key count must match
+		guard self.count == other.count else { return false }
+
+		// Iterate all keys/values
+		for (key, value) in self {
+			// Ensure other dictionary has value for this key
+			guard let otherValue = other[key] else { return false }
+
+			// Compare values
+			if let array = value as? [String], let otherArray = otherValue as? [String], array == otherArray { continue }
+			if let bool = value as? Bool, let otherBool = otherValue as? Bool, bool == otherBool { continue }
+			if let dictionary = value as? [String : Any], let otherDictionary = otherValue as? [String : Any], dictionary.equals(otherDictionary) { continue }
+			if let double = value as? Double, let otherDouble = otherValue as? Double, double == otherDouble { continue }
+			if let int = value as? Int, let otherInt = otherValue as? Int, int == otherInt { continue }
+			if let int64 = value as? Int64, let otherInt64 = otherValue as? Int64, int64 == otherInt64 { continue }
+			if let string = value as? String, let otherString = otherValue as? String, string == otherString { continue }
+
+			return false
+		}
+
+		return true
+	}
+}
