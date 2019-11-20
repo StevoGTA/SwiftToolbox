@@ -44,14 +44,17 @@ extension Date {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(fromStandardized standardizedString :String) throws {
+	init?(fromStandardized standardizedString :String?) {
+		// Preflight
+		guard standardizedString != nil else { return nil }
+
 		// Setup
-		if let date = Date.standardizedDateFormatter.date(from: standardizedString) {
+		if let date = Date.standardizedDateFormatter.date(from: standardizedString!) {
 			// Got date
 			self.init(timeIntervalSinceNow: date.timeIntervalSinceNow)
 		} else {
 			// Invalid
-			throw DateError.invalidStandardizedForm(string: standardizedString)
+			return nil
 		}
 	}
 }

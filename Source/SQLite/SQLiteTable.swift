@@ -117,6 +117,12 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func drop() {
+		// Perform
+		self.statementPerformer.perform(statement: "DROP TABLE `\(self.name)`")
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func count(where sqliteWhere :SQLiteWhere? = nil) -> Int {
 		// Compose statement
 		let	statement = "SELECT COUNT(*) FROM `\(self.name)`" + ((sqliteWhere != nil) ? sqliteWhere!.string : "")
