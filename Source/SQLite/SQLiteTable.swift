@@ -181,6 +181,7 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
 	public func insertOrReplace(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
 		// Setup
 		let	tableColumns = info.map() { $0.tableColumn }
