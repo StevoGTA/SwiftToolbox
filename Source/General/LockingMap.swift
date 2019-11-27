@@ -44,6 +44,7 @@ public class LockingMap<T : Hashable, U> {
 public class LockingArrayMap<T : Hashable, U> {
 
 	// MARK: Properties
+	public	var	isEmpty :Bool { return self.lock.read() { self.map.isEmpty } }
 	public	var	values :[U] { return self.lock.read() { Array(self.map.values.joined()) } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
