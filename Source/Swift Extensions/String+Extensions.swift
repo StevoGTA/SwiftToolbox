@@ -90,7 +90,7 @@ extension String {
 						// Get path components
 						let	pathComponents = self.pathComponents
 
-						return (pathComponents.count > 0) ? pathComponents[0] : nil
+						return (pathComponents.count > 0) ? pathComponents.first! : nil
 					}
 	public	var	lastPathComponent :String? {
 						// Get path components

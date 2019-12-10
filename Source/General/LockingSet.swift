@@ -23,6 +23,9 @@ public class LockingSet<T : Hashable> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	public func contains(_ value :T) -> Bool { return self.lock.read() { return self.set.contains(value) } }
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func insert(_ value :T) { self.lock.write() { self.set.insert(value) } }
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -32,5 +35,5 @@ public class LockingSet<T : Hashable> {
 	public func remove(_ value :T) { self.lock.write() { self.set.remove(value) } }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func contains(_ value :T) -> Bool { return self.lock.read() { return self.set.contains(value) } }
+	public func removeAll() { self.lock.write() { self.set.removeAll() } }
 }
