@@ -8,7 +8,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: LockingMap
-public class LockingMap<T : Hashable, U> {
+public class LockingDictionary<T : Hashable, U> {
 
 	// MARK: Properties
 	public	var	keys :[T] { return self.lock.read() { Array(self.map.keys) } }
@@ -41,7 +41,7 @@ public class LockingMap<T : Hashable, U> {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: LockingArrayMap
-public class LockingArrayMap<T : Hashable, U> {
+public class LockingArrayDictionary<T : Hashable, U> {
 
 	// MARK: Properties
 	public	var	isEmpty :Bool { return self.lock.read() { self.map.isEmpty } }
