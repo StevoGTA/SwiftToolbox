@@ -1,5 +1,5 @@
 //
-//  SQLiteResults.swift
+//  SQLiteResultsRow.swift
 //  Swift Toolbox
 //
 //  Created by Stevo on 10/25/18.
@@ -9,11 +9,11 @@
 import SQLite3
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: SQLiteResults
-public class SQLiteResults {
+// MARK: SQLiteResultsRow
+public class SQLiteResultsRow {
 
 	// MARK: Types
-	typealias ResultsProc = (_ results :SQLiteResults) -> Void
+	public typealias ProcessValuesProc = (_ resultsRow :SQLiteResultsRow) throws -> Void
 
 	// MARK: Properties
 	private	let	statement :OpaquePointer
@@ -36,17 +36,13 @@ public class SQLiteResults {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	@discardableResult
-	public func next() -> Bool { return sqlite3_step(self.statement) == SQLITE_ROW }
-
-	//------------------------------------------------------------------------------------------------------------------
 	public func integer<T : BinaryInteger>(for tableColumn :SQLiteTableColumn) -> T? {
 		// Preflight
 		let	name = tableColumn.name
-		guard case .integer(_, _) = tableColumn.kind else
-			{ fatalError("SQLiteResults column type mismatch: \"\(name)\" is not the expected type of integer") }
+		guard tableColumn.kind.isInteger else
+			{ fatalError("SQLiteResultsRow column type mismatch: \"\(name)\" is not the expected type of integer") }
 		guard let index = self.columnNameInfoMap[name] else
-			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
+			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
 
 		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
 				T(sqlite3_column_int64(self.statement, index)) : nil
@@ -56,10 +52,10 @@ public class SQLiteResults {
 	public func real(for tableColumn :SQLiteTableColumn) -> Double? {
 		// Preflight
 		let	name = tableColumn.name
-		guard case .real(_) = tableColumn.kind else
-			{ fatalError("SQLiteResults column type mismatch: \"\(name)\" is not the expected type of real") }
+		guard tableColumn.kind.isReal else
+			{ fatalError("SQLiteResultsRow column type mismatch: \"\(name)\" is not the expected type of real") }
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
-			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
+			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
 
 		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
 				sqlite3_column_double(self.statement, index) : nil
@@ -69,10 +65,10 @@ public class SQLiteResults {
 	public func text(for tableColumn :SQLiteTableColumn) -> String? {
 		// Preflight
 		let	name = tableColumn.name
-		guard case .text(_, _) = tableColumn.kind else
-			{ fatalError("SQLiteResults column type mismatch: \"\(name)\" is not the expected type of text") }
+		guard tableColumn.kind.isText else
+			{ fatalError("SQLiteResultsRow column type mismatch: \"\(name)\" is not the expected type of text") }
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
-			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
+			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
 
 		// Get value
 		if let text = sqlite3_column_text(self.statement, index) {
@@ -88,10 +84,10 @@ public class SQLiteResults {
 	public func blob(for tableColumn :SQLiteTableColumn) -> Data? {
 		// Preflight
 		let	name = tableColumn.name
-		guard case .blob = tableColumn.kind else
-			{ fatalError("SQLiteResults column type mismatch: \"\(name)\" is not the expected type of blob") }
+		guard tableColumn.kind.isBlob else
+			{ fatalError("SQLiteResultsRow column type mismatch: \"\(name)\" is not the expected type of blob") }
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
-			{ fatalError("SQLiteResults column key not found: \"\(name)\"") }
+			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
 
 		// Get value
 		if let blob = sqlite3_column_blob(self.statement, index) {

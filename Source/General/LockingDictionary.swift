@@ -1,5 +1,5 @@
 //
-//  LockingMap.swift
+//  LockingDictionary.swift
 //  Swift Toolbox
 //
 //  Created by Stevo on 10/29/19.
@@ -7,7 +7,7 @@
 //
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: LockingMap
+// MARK: LockingDictionary
 public class LockingDictionary<T : Hashable, U> {
 
 	// MARK: Properties

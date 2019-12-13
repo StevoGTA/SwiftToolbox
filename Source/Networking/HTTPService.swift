@@ -66,11 +66,16 @@ struct HTTPServiceError : Error, LocalizedError {
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func badRequest(with message :String) -> Self { Self(status: .badRequest, message: message) }
-	static func unquthorized(with message :String) -> Self { Self(status: .unauthorized, message: message) }
-	static func forbidden(with message :String) -> Self { Self(status: .forbidden, message: message) }
-	static func notFound(with message :String) -> Self { Self(status: .notFound, message: message) }
-	static func conflict(with message :String) -> Self { Self(status: .conflict, message: message) }
+	static func badRequest(with message :String) -> HTTPServiceError
+			{ return HTTPServiceError(status: .badRequest, message: message) }
+	static func unquthorized(with message :String) -> HTTPServiceError
+			{ return HTTPServiceError(status: .unauthorized, message: message) }
+	static func forbidden(with message :String) -> HTTPServiceError
+			{ return HTTPServiceError(status: .forbidden, message: message) }
+	static func notFound(with message :String) -> HTTPServiceError
+			{ return HTTPServiceError(status: .notFound, message: message) }
+	static func conflict(with message :String) -> HTTPServiceError
+			{ return HTTPServiceError(status: .conflict, message: message) }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
