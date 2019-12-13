@@ -23,23 +23,24 @@ fileprivate struct SQLiteStatement {
 	// MARK: Properties
 	private	let	string :String
 	private	let	values :[Any]?
+
 	private	let	lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)?
-	private	let	resultsProc :SQLiteResults.ResultsProc?
+	private	let	processValuesProc :SQLiteResultsRow.ProcessValuesProc?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(statement :String, values :[Any]? = nil, lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)? = nil,
-			resultsProc :SQLiteResults.ResultsProc? = nil) {
+			processValuesProc :SQLiteResultsRow.ProcessValuesProc? = nil) {
 		// Store
 		self.string = statement
 		self.values = values
 		self.lastInsertRowIDProc = lastInsertRowIDProc
-		self.resultsProc = resultsProc
+		self.processValuesProc = processValuesProc
 	}
 
 	// MARK: Instance Methods
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(with database :OpaquePointer) {
+	func perform(with database :OpaquePointer) throws {
 		// Setup
 		var	statement :OpaquePointer? = nil
 		defer { sqlite3_finalize(statement) }
@@ -58,7 +59,7 @@ fileprivate struct SQLiteStatement {
 		}
 
 		// Check for results proc
-		if self.resultsProc == nil {
+		if self.processValuesProc == nil {
 			// Perform
 			guard sqlite3_step(statement) == SQLITE_DONE else {
 				// Error
@@ -72,8 +73,9 @@ fileprivate struct SQLiteStatement {
 				self.lastInsertRowIDProc!(sqlite3_last_insert_rowid(database))
 			}
 		} else {
-			// Call proc
-			self.resultsProc!(SQLiteResults(statement: statement!))
+			// Iterate results
+			let	resultsRow = SQLiteResultsRow(statement: statement!)
+			while sqlite3_step(statement) == SQLITE_ROW { try self.processValuesProc!(resultsRow) }
 		}
 	}
 
@@ -151,11 +153,13 @@ class SQLiteStatementPerfomer {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(statement string :String, values :[Any]? = nil, resultsProc :@escaping SQLiteResults.ResultsProc) {
+	func perform(statement string :String, values :[Any]? = nil,
+			processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc) rethrows {
 		// Setup
-		self.lock.perform() {
+		try self.lock.perform() {
 			// Perform
-			SQLiteStatement(statement: string, values: values, resultsProc: resultsProc).perform(with: self.database)
+			try SQLiteStatement(statement: string, values: values, processValuesProc: processValuesProc)
+					.perform(with: self.database)
 		}
 	}
 
@@ -190,7 +194,7 @@ class SQLiteStatementPerfomer {
 			// Perform
 			self.lock.perform() {
 				// Perform all statements
-				sqliteStatements.forEach() { _ = $0.perform(with: self.database) }
+				sqliteStatements.forEach() { _ = try! $0.perform(with: self.database) }
 			}
 		} else {
 			// No longer in transaction
@@ -212,7 +216,7 @@ class SQLiteStatementPerfomer {
 			}
 		} else {
 			// Perform
-			return self.lock.perform() { return sqliteStatement.perform(with: self.database) }
+			return self.lock.perform() { return try! sqliteStatement.perform(with: self.database) }
 		}
 	}
 }

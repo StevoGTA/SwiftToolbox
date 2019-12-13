@@ -23,7 +23,7 @@ public struct SQLiteTable {
 			}
 
 	// MARK: Properties
-	static	private	let	countAllTableColumn = SQLiteTableColumn("COUNT(*)", .integer(size: nil, default: nil), [])
+	static	private	let	countAllTableColumn = SQLiteTableColumn("COUNT(*)", .integer, [])
 
 					let	name :String
 
@@ -31,6 +31,8 @@ public struct SQLiteTable {
 			private	let	tableColumns :[SQLiteTableColumn]
 			private	let	references :[SQLiteTableColumn.Reference]
 			private	let	statementPerformer :SQLiteStatementPerfomer
+
+			private	var	tableColumnsMap = [/* property name */ String : SQLiteTableColumn]()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -42,13 +44,16 @@ public struct SQLiteTable {
 		self.tableColumns = tableColumns
 		self.references = references
 		self.statementPerformer = statementPerformer
+
+		// Setup
+		tableColumns.forEach() { self.tableColumnsMap["\($0.name)TableColumn"] = $0 }
 	}
 
 	// MARK: Property methods
 	//------------------------------------------------------------------------------------------------------------------
 	public subscript(dynamicMember member :String) -> SQLiteTableColumn {
 		// Return table column
-		return self.tableColumns.first(where: { "\($0.name)TableColumn" == member })!
+		return self.tableColumnsMap[member]!
 	}
 
 	// MARK: Instance methods
@@ -64,22 +69,47 @@ public struct SQLiteTable {
 						var	columnInfo = "\($0.name) "
 
 						switch $0.kind {
-							case .integer(let size, let `default`):
+							case .integer:
 								// Integer
 								columnInfo += "INTEGER"
-								if size != nil { columnInfo += "(\(size!))" }
-								if `default` != nil { columnInfo += " DEFAULT \(`default`!)" }
 
-							case .real(let `default`):
+							case .integer1:
+								// Integer 1
+								columnInfo += "INTEGER"
+								columnInfo += "(1)"
+
+							case .integer2:
+								// Integer 2
+								columnInfo += "INTEGER"
+								columnInfo += "(2)"
+
+							case .integer3:
+								// Integer 3
+								columnInfo += "INTEGER"
+								columnInfo += "(3)"
+
+							case .integer4:
+								// Integer 4
+								columnInfo += "INTEGER"
+								columnInfo += "(4)"
+
+							case .integer8:
+								// Integer 8
+								columnInfo += "INTEGER"
+								columnInfo += "(8)"
+
+							case .real:
 								// Real
 								columnInfo += "REAL"
-								if `default` != nil { columnInfo += " DEFAULT \(`default`!)" }
 
-							case .text(let size, let `default`):
+							case .text:
 								// Text
 								columnInfo += "TEXT"
-								if size != nil { columnInfo += "(\(size!))" }
-								if `default` != nil { columnInfo += " DEFAULT \(`default`!)" }
+
+							case .textWith(let size):
+								// Text
+								columnInfo += "TEXT"
+								columnInfo += "(\(size))"
 
 							case .blob:
 								// Blob
@@ -123,6 +153,9 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func hasRow(where sqliteWhere :SQLiteWhere) -> Bool { return count(where: sqliteWhere) > 0 }
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func count(where sqliteWhere :SQLiteWhere? = nil) -> UInt {
 		// Compose statement
 		let	statement = "SELECT COUNT(*) FROM `\(self.name)`" + (sqliteWhere?.string ?? "")
@@ -131,7 +164,6 @@ public struct SQLiteTable {
 		var	count :UInt = 0
 		self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values) {
 			// Query count
-			$0.next()
 			count = $0.integer(for: type(of: self).countAllTableColumn)!
 		}
 
@@ -140,14 +172,16 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
-			where sqliteWhere :SQLiteWhere? = nil, resultsProc :@escaping (_ results :SQLiteResults) -> Void) {
+			where sqliteWhere :SQLiteWhere? = nil, processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc)
+			throws {
 		// Compose statement
 		let	statement =
 					"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
 							(innerJoin?.string ?? "") + (sqliteWhere?.string ?? "")
 
 		// Perform
-		self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values, resultsProc: resultsProc)
+		try self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values,
+				processValuesProc: processValuesProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

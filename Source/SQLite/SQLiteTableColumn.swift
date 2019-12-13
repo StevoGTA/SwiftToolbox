@@ -15,18 +15,60 @@ public struct SQLiteTableColumn {
 				// Values
 				// INTEGER values are whole numbers (either positive or negative). An integer can have variable sizes
 				//	such as 1, 2, 3, 4, or 8 bytes.
-				case integer(size :Int?, default :Int?)
+				case integer
+				case integer1
+				case integer2
+				case integer3
+				case integer4
+				case integer8
 
 				// REAL values are real numbers with decimal values that use 8-byte floats.
-				case real(default :Float?)
+				case real
 
 				// TEXT is used to store character data. The maximum length of TEXT is unlimited. SQLite supports
 				//	various character encodings.
-				case text(size :Int?, default :String?)
+				case text
+				case textWith(size :Int)
 
 				// BLOB stands for a binary large object that can be used to store any kind of data. The maximum size
 				//	of BLOBs is unlimited
 				case blob
+
+				// Properties
+				var	isInteger :Bool {
+							// Switch self
+							switch self {
+								case .integer:	return true
+								case .integer1:	return true
+								case .integer2:	return true
+								case .integer3:	return true
+								case .integer4:	return true
+								case .integer8:	return true
+								default:		return false
+							}
+						}
+				var	isReal :Bool {
+							// Switch self
+							switch self {
+								case .real:	return true
+								default:	return false
+							}
+						}
+				var	isText :Bool {
+							// Switch self
+							switch self {
+								case .text:			return true
+								case .textWith(_):	return true
+								default:			return false
+							}
+						}
+				var	isBlob :Bool {
+							// Switch self
+							switch self {
+								case .blob:	return true
+								default:	return false
+							}
+						}
 			}
 
 	// MARK: Options
