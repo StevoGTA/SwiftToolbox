@@ -13,24 +13,81 @@ import Foundation
 extension FileManager {
 
 	// Types
-	typealias FileProc = (_ url :URL) -> Void
+	typealias FolderProc = (_ url :URL, _ subPath :String) -> Void
+	typealias FileProc = (_ url :URL, _ subPath :String) -> Void
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	func enumerateFoldersFiles(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: FileManager.DirectoryEnumerationOptions = [], folderProc :FolderProc, fileProc :FileProc) {
+		// Setup
+		let	keysUse = (keys ?? []) + [.isRegularFileKey]
+
+		// Iterate all urls
+		let	urls = try! contentsOfDirectory(at: url, includingPropertiesForKeys: keysUse, options: options)
+		urls.forEach() {
+			// Check folder/file
+			if !(try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
+				// Folder
+				folderProc($0, try! $0.subPath(relativeTo: url))
+			} else {
+				// File
+				fileProc($0, try! $0.subPath(relativeTo: url))
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func enumerateFolders(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: FileManager.DirectoryEnumerationOptions = [], folderProc :FolderProc) {
+		// Setup
+		let	keysUse = (keys ?? []) + [.isRegularFileKey]
+
+		// Iterate all urls
+		let	urls = try! contentsOfDirectory(at: url, includingPropertiesForKeys: keysUse, options: options)
+		urls.forEach() {
+			// Check folder/file
+			if !(try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
+				// Folder
+				folderProc($0, try! $0.subPath(relativeTo: url))
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func enumerateFiles(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: FileManager.DirectoryEnumerationOptions = [], fileProc :FileProc) {
+		// Setup
+		let	keysUse = (keys ?? []) + [.isRegularFileKey]
+
+		// Iterate all urls
+		let	urls = try! contentsOfDirectory(at: url, includingPropertiesForKeys: keysUse, options: options)
+		urls.forEach() {
+			// Check folder/file
+			if try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
+				// File
+				fileProc($0, try! $0.subPath(relativeTo: url))
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFilesDeep(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: FileManager.DirectoryEnumerationOptions = [], fileProc :FileProc) {
+		// Setup
+		let	keysUse = (keys ?? []) + [.isRegularFileKey]
+
 		// Enumerate all files
 		let	directoryEnumerator =
-					FileManager.default.enumerator(at: url, includingPropertiesForKeys: keys, options: options,
-							errorHandler: nil)!
+					enumerator(at: url, includingPropertiesForKeys: keysUse, options: options, errorHandler: nil)!
 		for element in directoryEnumerator {
 			// Setup
-			let	url = element as! URL
+			let	childURL = element as! URL
 
 			// Is regular file
-			if try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
+			if try! childURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
 				// Call proc
-				fileProc(url)
+				fileProc(childURL, try! childURL.subPath(relativeTo: url))
 			}
 		}
 	}

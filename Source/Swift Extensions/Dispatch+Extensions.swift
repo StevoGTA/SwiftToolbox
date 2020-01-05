@@ -6,6 +6,8 @@
 //  Copyright © 2019 Light Iron. All rights reserved.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Dispatch extensions
 extension DispatchQueue {
