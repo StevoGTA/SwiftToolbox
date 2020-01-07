@@ -22,7 +22,7 @@ extension URLComponents {
 						// Additional of this name
 						queryItemsMap[$0.name] =
 								(existingValue is [String]) ?
-										(existingValue as! [String]) + [$0.value] :
+										(existingValue as! [String]) + [$0.value!] :
 										[(existingValue as! String), $0.value]
 					} else {
 						// First of this name

@@ -26,7 +26,7 @@ extension SQLiteDatabaseError : LocalizedError {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - SQLiteDatabase
-public struct SQLiteDatabase {
+public class SQLiteDatabase {
 
 	// MARK: Enums
 	public enum TransactionResult {
@@ -35,6 +35,7 @@ public struct SQLiteDatabase {
 	}
 
 	// MARK: Properties
+	private	let	database :OpaquePointer
 	private	let	statementPerformer :SQLiteStatementPerfomer
 
 	// MARK: Lifecycle methods
@@ -54,7 +55,14 @@ public struct SQLiteDatabase {
 		}
 
 		// Setup
+		self.database = database!
 		self.statementPerformer = SQLiteStatementPerfomer(database: database!)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	deinit {
+		// Cleanup
+		sqlite3_close(self.database)
 	}
 
 	// MARK: Instance methods
