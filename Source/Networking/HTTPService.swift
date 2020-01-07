@@ -6,6 +6,8 @@
 //  Copyright © 2019 Stevo Brock. All rights reserved.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPServiceMethod
 enum HTTPServiceMethod {
@@ -48,6 +50,8 @@ enum HTTPServiceStatus : UInt {
 	case forbidden = 403
 	case notFound = 404
 	case conflict = 409
+
+	case internalServerError = 500
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -99,7 +103,7 @@ protocol HTTPService {
 	var	path :String { get }
 
 	// MARK: Instance methods
-	func perform(urlComponents :URLComponents, bodyData :Data?) throws -> PerformResult
+	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -110,25 +114,25 @@ struct BasicHTTPService<T> : HTTPService {
 	let	method :HTTPServiceMethod
 	let	path :String
 
-	func perform(urlComponents: URLComponents, bodyData: Data?) throws -> PerformResult {
+	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
 		// Perform
-		let	info = try self.validateProc(urlComponents)
+		let	info = try self.validateProc(urlComponents, headers)
 
 		return try self.performProc(info)
 	}
 
 	// MARK: Types
+	typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String]) throws -> T
 	typealias PerformProc = (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
-	let	validateProc :(_ urlComponents :URLComponents) throws -> T
+	let	validateProc :ValidateProc
 
 	var	performProc :PerformProc!
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String,
-			validateProc :@escaping (_ urlComponents :URLComponents) throws -> T) {
+	init(method :HTTPServiceMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path
@@ -145,28 +149,29 @@ struct DataHTTPService<T> :HTTPService {
 	let	method :HTTPServiceMethod
 	let	path :String
 
-	func perform(urlComponents: URLComponents, bodyData: Data?) throws -> PerformResult {
+	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
 		// Validate
 		guard bodyData != nil else { throw HTTPServiceError.missingBody }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, bodyData!)
+		let	info = try self.validateProc(urlComponents, headers, bodyData!)
 
 		return try self.performProc(info)
 	}
 
 	// MARK: Types
+	typealias ValidateProc =
+				(_ urlComponents :URLComponents, _ headers :[String : String], _ bodyData :Data) throws -> T
 	typealias PerformProc = (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
-	let	validateProc :(_ urlComponents :URLComponents, _ bodyData :Data) throws -> T
+	let	validateProc :ValidateProc
 
 	var	performProc :PerformProc!
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String,
-			validateProc :@escaping (_ urlComponents :URLComponents, _ bodyData :Data) throws -> T) {
+	init(method :HTTPServiceMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path
@@ -184,30 +189,30 @@ struct JSONHTTPService<T, U> :HTTPService {
 	let	method :HTTPServiceMethod
 	let	path :String
 
-	func perform(urlComponents: URLComponents, bodyData: Data?) throws -> PerformResult {
+	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
 		// Validate
 		guard bodyData != nil else { throw HTTPServiceError.missingBody }
 		guard let json = try? JSONSerialization.jsonObject(with: bodyData!, options: []) as? T else
 				{ throw HTTPServiceError.unableToConvertBodyToJSON }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, json!)
+		let	info = try self.validateProc(urlComponents, headers, json!)
 
 		return try self.performProc(info)
 	}
 
 	// MARK: Types
+	typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String], _ info :T) throws -> U
 	typealias PerformProc = (_ info :U) throws -> PerformResult
 
 	// MARK: Properties
-	let	validateProc :(_ urlComponents :URLComponents, _ info :T) throws -> U
+	let	validateProc :ValidateProc
 
 	var	performProc :PerformProc!
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String,
-		 validateProc :@escaping (_ urlComponents :URLComponents, _ info :T) throws -> U) {
+	init(method :HTTPServiceMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path

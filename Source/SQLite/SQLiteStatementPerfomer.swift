@@ -6,6 +6,7 @@
 //  Copyright © 2019 Stevo Brock. All rights reserved.
 //
 
+import Foundation
 import SQLite3
 
 //----------------------------------------------------------------------------------------------------------------------
