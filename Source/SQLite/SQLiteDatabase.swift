@@ -66,7 +66,7 @@ public struct SQLiteDatabase {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func performAsTransaction(_ proc :() -> TransactionResult) {
+	public func performAsTransaction(_ proc :() -> TransactionResult) {
 		// Trigger statement performer to perform as a transaction
 		self.statementPerformer.performAsTransaction() {
 			// Call proc

@@ -18,10 +18,8 @@ public class SQLiteWhere {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) {
 		// Setup
-		self.string =
-				" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
-						" \(comparison) ?"
-		self.values = [value]
+		self.string = " WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`")
+		append(comparison: comparison, with: value)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -38,10 +36,8 @@ public class SQLiteWhere {
 	public func and(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) ->
 			Self {
 		// Append
-		self.string +=
-				" AND " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
-						" \(comparison) ?"
-		self.values = (self.values ?? []) + [value]
+		self.string += " AND " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`")
+		append(comparison: comparison, with: value)
 
 		return self
 	}
@@ -50,11 +46,31 @@ public class SQLiteWhere {
 	public func or(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) ->
 			Self {
 		// Append
-		self.string +=
-				" OR " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
-						" \(comparison) ?"
-		self.values = (self.values ?? []) + [value]
+		self.string += " OR " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`")
+		append(comparison: comparison, with: value)
 
 		return self
+	}
+
+	// MARK: Private methods
+	//------------------------------------------------------------------------------------------------------------------
+	private func append(comparison :String, with value :Any) {
+		// Check value type
+		if case Optional<Any>.none = value {
+			// Value is nil
+			if comparison == "=" {
+				// IS NULL
+				self.string += " IS NULL"
+			} else if comparison == "!=" {
+				// IS NOT NULL
+				self.string += " IS NOT NULL"
+			} else {
+				fatalError("SQLiteWhere could not prepare nil value comparison \(comparison)")
+			}
+		} else {
+			// Actual value
+			self.string += " \(comparison) ?"
+			self.values = (self.values ?? []) + [value]
+		}
 	}
 }
