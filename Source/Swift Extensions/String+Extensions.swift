@@ -146,6 +146,12 @@ extension String {
 	public func appending(pathExtension :String) -> String {
 		return !pathExtension.isEmpty ? self + "." + pathExtension : self
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func subPath(relativeTo path :String) -> String? {
+		// Return subPath
+		return path.hasPrefix(self) ? path.substring(fromCharacterIndex: self.count) : nil
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

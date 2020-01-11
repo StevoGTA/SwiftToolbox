@@ -29,10 +29,10 @@ extension FileManager {
 			// Check folder/file
 			if !(try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
 				// Folder
-				folderProc($0, try! $0.subPath(relativeTo: url))
+				folderProc($0, $0.subPath(relativeTo: url)!)
 			} else {
 				// File
-				fileProc($0, try! $0.subPath(relativeTo: url))
+				fileProc($0, $0.subPath(relativeTo: url)!)
 			}
 		}
 	}
@@ -49,7 +49,7 @@ extension FileManager {
 			// Check folder/file
 			if !(try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
 				// Folder
-				folderProc($0, try! $0.subPath(relativeTo: url))
+				folderProc($0, $0.subPath(relativeTo: url)!)
 			}
 		}
 	}
@@ -66,7 +66,7 @@ extension FileManager {
 			// Check folder/file
 			if try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
 				// File
-				fileProc($0, try! $0.subPath(relativeTo: url))
+				fileProc($0, $0.subPath(relativeTo: url)!)
 			}
 		}
 	}
@@ -87,7 +87,7 @@ extension FileManager {
 			// Is regular file
 			if try! childURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
 				// Call proc
-				fileProc(childURL, try! childURL.subPath(relativeTo: url))
+				fileProc(childURL, childURL.subPath(relativeTo: url)!)
 			}
 		}
 	}

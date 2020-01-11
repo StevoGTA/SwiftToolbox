@@ -9,34 +9,16 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: URLError
-public enum URLError : Error {
-	case isNotChildOf(rootURL :URL, invalidURL :URL)
-}
-
-extension URLError : LocalizedError {
-	public	var	errorDescription :String? {
-						switch self {
-							case .isNotChildOf(let rootURL, let invalidURL):
-								return "URL \(invalidURL.path) is not a child of \(rootURL.path)"
-						}
-					}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 // MARK: URL
 extension URL {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func subPath(relativeTo url :URL) throws -> String {
+	func subPath(relativeTo url :URL) -> String? {
 		// Setup
 		let	fullPath = self.path
 		let	rootPath = url.path
 
-		// Validate
-		guard fullPath.hasPrefix(rootPath) else { throw URLError.isNotChildOf(rootURL: self, invalidURL: url) }
-
-		return fullPath.substring(fromCharacterIndex: rootPath.count)
+		return fullPath.hasPrefix(rootPath) ? fullPath.substring(fromCharacterIndex: rootPath.count) : nil
 	}
 }
