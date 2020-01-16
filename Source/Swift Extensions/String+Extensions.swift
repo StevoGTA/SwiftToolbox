@@ -22,14 +22,14 @@ extension String {
 		var	string = ""
 
 		// Iterate all components
-		components.forEach() {
+		components.enumerated().forEach() {
 			// Append to string
-			if string.isEmpty {
+			if $0.offset == 0 {
 				// Start of string
-				string = $0
+				string = $0.element
 			} else {
 				// Continuing
-				string += separator + "\($0)"
+				string += separator + "\($0.element)"
 			}
 		}
 
