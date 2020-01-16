@@ -67,7 +67,7 @@ public class SQLiteDatabase {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func table(name :String, options :SQLiteTable.Options, tableColumns :[SQLiteTableColumn],
+	public func table(name :String, options :SQLiteTable.Options = [], tableColumns :[SQLiteTableColumn],
 			references :[SQLiteTableColumn.Reference] = []) -> SQLiteTable {
 		// Create table
 		return SQLiteTable(name: name, options: options, tableColumns: tableColumns, references: references,
