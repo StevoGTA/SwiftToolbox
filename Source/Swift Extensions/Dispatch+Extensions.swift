@@ -1,9 +1,9 @@
 //
 //  Dispatch+Extensions.swift
-//  LIFramework_OSX
+//  Swift Toolbox
 //
 //  Created by Stevo on 11/4/19.
-//  Copyright © 2019 Light Iron. All rights reserved.
+//  Copyright © 2019 Stevo Brock. All rights reserved.
 //
 
 import Foundation

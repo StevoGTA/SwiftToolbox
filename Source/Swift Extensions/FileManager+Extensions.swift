@@ -1,6 +1,6 @@
 //
 //  FileManager+Extensions.swift
-//  Media Tools macOS Server
+//  Swift Toolbox
 //
 //  Created by Stevo on 10/26/19.
 //  Copyright © 2019 Stevo Brock. All rights reserved.

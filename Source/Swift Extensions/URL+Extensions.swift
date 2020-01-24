@@ -1,6 +1,6 @@
 //
 //  URL+Extensions.swift
-//  Media Tools
+//  Swift Toolbox
 //
 //  Created by Stevo on 1/4/20.
 //  Copyright © 2020 Stevo Brock. All rights reserved.

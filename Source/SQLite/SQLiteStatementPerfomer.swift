@@ -50,7 +50,7 @@ fileprivate struct SQLiteStatement {
 		guard sqlite3_prepare_v2(database, self.string, -1, &statement, nil) == SQLITE_OK else {
 			// Error
 			let	errorMessage = String(cString: sqlite3_errmsg(database))
-			fatalError("SQLiteStatementPerfomer could not prepare query with \"\(string)\", with error \"\(errorMessage)\"")
+			fatalError("SQLiteStatementPerfomer could not prepare query with \"\(self.string)\", with error \"\(errorMessage)\"")
 		}
 
 		// Check for values
@@ -65,7 +65,7 @@ fileprivate struct SQLiteStatement {
 			guard sqlite3_step(statement) == SQLITE_DONE else {
 				// Error
 				let	errorMessage = String(cString: sqlite3_errmsg(database))
-				fatalError("SQLiteStatementPerfomer could not perform query with \"\(string)\", with error \"\(errorMessage)\"")
+				fatalError("SQLiteStatementPerfomer could not perform query with \"\(self.string)\", with error \"\(errorMessage)\"")
 			}
 
 			// Check for last insert row ID proc
@@ -130,8 +130,6 @@ class SQLiteStatementPerfomer {
 	}
 
 	// MARK: Properties
-			var	lastInsertRowID :Int64 { return sqlite3_last_insert_rowid(self.database) }
-
 	private	let	database :OpaquePointer
 	private	let	lock = Lock()
 
@@ -150,7 +148,22 @@ class SQLiteStatementPerfomer {
 	func perform(statement string :String, values :[Any]? = nil,
 			lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)? = nil) {
 		// Setup
-		process(SQLiteStatement(statement: string, values: values, lastInsertRowIDProc: lastInsertRowIDProc))
+		let	sqliteStatement =
+					SQLiteStatement(statement: string, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
+
+		// Check for transaction
+		if var sqliteStatements = self.transactionsMapLock.read({ return self.transactionsMap[Thread.current] }) {
+			// In transaction
+			self.transactionsMapLock.write() {
+				// Add sqlite statement
+				self.transactionsMap[Thread.current] = nil
+				sqliteStatements.append(sqliteStatement)
+				self.transactionsMap[Thread.current] = sqliteStatements
+			}
+		} else {
+			// Perform
+			self.lock.perform() { try! sqliteStatement.perform(with: self.database) }
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -200,24 +213,6 @@ class SQLiteStatementPerfomer {
 		} else {
 			// No longer in transaction
 			self.transactionsMapLock.write() { self.transactionsMap[Thread.current] = nil }
-		}
-	}
-
-	// Private methods
-	//------------------------------------------------------------------------------------------------------------------
-	private func process(_ sqliteStatement :SQLiteStatement) {
-		// Check for transaction
-		if var sqliteStatements = self.transactionsMapLock.read({ return self.transactionsMap[Thread.current] }) {
-			// In transaction
-			self.transactionsMapLock.write() {
-				// Add sqlite statement
-				self.transactionsMap[Thread.current] = nil
-				sqliteStatements.append(sqliteStatement)
-				self.transactionsMap[Thread.current] = sqliteStatements
-			}
-		} else {
-			// Perform
-			return self.lock.perform() { return try! sqliteStatement.perform(with: self.database) }
 		}
 	}
 }

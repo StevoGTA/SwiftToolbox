@@ -36,4 +36,7 @@ public class LockingSet<T : Hashable> {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func removeAll() { self.lock.write() { self.set.removeAll() } }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func forEach(_ proc: (T) throws -> Void) rethrows { try self.values.forEach(proc) }
 }

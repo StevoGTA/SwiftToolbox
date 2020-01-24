@@ -186,7 +186,7 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func insert(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
+	public func insertRow(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
 		// Setup
 		let	tableColumns = info.map() { $0.tableColumn }
 		let	values = info.map() { $0.value }
@@ -195,13 +195,14 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
-		self.statementPerformer.perform(statement: statement, values: values)
+		var	lastInsertRowID :Int64 = 0
+		self.statementPerformer.perform(statement: statement, values: values) { lastInsertRowID = $0 }
 
-		return self.statementPerformer.lastInsertRowID
+		return lastInsertRowID
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func insert(_ info :[(tableColumn :SQLiteTableColumn, value :Any)],
+	public func insertRow(_ info :[(tableColumn :SQLiteTableColumn, value :Any)],
 			lastInsertRowIDProc :@escaping (_ lastInsertRowID :Int64) -> Void) {
 		// Setup
 		let	tableColumns = info.map() { $0.tableColumn }
@@ -216,7 +217,7 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func insertOrReplace(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
+	public func insertOrReplaceRow(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
 		// Setup
 		let	tableColumns = info.map() { $0.tableColumn }
 		let	values = info.map() { $0.value }
@@ -225,13 +226,14 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
-		self.statementPerformer.perform(statement: statement, values: values)
+		var	lastInsertRowID :Int64 = 0
+		self.statementPerformer.perform(statement: statement, values: values) { lastInsertRowID = $0 }
 
-		return self.statementPerformer.lastInsertRowID
+		return lastInsertRowID
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func insertOrReplace(_ info :[(tableColumn :SQLiteTableColumn, value :Any)],
+	public func insertOrReplaceRow(_ info :[(tableColumn :SQLiteTableColumn, value :Any)],
 			lastInsertRowIDProc :@escaping (_ lastInsertRowID :Int64) -> Void) {
 		// Setup
 		let	tableColumns = info.map() { $0.tableColumn }
@@ -242,6 +244,20 @@ public struct SQLiteTable {
 
 		// Perform
 		self.statementPerformer.perform(statement: statement, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func insertOrReplaceRows(_ tableColumn :SQLiteTableColumn, values :[Any]) {
+		// Perform in chunks of 999 (SQLITE_MAX_VARIABLE_NUMBER)
+		values.forEachChunk(chunkSize: 999) {
+			// Setup
+			let	statement =
+						"INSERT OR REPLACE INTO `\(self.name)` (" + columnNamesString(for: [tableColumn]) + ") VALUES "
+								+ String(combining: Array(repeating: "(?)", count: $0.count), with: ",")
+
+			// Perform
+			self.statementPerformer.perform(statement: statement, values: $0)
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -258,12 +274,17 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func delete(where sqliteWhere :SQLiteWhere) {
-		// Setup
-		let	statement = "DELETE FROM `\(self.name)`" + sqliteWhere.string
+	public func deleteRows(_ tableColumn :SQLiteTableColumn, values :[Any]) {
+		// Perform in chunks of 999 (SQLITE_MAX_VARIABLE_NUMBER)
+		values.forEachChunk(chunkSize: 999) {
+			// Setup
+			let	statement =
+						"DELETE FROM `\(self.name)` WHERE `\(tableColumn.name)` IN (" +
+								String(combining: Array(repeating: "?", count: $0.count), with: ",") + ")"
 
-		// Perform
-		self.statementPerformer.perform(statement: statement, values: sqliteWhere.values)
+			// Perform
+			self.statementPerformer.perform(statement: statement, values: $0)
+		}
 	}
 
 	// MARK: Private methods
