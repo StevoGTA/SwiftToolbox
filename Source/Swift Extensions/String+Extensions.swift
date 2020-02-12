@@ -17,7 +17,7 @@ extension String {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(combining components :[String], with separator :String) {
+	public init(combining components :[String], with separator :String = ", ") {
 		// Setup
 		var	string = ""
 

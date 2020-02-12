@@ -139,7 +139,7 @@ public struct SQLiteTable {
 		// Compose create statement
 		let	statement =
 					"CREATE TABLE" + (ifNotExists ? " IF NOT EXISTS" : "") + " `\(self.name)`" +
-							" (" + String(combining: columnInfos, with: ", ") + ")" +
+							" (" + String(combining: columnInfos) + ")" +
 							(self.options.contains(.withoutRowID) ? " WITHOUT ROWID" : "")
 
 		// Create
@@ -264,8 +264,7 @@ public struct SQLiteTable {
 	public func update(_ info :[(tableColumn :SQLiteTableColumn, value :Any)], where sqliteWhere :SQLiteWhere) {
 		// Setup
 		let	statement =
-					"UPDATE `\(self.name)` SET " +
-							String(combining: info.map({ "\($0.tableColumn.name) = ?" }), with: ", ") +
+					"UPDATE `\(self.name)` SET " + String(combining: info.map({ "\($0.tableColumn.name) = ?" })) +
 							sqliteWhere.string
 		let	values = info.map({ $0.value }) + (sqliteWhere.values ?? [])
 
