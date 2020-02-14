@@ -39,8 +39,8 @@ public extension Timer {
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static public func scheduledTimer(timeInterval :TimeInterval, runLoop :RunLoop = RunLoop.current,
-			proc :@escaping Proc) -> Timer {
+	static func scheduledTimer(timeInterval :TimeInterval, runLoop :RunLoop = RunLoop.current, proc :@escaping Proc) ->
+			Timer {
 		// Setup
 		let	timer = Timer(timeInterval: timeInterval, proc: proc)
 
@@ -51,8 +51,7 @@ public extension Timer {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static public func scheduledTimer(fireAt date :Date, runLoop :RunLoop = RunLoop.current,
-			proc :@escaping Proc) -> Timer {
+	static func scheduledTimer(fireAt date :Date, runLoop :RunLoop = RunLoop.current, proc :@escaping Proc) -> Timer {
 		// Setup
 		let	timer = Timer(fireAt: date, proc: proc)
 
@@ -64,7 +63,7 @@ public extension Timer {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public convenience init(timeInterval :TimeInterval, proc :@escaping Proc) {
+	convenience init(timeInterval :TimeInterval, proc :@escaping Proc) {
 		// Check availability
 		if #available(OSX 10.12, *) {
 			// Use framework version
@@ -80,7 +79,7 @@ public extension Timer {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public convenience init(fireAt date :Date, proc :@escaping Proc) {
+	convenience init(fireAt date :Date, proc :@escaping Proc) {
 		// Check availability
 		if #available(OSX 10.12, *) {
 			// Use framework version
