@@ -1,6 +1,6 @@
 //
 //  SQLiteInnerJoin.swift
-//  Media Tools
+//  Swift Toolbox
 //
 //  Created by Stevo on 11/19/19.
 //  Copyright © 2019 Stevo Brock. All rights reserved.
