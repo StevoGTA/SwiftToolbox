@@ -33,6 +33,9 @@ public class LockingDictionary<T : Hashable, U> {
 	public func merge(_ map :[T : U]) { self.lock.write() { self.map.merge(map) { $1 } } }
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func remove(_ key :T) { self.lock.write() { self.map[key] = nil } }
+	
+	//------------------------------------------------------------------------------------------------------------------
 	public func remove(_ keys :[T]) { self.lock.write() { keys.forEach() { self.map[$0] = nil } } }
 
 	//------------------------------------------------------------------------------------------------------------------

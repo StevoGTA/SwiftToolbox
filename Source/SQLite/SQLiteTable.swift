@@ -174,14 +174,36 @@ public struct SQLiteTable {
 	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
 			where sqliteWhere :SQLiteWhere? = nil, processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc)
 			throws {
-		// Compose statement
-		let	statement =
-					"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
-							(innerJoin?.string ?? "") + (sqliteWhere?.string ?? "")
+		// Check if we have SQLiteWhere
+		if sqliteWhere != nil {
+			// Iterate all groups in SQLiteWhere
+			try sqliteWhere?.forEachGroup() { string, values in
+				// Compose statement
+				let	statement =
+							"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
+									(innerJoin?.string ?? "") + string
 
-		// Perform
-		try self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values,
-				processValuesProc: processValuesProc)
+				// Run lean
+				try autoreleasepool() {
+					// Perform
+					try self.statementPerformer.perform(statement: statement, values: values,
+							processValuesProc: processValuesProc)
+				}
+			}
+		} else {
+			// No SQLiteWhere
+			let	statement =
+						"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
+								(innerJoin?.string ?? "")
+
+			// Run lean
+			try autoreleasepool() {
+				// Perform
+				// Perform
+				try self.statementPerformer.perform(statement: statement, values: nil,
+						processValuesProc: processValuesProc)
+			}
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -248,8 +270,8 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func insertOrReplaceRows(_ tableColumn :SQLiteTableColumn, values :[Any]) {
-		// Perform in chunks of 999 (SQLITE_MAX_VARIABLE_NUMBER)
-		values.forEachChunk(chunkSize: 999) {
+		// Perform in chunks of SQLITE_LIMIT_VARIABLE_NUMBER
+		values.forEachChunk(chunkSize: Int(SQLITE_LIMIT_VARIABLE_NUMBER)) {
 			// Setup
 			let	statement =
 						"INSERT OR REPLACE INTO `\(self.name)` (" + columnNamesString(for: [tableColumn]) + ") VALUES "
@@ -274,8 +296,8 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func deleteRows(_ tableColumn :SQLiteTableColumn, values :[Any]) {
-		// Perform in chunks of 999 (SQLITE_MAX_VARIABLE_NUMBER)
-		values.forEachChunk(chunkSize: 999) {
+		// Perform in chunks of SQLITE_LIMIT_VARIABLE_NUMBER
+		values.forEachChunk(chunkSize: Int(SQLITE_LIMIT_VARIABLE_NUMBER)) {
 			// Setup
 			let	statement =
 						"DELETE FROM `\(self.name)` WHERE `\(tableColumn.name)` IN (" +

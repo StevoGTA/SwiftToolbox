@@ -28,6 +28,18 @@ extension SQLiteDatabaseError : LocalizedError {
 // MARK: - SQLiteDatabase
 public class SQLiteDatabase {
 
+	// MARK: Options
+	public	struct Options : OptionSet {
+
+				// MARK: Properties
+				static	public	let	walMode = Options(rawValue: 1 << 0)
+
+						public	let	rawValue :Int
+
+				// MARK: Lifecycle methods
+				public init(rawValue :Int) { self.rawValue = rawValue }
+			}
+
 	// MARK: Enums
 	public enum TransactionResult {
 		case commit
@@ -40,7 +52,7 @@ public class SQLiteDatabase {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(url :URL) throws {
+	public init(url :URL, options :Options = [.walMode]) throws {
 		// Setup
 		let	pathExtension = url.pathExtension
 		let	urlUse =
@@ -57,6 +69,12 @@ public class SQLiteDatabase {
 		// Setup
 		self.database = database!
 		self.statementPerformer = SQLiteStatementPerfomer(database: database!)
+
+		// Check options
+		if options.contains(.walMode) {
+			// Activate WAL mode
+			sqlite3_exec(database, "PRAGMA journal_mode = WAL;", nil, nil, nil);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
