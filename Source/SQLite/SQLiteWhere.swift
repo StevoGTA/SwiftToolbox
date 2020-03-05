@@ -6,11 +6,6 @@
 //  Copyright © 2019 Stevo Brock. All rights reserved.
 //
 
-/*
-	The notion of some instances needing multiple groups while most instances are a single string/values may still need
-		more massaging...
-*/
-
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SQLiteWhere
 public class SQLiteWhere {
@@ -19,47 +14,48 @@ public class SQLiteWhere {
 	typealias Group = (string :String, values :[Any]?)
 
 	// MARK: Properties
-			var	string :String { return self.groups.first!.string }
-			var	values :[Any]? { return self.groups.first!.values }
+	static	private			let	variablePlaceholder = "##VARIABLEPLACEHOLDER##"
 
-	private	var	groups = [Group]()
+			private(set)	var	string :String
+			private(set)	var	values :[Any]?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) {
 		// Setup
-		setup(with: " WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`"),
-				appending: comparison, with: value)
+		self.string = " WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`")
+		append(comparison: comparison, with: value)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, values :[Any]) {
 		// Setup
-		values.forEachChunk(chunkSize: Int(SQLITE_LIMIT_VARIABLE_NUMBER)) {
-			// Append next group
-			self.groups.append(
-					(" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
-								" IN (" + String(combining: Array(repeating: "?", count: $0.count), with: ",") + ")",
-						$0))
-		}
+		self.string =
+				" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
+						" IN (\(SQLiteWhere.variablePlaceholder))"
+		self.values = values
 	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func forEachGroup(_ proc :(_ string :String, _ values :[Any]?) throws -> Void) rethrows {
-		// Iterate all groups
-		try self.groups.forEach() { try proc($0.string, $0.values) }
+	public func forEachValueGroup(chunkSize :Int, _ proc :(_ string :String, _ values :[Any]?) throws -> Void)
+			rethrows {
+		// Chunk values
+		try self.values?.forEachChunk(chunkSize: chunkSize) {
+			// Call proc
+			try proc(
+					self.string.replacingOccurrences(of: SQLiteWhere.variablePlaceholder,
+							with: String(combining: Array(repeating: "?", count: $0.count), with: ",")),
+					$0)
+ 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func and(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) ->
 			Self {
 		// Append
-		setup(
-				with:
-						self.string + " AND " +
-								((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`"),
-				appending: comparison, with: value)
+		self.string += " AND " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`")
+		append(comparison: comparison, with: value)
 
 		return self
 	}
@@ -68,33 +64,31 @@ public class SQLiteWhere {
 	public func or(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) ->
 			Self {
 		// Append
-		setup(
-				with:
-						self.string + " OR " +
-								((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`"),
-				appending: comparison, with: value)
+		self.string += " OR " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`")
+		append(comparison: comparison, with: value)
 
 		return self
 	}
 
 	// MARK: Private methods
 	//------------------------------------------------------------------------------------------------------------------
-	private func setup(with string :String, appending comparison :String, with value :Any) {
+	private func append(comparison :String, with value :Any) {
 		// Check value type
 		if case Optional<Any>.none = value {
 			// Value is nil
 			if comparison == "=" {
 				// IS NULL
-				self.groups = [(string + " IS NULL", nil)]
+				self.string += " IS NULL"
 			} else if comparison == "!=" {
 				// IS NOT NULL
-				self.groups = [(string + " IS NOT NULL", nil)]
+				self.string += " IS NOT NULL"
 			} else {
 				fatalError("SQLiteWhere could not prepare nil value comparison \(comparison)")
 			}
 		} else {
 			// Actual value
-			self.groups = [(string + " \(comparison) ?", (self.groups.first?.values ?? []) + [value])]
+			self.string += " \(comparison) ?"
+			self.values = (self.values ?? []) + [value]
 		}
 	}
 }

@@ -130,6 +130,8 @@ class SQLiteStatementPerfomer {
 	}
 
 	// MARK: Properties
+			var	variableNumberLimit :Int { return Int(sqlite3_limit(self.database, SQLITE_LIMIT_VARIABLE_NUMBER, -1)) }
+
 	private	let	database :OpaquePointer
 	private	let	lock = Lock()
 

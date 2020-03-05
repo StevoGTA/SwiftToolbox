@@ -177,7 +177,8 @@ public struct SQLiteTable {
 		// Check if we have SQLiteWhere
 		if sqliteWhere != nil {
 			// Iterate all groups in SQLiteWhere
-			try sqliteWhere?.forEachGroup() { string, values in
+			let	variableNumberLimit = self.statementPerformer.variableNumberLimit
+			try sqliteWhere!.forEachValueGroup(chunkSize: variableNumberLimit) { string, values in
 				// Compose statement
 				let	statement =
 							"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
@@ -271,7 +272,7 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	public func insertOrReplaceRows(_ tableColumn :SQLiteTableColumn, values :[Any]) {
 		// Perform in chunks of SQLITE_LIMIT_VARIABLE_NUMBER
-		values.forEachChunk(chunkSize: Int(SQLITE_LIMIT_VARIABLE_NUMBER)) {
+		values.forEachChunk(chunkSize: self.statementPerformer.variableNumberLimit) {
 			// Setup
 			let	statement =
 						"INSERT OR REPLACE INTO `\(self.name)` (" + columnNamesString(for: [tableColumn]) + ") VALUES "
@@ -297,7 +298,7 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	public func deleteRows(_ tableColumn :SQLiteTableColumn, values :[Any]) {
 		// Perform in chunks of SQLITE_LIMIT_VARIABLE_NUMBER
-		values.forEachChunk(chunkSize: Int(SQLITE_LIMIT_VARIABLE_NUMBER)) {
+		values.forEachChunk(chunkSize: self.statementPerformer.variableNumberLimit) {
 			// Setup
 			let	statement =
 						"DELETE FROM `\(self.name)` WHERE `\(tableColumn.name)` IN (" +
