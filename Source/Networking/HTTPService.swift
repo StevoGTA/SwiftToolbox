@@ -196,7 +196,7 @@ struct JSONHTTPService<T, U> :HTTPService {
 				{ throw HTTPServiceError.unableToConvertBodyToJSON }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, headers, json!)
+		let	info = try self.validateProc(urlComponents, headers, json)
 
 		return try self.performProc(info)
 	}
