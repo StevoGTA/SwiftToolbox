@@ -6,6 +6,8 @@
 //  Copyright © 2018 Stevo Brock. All rights reserved.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SQLiteTableColumn extension
 fileprivate extension SQLiteTableColumn {

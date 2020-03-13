@@ -6,6 +6,8 @@
 //  Copyright © 2015 Stevo Brock. All rights reserved.
 //
 
+import Foundation
+
 // MARK: Types
 //----------------------------------------------------------------------------------------------------------------------
 fileprivate	struct MapItem<T> {
