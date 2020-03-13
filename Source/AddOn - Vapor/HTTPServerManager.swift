@@ -1,6 +1,6 @@
 //
 //  HTTPServerManager.swift
-//  Swift Toolbox Vapor AddOn
+//  Swift Toolbox
 //
 //  Created by Stevo on 12/3/19.
 //  Copyright © 2019 Stevo Brock. All rights reserved.

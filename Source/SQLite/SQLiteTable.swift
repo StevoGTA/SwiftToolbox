@@ -7,7 +7,84 @@
 //
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: SQLiteTable
+// MARK: SQLiteTableColumn extension
+fileprivate extension SQLiteTableColumn {
+
+	// MARK: Properties
+	var	createString :String {
+				// Compose column string
+				var	string = "\(self.name) "
+
+				switch self.kind {
+					case .integer:
+						// Integer
+						string += "INTEGER"
+
+					case .integer1:
+						// Integer 1
+						string += "INTEGER"
+						string += "(1)"
+
+					case .integer2:
+						// Integer 2
+						string += "INTEGER"
+						string += "(2)"
+
+					case .integer3:
+						// Integer 3
+						string += "INTEGER"
+						string += "(3)"
+
+					case .integer4:
+						// Integer 4
+						string += "INTEGER"
+						string += "(4)"
+
+					case .integer8:
+						// Integer 8
+						string += "INTEGER"
+						string += "(8)"
+
+					case .real:
+						// Real
+						string += "REAL"
+
+					case .text:
+						// Text
+						string += "TEXT"
+
+					case .textWith(let size):
+						// Text
+						string += "TEXT"
+						string += "(\(size))"
+
+					case .blob:
+						// Blob
+						string += "BLOB"
+				}
+
+				self.options.forEach() {
+					// What is option
+					switch $0 {
+						case .primaryKey:		string += " PRIMARY KEY"
+						case .autoincrement:	string += " AUTOINCREMENT"
+						case .notNull:			string += " NOT NULL"
+						case .unique:			string += " UNIQUE"
+						case .check:			string += " CHECK"
+					}
+				}
+
+				if self.defaultValue != nil {
+					// Default
+					string += " DEFAULT \(self.defaultValue!)"
+				}
+
+				return string
+			}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - SQLiteTable
 @dynamicMemberLookup
 public struct SQLiteTable {
 
@@ -23,16 +100,16 @@ public struct SQLiteTable {
 			}
 
 	// MARK: Properties
-	static	private	let	countAllTableColumn = SQLiteTableColumn("COUNT(*)", .integer, [])
+	static	private			let	countAllTableColumn = SQLiteTableColumn("COUNT(*)", .integer, [])
 
-					let	name :String
+			private(set)	var	name :String
 
-			private	let	options :Options
-			private	let	tableColumns :[SQLiteTableColumn]
-			private	let	references :[SQLiteTableColumn.Reference]
-			private	let	statementPerformer :SQLiteStatementPerfomer
+			private			let	options :Options
+			private			let	references :[SQLiteTableColumn.Reference]
+			private			let	statementPerformer :SQLiteStatementPerfomer
 
-			private	var	tableColumnsMap = [/* property name */ String : SQLiteTableColumn]()
+			private			var	tableColumns :[SQLiteTableColumn]
+			private			var	tableColumnsMap = [/* property name */ String : SQLiteTableColumn]()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -65,68 +142,10 @@ public struct SQLiteTable {
 
 		let	columnInfos :[String] =
 					self.tableColumns.map() {
-						// Compose column string
-						var	columnInfo = "\($0.name) "
+						// Start with create string
+						var	columnInfo = $0.createString
 
-						switch $0.kind {
-							case .integer:
-								// Integer
-								columnInfo += "INTEGER"
-
-							case .integer1:
-								// Integer 1
-								columnInfo += "INTEGER"
-								columnInfo += "(1)"
-
-							case .integer2:
-								// Integer 2
-								columnInfo += "INTEGER"
-								columnInfo += "(2)"
-
-							case .integer3:
-								// Integer 3
-								columnInfo += "INTEGER"
-								columnInfo += "(3)"
-
-							case .integer4:
-								// Integer 4
-								columnInfo += "INTEGER"
-								columnInfo += "(4)"
-
-							case .integer8:
-								// Integer 8
-								columnInfo += "INTEGER"
-								columnInfo += "(8)"
-
-							case .real:
-								// Real
-								columnInfo += "REAL"
-
-							case .text:
-								// Text
-								columnInfo += "TEXT"
-
-							case .textWith(let size):
-								// Text
-								columnInfo += "TEXT"
-								columnInfo += "(\(size))"
-
-							case .blob:
-								// Blob
-								columnInfo += "BLOB"
-						}
-
-						$0.options.forEach() {
-							// What is option
-							switch $0 {
-								case .primaryKey:		columnInfo += " PRIMARY KEY"
-								case .autoincrement:	columnInfo += " AUTOINCREMENT"
-								case .notNull:			columnInfo += " NOT NULL"
-								case .unique:			columnInfo += " UNIQUE"
-								case .check:			columnInfo += " CHECK"
-							}
-						}
-
+						// Add references if applicable
 						if let tableColumnReferenceInfo = tableColumnReferenceMap[$0.name] {
 							// Add reference
 							columnInfo +=
@@ -144,6 +163,24 @@ public struct SQLiteTable {
 
 		// Create
 		self.statementPerformer.perform(statement: statement)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public mutating func rename(to name :String) {
+		// Perform
+		self.statementPerformer.perform(statement: "ALTER TABLE `\(self.name)` RENAME TO \(name)")
+
+		// Update
+		self.name = name
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public mutating func add(_ tableColumn :SQLiteTableColumn) {
+		// Perform
+		self.statementPerformer.perform(statement: "ALTER TABLE `\(self.name)` ADD COLUMN \(tableColumn.createString)")
+
+		// Update
+		self.tableColumns.append(tableColumn)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -174,37 +211,18 @@ public struct SQLiteTable {
 	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
 			where sqliteWhere :SQLiteWhere? = nil, processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc)
 			throws {
-		// Check if we have SQLiteWhere
-		if sqliteWhere != nil {
-			// Iterate all groups in SQLiteWhere
-			let	variableNumberLimit = self.statementPerformer.variableNumberLimit
-			try sqliteWhere!.forEachValueGroup(chunkSize: variableNumberLimit) { string, values in
-				// Compose statement
-				let	statement =
-							"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
-									(innerJoin?.string ?? "") + string
+		// Perform
+		try select(columnNamesString: columnNamesString(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
+				processValuesProc: processValuesProc)
+	}
 
-				// Run lean
-				try autoreleasepool() {
-					// Perform
-					try self.statementPerformer.perform(statement: statement, values: values,
-							processValuesProc: processValuesProc)
-				}
-			}
-		} else {
-			// No SQLiteWhere
-			let	statement =
-						"SELECT " + columnNamesString(for: tableColumns) + " FROM `\(self.name)`" +
-								(innerJoin?.string ?? "")
-
-			// Run lean
-			try autoreleasepool() {
-				// Perform
-				// Perform
-				try self.statementPerformer.perform(statement: statement, values: nil,
-						processValuesProc: processValuesProc)
-			}
-		}
+	//------------------------------------------------------------------------------------------------------------------
+	public func select(tableColumns :[(table :SQLiteTable, tableColumn :SQLiteTableColumn)],
+			innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil,
+			processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc) throws {
+		// Perform
+		try select(columnNamesString: columnNamesString(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
+				processValuesProc: processValuesProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -316,5 +334,44 @@ public struct SQLiteTable {
 		let	columnNames = (tableColumns ?? []).map() { $0.name }
 
 		return !columnNames.isEmpty ? String(combining: columnNames, with: ",") : "*"
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	private func columnNamesString(for tableColumns :[(table :SQLiteTable, tableColumn :SQLiteTableColumn)]) -> String {
+		// Collect column names
+		let	columnNames = tableColumns.map() { "`\($0.table.name)`.`\($0.tableColumn.name)`" }
+
+		return String(combining: columnNames, with: ",")
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	private func select(columnNamesString :String, innerJoin :SQLiteInnerJoin?, where sqliteWhere :SQLiteWhere?,
+			processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc) throws {
+		// Check if we have SQLiteWhere
+		if sqliteWhere != nil {
+			// Iterate all groups in SQLiteWhere
+			let	variableNumberLimit = self.statementPerformer.variableNumberLimit
+			try sqliteWhere!.forEachValueGroup(chunkSize: variableNumberLimit) { string, values in
+				// Compose statement
+				let	statement = "SELECT \(columnNamesString) FROM `\(self.name)`" + (innerJoin?.string ?? "") + string
+
+				// Run lean
+				try autoreleasepool() {
+					// Perform
+					try self.statementPerformer.perform(statement: statement, values: values,
+							processValuesProc: processValuesProc)
+				}
+			}
+		} else {
+			// No SQLiteWhere
+			let	statement = "SELECT \(columnNamesString) FROM `\(self.name)`" + (innerJoin?.string ?? "")
+
+			// Run lean
+			try autoreleasepool() {
+				// Perform
+				try self.statementPerformer.perform(statement: statement, values: nil,
+						processValuesProc: processValuesProc)
+			}
+		}
 	}
 }

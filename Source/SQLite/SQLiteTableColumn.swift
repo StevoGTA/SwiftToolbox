@@ -89,13 +89,15 @@ public struct SQLiteTableColumn {
 	let	name :String
 	let	kind :Kind
 	let	options :[Options]
+	let	defaultValue :Any?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(_ name :String, _ kind :Kind, _ options :[Options]) {
+	public init(_ name :String, _ kind :Kind, _ options :[Options], _ defaultValue :Any? = nil) {
 		// Store
 		self.name = name
 		self.kind = kind
 		self.options = options
+		self.defaultValue = defaultValue
 	}
 }

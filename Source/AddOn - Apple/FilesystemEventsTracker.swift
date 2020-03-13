@@ -1,6 +1,6 @@
 //
 //  FilesystemEventsTracker.swift
-//  Swift Toolbox Apple AddOn
+//  Swift Toolbox
 //
 //  Created by Stevo on 2/13/20.
 //  Copyright © 2020 Stevo Brock. All rights reserved.
@@ -10,20 +10,23 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: FilesystemEventsTracker
-class FilesystemEventsTracker {
+public class FilesystemEventsTracker {
 
 	// MARK: Types
 	typealias EventInfo = (id :FSEventStreamEventId, url :URL, flags :FSEventStreamEventFlags)
 
 	// MARK: Properties
-			var	processProc :(_ eventInfo :EventInfo) -> Void = { _ in }
+	private	let	processProc :(_ eventInfo :EventInfo) -> Void
 
 	private	var	eventStreamRef :FSEventStreamRef!
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(urls :[URL],
-			lastEventStreamEventID :FSEventStreamEventId = FSEventStreamEventId(kFSEventStreamEventIdSinceNow)) {
+	init(urls :[URL], since eventID :FSEventStreamEventId = FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
+			processProc :@escaping (_ eventInfo :EventInfo) -> Void) {
+		// Store
+		self.processProc = processProc
+		
 		// Setup
 		let	eventStreamCallback :FSEventStreamCallback =
 					{ eventStreamRef, contextInfo, eventCount, eventPaths, eventFlags, eventIDs in
@@ -45,7 +48,7 @@ class FilesystemEventsTracker {
 		eventStreamContext.info = Unmanaged.passUnretained(self).toOpaque()
 		self.eventStreamRef =
 				FSEventStreamCreate(kCFAllocatorDefault, eventStreamCallback, &eventStreamContext,
-						(urls.map({ $0.path })) as CFArray, lastEventStreamEventID, 0,
+						(urls.map({ $0.path })) as CFArray, eventID, 0,
 						UInt32(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents))
 
 		// Start
