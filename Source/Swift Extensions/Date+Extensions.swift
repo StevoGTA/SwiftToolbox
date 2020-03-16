@@ -42,6 +42,13 @@ extension Date {
 
 					var	standardized :String { return Date.standardizedDateFormatter.string(from: self) }
 
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static public func withTimeIntervalSince1970(_ timeIntervalSince1970 :TimeInterval?) -> Date? {
+		// Return date, maybe
+		return (timeIntervalSince1970 != nil) ? Date(timeIntervalSince1970: timeIntervalSince1970!) : nil
+	}
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init?(fromStandardized standardizedString :String?) {
