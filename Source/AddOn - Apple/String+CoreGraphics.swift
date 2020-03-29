@@ -1,8 +1,9 @@
 //
 //  String+CoreGraphics.swift
-//  Virtual Sheet Music
+//  Swift Toolbox
 //
 //  Created by Stevo on 3/9/20.
+//  Copyright © 2018 Stevo Brock. All rights reserved.
 //
 
 import CoreGraphics

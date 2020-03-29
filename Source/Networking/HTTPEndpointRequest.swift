@@ -1,5 +1,5 @@
 //
-//  HTTPServiceRequest.swift
+//  HTTPEndpointRequest.swift
 //  Swift Toolbox
 //
 //  Created by Stevo on 12/5/19.
@@ -9,8 +9,8 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPServiceRequest
-struct HTTPServiceRequest {
+// MARK: HTTPEndpointRequest
+struct HTTPEndpointRequest {
 
 	// MARK: Options
 	public	struct Options : OptionSet {
@@ -24,7 +24,7 @@ struct HTTPServiceRequest {
 			}
 
 	// MARK: Properties
-	let	method :HTTPServiceMethod
+	let	method :HTTPEndpointMethod
 	let	path :String
 	let	queryParameters :[String : Any]?
 	let	headers :[String : String]?
@@ -33,7 +33,7 @@ struct HTTPServiceRequest {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String, queryParameters :[String : Any]? = nil,
+	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
 			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0) {
 		// Store
 		self.method = method
@@ -45,7 +45,7 @@ struct HTTPServiceRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String, queryParameters :[String : Any]? = nil,
+	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
 			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, bodyData :Data) {
 		// Store
 		self.method = method
@@ -57,7 +57,7 @@ struct HTTPServiceRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String, queryParameters :[String : Any]? = nil,
+	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
 			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, jsonBody :Any) {
 		// Setup
 		var	headersUse = headers ?? [:]

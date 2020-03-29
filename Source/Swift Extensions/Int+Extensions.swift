@@ -12,4 +12,13 @@ extension Int {
 
 	// MARK: Properties
 	static	let	`nil` :Int? = nil
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init?(_ string :String?) {
+		// Check if string is nil
+		guard string != nil else { return nil }
+
+		self.init(string!)
+	}
 }

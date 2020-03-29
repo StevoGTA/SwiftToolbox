@@ -1,26 +1,52 @@
 //
-//  HTTPService.swift
+//  HTTPEndpointHandler.swift
 //  Swift Toolbox
 //
-//  Created by Stevo on 11/30/19.
-//  Copyright © 2019 Stevo Brock. All rights reserved.
+//  Created by Stevo on 3/23/20.
+//  Copyright © 2020 Stevo Brock. All rights reserved.
 //
 
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPServiceMethod
-enum HTTPServiceMethod {
-	case get
-	case head
-	case patch
-	case post
-	case put
+// MARK: HTTPEndpointError
+struct HTTPEndpointError : Error, LocalizedError {
+
+	// MARK: LocalizedError implementation
+	var	errorDescription :String? { return "\(self.status): \(self.message)" }
+
+	// MARK: Properties
+	static	let	missingBody = HTTPEndpointError(status: .badRequest, message: "Missing body")
+	static	let	unableToConvertBodyToJSON = HTTPEndpointError(status: .badRequest, message: "Invalid body")
+
+			let	status :HTTPEndpointStatus
+			let	message :String
+
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func badRequest(with message :String) -> HTTPEndpointError
+			{ return HTTPEndpointError(status: .badRequest, message: message) }
+	static func unauthorized(with message :String) -> HTTPEndpointError
+			{ return HTTPEndpointError(status: .unauthorized, message: message) }
+	static func forbidden(with message :String) -> HTTPEndpointError
+			{ return HTTPEndpointError(status: .forbidden, message: message) }
+	static func notFound(with message :String) -> HTTPEndpointError
+			{ return HTTPEndpointError(status: .notFound, message: message) }
+	static func conflict(with message :String) -> HTTPEndpointError
+			{ return HTTPEndpointError(status: .conflict, message: message) }
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init(status :HTTPEndpointStatus, message :String) {
+		// Store
+		self.status = status
+		self.message = message
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - HTTPServiceResponseBody
-enum HTTPServiceResponseBody {
+// MARK: - HTTPEndpointResponseBody
+enum HTTPEndpointResponseBody {
 
 	// MARK: Values
 	case data(_ value :Data)
@@ -41,65 +67,15 @@ enum HTTPServiceResponseBody {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - HTTPServiceStatus
-enum HTTPServiceStatus : UInt {
-	case ok = 200
-
-	case badRequest = 400
-	case unauthorized = 401
-	case forbidden = 403
-	case notFound = 404
-	case conflict = 409
-
-	case internalServerError = 500
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - HTTPServiceError
-struct HTTPServiceError : Error, LocalizedError {
-
-	// MARK: LocalizedError implementation
-	var	errorDescription :String? { return "\(self.status): \(self.message)" }
-
-	// MARK: Properties
-	static	let	missingBody = HTTPServiceError(status: .badRequest, message: "Missing body")
-	static	let	unableToConvertBodyToJSON = HTTPServiceError(status: .badRequest, message: "Invalid body")
-
-			let	status :HTTPServiceStatus
-			let	message :String
-
-	// MARK: Class methods
-	//------------------------------------------------------------------------------------------------------------------
-	static func badRequest(with message :String) -> HTTPServiceError
-			{ return HTTPServiceError(status: .badRequest, message: message) }
-	static func unquthorized(with message :String) -> HTTPServiceError
-			{ return HTTPServiceError(status: .unauthorized, message: message) }
-	static func forbidden(with message :String) -> HTTPServiceError
-			{ return HTTPServiceError(status: .forbidden, message: message) }
-	static func notFound(with message :String) -> HTTPServiceError
-			{ return HTTPServiceError(status: .notFound, message: message) }
-	static func conflict(with message :String) -> HTTPServiceError
-			{ return HTTPServiceError(status: .conflict, message: message) }
-
-	// MARK: Lifecycle methods
-	//------------------------------------------------------------------------------------------------------------------
-	init(status :HTTPServiceStatus, message :String) {
-		// Store
-		self.status = status
-		self.message = message
-	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - HTTPService
-protocol HTTPService {
+// MARK: - HTTPEndpoint
+protocol HTTPEndpoint {
 
 	// MARK: Types
 	typealias PerformResult =
-				(status :HTTPServiceStatus, headers :[(String, String)], responseBody :HTTPServiceResponseBody?)
+				(status :HTTPEndpointStatus, headers :[(String, String)], responseBody :HTTPEndpointResponseBody?)
 
 	// MARK: Properties
-	var	method :HTTPServiceMethod { get }
+	var	method :HTTPEndpointMethod { get }
 	var	path :String { get }
 
 	// MARK: Instance methods
@@ -107,11 +83,11 @@ protocol HTTPService {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - BasicHTTPService
-struct BasicHTTPService<T> : HTTPService {
+// MARK: - BasicHTTPEndpoint
+struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
-	// MARK: HTTPService implementation
-	let	method :HTTPServiceMethod
+	// MARK: HTTPEndpoint implementation
+	let	method :HTTPEndpointMethod
 	let	path :String
 
 	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
@@ -132,7 +108,7 @@ struct BasicHTTPService<T> : HTTPService {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String, validateProc :@escaping ValidateProc) {
+	init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path
@@ -142,16 +118,16 @@ struct BasicHTTPService<T> : HTTPService {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - DataHTTPService
-struct DataHTTPService<T> :HTTPService {
+// MARK: - DataHTTPEndpoint
+struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
-	// MARK: HTTPService implementation
-	let	method :HTTPServiceMethod
+	// MARK: HTTPEndpoint implementation
+	let	method :HTTPEndpointMethod
 	let	path :String
 
 	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
 		// Validate
-		guard bodyData != nil else { throw HTTPServiceError.missingBody }
+		guard bodyData != nil else { throw HTTPEndpointError.missingBody }
 
 		// Perform
 		let	info = try self.validateProc(urlComponents, headers, bodyData!)
@@ -171,7 +147,7 @@ struct DataHTTPService<T> :HTTPService {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String, validateProc :@escaping ValidateProc) {
+	init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path
@@ -182,18 +158,18 @@ struct DataHTTPService<T> :HTTPService {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - JSONHTTPService
-struct JSONHTTPService<T, U> :HTTPService {
+// MARK: - JSONHTTPEndpoint
+struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 
-	// MARK: HTTPService implementation
-	let	method :HTTPServiceMethod
+	// MARK: HTTPEndpoint implementation
+	let	method :HTTPEndpointMethod
 	let	path :String
 
 	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
 		// Validate
-		guard bodyData != nil else { throw HTTPServiceError.missingBody }
+		guard bodyData != nil else { throw HTTPEndpointError.missingBody }
 		guard let json = try? JSONSerialization.jsonObject(with: bodyData!, options: []) as? T else
-				{ throw HTTPServiceError.unableToConvertBodyToJSON }
+				{ throw HTTPEndpointError.unableToConvertBodyToJSON }
 
 		// Perform
 		let	info = try self.validateProc(urlComponents, headers, json)
@@ -212,7 +188,7 @@ struct JSONHTTPService<T, U> :HTTPService {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPServiceMethod, path :String, validateProc :@escaping ValidateProc) {
+	init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path
