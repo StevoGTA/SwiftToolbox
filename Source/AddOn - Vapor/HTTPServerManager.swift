@@ -17,8 +17,8 @@ extension HTTPMethod : Hashable {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPService.Method extension
-extension HTTPServiceMethod {
+// MARK: HTTPEndpoint.Method extension
+extension HTTPEndpointMethod {
 
 	// MARK: Properties
 	var	httpMethod :HTTPMethod {
@@ -34,8 +34,8 @@ extension HTTPServiceMethod {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - HTTPService.Status extension
-extension HTTPServiceStatus {
+// MARK: - HTTPEndpoint.Status extension
+extension HTTPEndpointStatus {
 
 	// MARK: Properties
 	var	httpResponseStatus :HTTPResponseStatus {
@@ -69,7 +69,7 @@ fileprivate class ServerResponder : HTTPServerResponder {
 		let	pathComponents = urlComponents.path.pathComponents
 
 		var parameters = Parameters()
-		guard let httpService = trieRouter.route(path: pathComponents, parameters: &parameters) else {
+		guard let httpEndpoint = trieRouter.route(path: pathComponents, parameters: &parameters) else {
 			// Route not found
 			return worker.eventLoop.newSucceededFuture(result: HTTPResponse(status: .notFound))
 		}
@@ -82,7 +82,7 @@ fileprivate class ServerResponder : HTTPServerResponder {
 		do {
 			// Perform
 			let	(responseStatus, responseHeaders, responseBody) =
-						try httpService.perform(urlComponents: urlComponents, headers: headers,
+						try httpEndpoint.perform(urlComponents: urlComponents, headers: headers,
 								bodyData: request.body.data)
 
 			return worker.eventLoop.newSucceededFuture(
@@ -91,24 +91,24 @@ fileprivate class ServerResponder : HTTPServerResponder {
 									headers: HTTPHeaders(responseHeaders), body: responseBody?.data ?? HTTPBody()))
 		} catch {
 			// Handle error
-			let	httpServiceError = error as! HTTPServiceError
-			let	jsonBody = ["message": httpServiceError.message]
+			let	httpEndpointError = error as! HTTPEndpointError
+			let	jsonBody = ["message": httpEndpointError.message]
 			let	jsonData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
 
 			return worker.eventLoop.newSucceededFuture(
-					result: HTTPResponse(status: httpServiceError.status.httpResponseStatus, body: jsonData))
+					result: HTTPResponse(status: httpEndpointError.status.httpResponseStatus, body: jsonData))
 		}
     }
 
 	// MARK: Properties
-	private	var	trieRouters = [HTTPMethod : TrieRouter<HTTPService>]()
+	private	var	trieRouters = [HTTPMethod : TrieRouter<HTTPEndpoint>]()
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func register(_ httpService :HTTPService) {
+	func register(_ httpEndpoint :HTTPEndpoint) {
 		// Setup
 		let	pathComponents =
-					httpService.path.pathComponents.map()
+					httpEndpoint.path.pathComponents.map()
 							{
 								// Create PathComponent for either constant or parameter value
 								return !$0.hasPrefix(":") ?
@@ -117,16 +117,16 @@ fileprivate class ServerResponder : HTTPServerResponder {
 							}
 
 		// Retrieve/Create TrieRouter
-		let	httpMethod = httpService.method.httpMethod
+		let	httpMethod = httpEndpoint.method.httpMethod
 		var	trieRouter = self.trieRouters[httpMethod]
 		if trieRouter == nil {
 			// Create new TrieRouter for this method
-			trieRouter = TrieRouter<HTTPService>()
+			trieRouter = TrieRouter<HTTPEndpoint>()
 			self.trieRouters[httpMethod] = trieRouter
 		}
 
 		// Register route
-		trieRouter!.register(route: Route(path: pathComponents, output: httpService))
+		trieRouter!.register(route: Route(path: pathComponents, output: httpEndpoint))
 	}
 }
 
@@ -169,8 +169,8 @@ class HTTPServerManager {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func register(_ httpService :HTTPService) {
+	func register(_ httpEndpoint :HTTPEndpoint) {
 		// Register
-		self.serverResponder.register(httpService)
+		self.serverResponder.register(httpEndpoint)
 	}
 }

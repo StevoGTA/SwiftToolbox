@@ -90,8 +90,11 @@ extension Dictionary where Key == String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: Dictionary extension for comparison
+// MARK: - Dictionary extension for comparison
 extension Dictionary where Key == String, Value == Any {
+
+	// MARK: Properties
+	public	var	data :Data { return try! JSONSerialization.data(withJSONObject: self, options: []) }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -117,5 +120,20 @@ extension Dictionary where Key == String, Value == Any {
 		}
 
 		return true
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Dictionary extension for key pairs
+public extension Dictionary {
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init(_ pairs: [Element]) {
+		// Do super
+		self.init()
+
+		// Iterate elements and construct dictionary
+		pairs.forEach() { self[$0.key] = $0.value }
 	}
 }
