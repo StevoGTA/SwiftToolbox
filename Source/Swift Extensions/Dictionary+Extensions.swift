@@ -7,10 +7,25 @@
 //
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: Dictionary extension for array values
+// MARK: Dictionary extension for String keys and native values
 extension Dictionary where Key == String {
 
 	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func stringArray(for key :String) -> [String]? {
+		// Check what we have
+		if let array = self[key] as? [String] {
+			// Have array
+			return array
+		} else if let string = self[key] as? String {
+			// Have string
+			return [string]
+		} else {
+			// Neither
+			return nil
+		}
+	}
+
 	//------------------------------------------------------------------------------------------------------------------
 	public mutating func appendArrayValueElement<T>(key :Key, value :T) {
 		// Check if has existing array
@@ -90,7 +105,7 @@ extension Dictionary where Key == String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - Dictionary extension for comparison
+// MARK: - Dictionary extension for String keys and Any values
 extension Dictionary where Key == String, Value == Any {
 
 	// MARK: Properties
@@ -129,7 +144,7 @@ public extension Dictionary {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(_ pairs: [Element]) {
+	init(_ pairs: [Element]) {
 		// Do super
 		self.init()
 
