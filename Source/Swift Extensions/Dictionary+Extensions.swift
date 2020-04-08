@@ -6,6 +6,8 @@
 //  Copyright © 2018 Stevo Brock. All rights reserved.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Dictionary extension for String keys and native values
 extension Dictionary where Key == String {
