@@ -9,127 +9,130 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPEndpointClientError
-enum HTTPEndpointClientError : Error {
-	case invalidReturnInfo
-}
+// MARK: HTTPEndpointRequest extension
+extension HTTPEndpointRequest {
 
-extension HTTPEndpointClientError : LocalizedError {
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	fileprivate func urlRequest(with serverPrefix :String,
+			multiValueQueryParameterHandling :HTTPEndpointClient.MultiValueQueryParameterHandling,
+			maximumURLLength :Int) -> URLRequest {
+		// Setup
+		var	urlRequest = URLRequest(url: URL(string: "\(serverPrefix)\(self.path)")!)
+		switch self.method {
+			case .get:		urlRequest.httpMethod = "GET"
+			case .head:		urlRequest.httpMethod = "HEAD"
+			case .patch:	urlRequest.httpMethod = "PATCH"
+			case .post:		urlRequest.httpMethod = "POST"
+			case .put:		urlRequest.httpMethod = "PUT"
+		}
 
-	// MARK: Properties
-	public	var	errorDescription :String? {
-						// What are we
-						switch self {
-							case .invalidReturnInfo:	return "Invalid return info"
-						}
-					}
+		// Query parameters
+// TODO: Query parameters
+
+		self.headers?.forEach() { urlRequest.setValue($0.value, forHTTPHeaderField: $0.key) }
+		urlRequest.timeoutInterval = self.timeoutInterval
+		urlRequest.httpBody = self.bodyData
+
+		return urlRequest
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointClient
 class HTTPEndpointClient {
 
+	// MARK: Types
+	enum MultiValueQueryParameterHandling {
+		case useComma
+		case repeatKey
+	}
+
 	// MARK: Properties
-	static			let	shared = HTTPEndpointClient()
+			var	logTransactions = true
 
-					var	logTransactions = true
+	private	let	serverPrefix :String
+	private	let	multiValueQueryParameterHandling :MultiValueQueryParameterHandling
+	private	let	maximumURLLength :Int
+	private	let	urlSession :URLSession
 
-			private	let	urlSession = URLSession.shared
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init(serverPrefix :String, multiValueQueryParameterHandling :MultiValueQueryParameterHandling = .repeatKey,
+			maximumURLLength :Int = 1024, urlSession :URLSession = URLSession.shared) {
+		// Store
+		self.serverPrefix = serverPrefix
+		self.multiValueQueryParameterHandling = multiValueQueryParameterHandling
+		self.maximumURLLength = maximumURLLength
+		self.urlSession = urlSession
+	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(urlRequest :URLRequest, completionProcQueue :DispatchQueue = .main,
-			completionProc :@escaping (_ results :String?, _ error :Error?) -> Void) {
+	func queue(_ httpEndpointRequest :HTTPEndpointRequest, completionProcQueue :DispatchQueue = .main) {
 		// Perform in background
 		DispatchQueue.global().async() { [weak self] in
+			//
+			guard let strongSelf = self else { return }
+
+			// Setup
+			let	urlRequest =
+						httpEndpointRequest.urlRequest(with: strongSelf.serverPrefix,
+								multiValueQueryParameterHandling: strongSelf.multiValueQueryParameterHandling,
+								maximumURLLength: strongSelf.maximumURLLength)
+
 			// Log
-			if self?.logTransactions ?? false { NSLog("HTTPEndpointClient - sending \(urlRequest)") }
+			if strongSelf.logTransactions { NSLog("HTTPEndpointClient - sending \(urlRequest)") }
 
 			// Resume data task
-			self?.urlSession.dataTask(with: urlRequest, completionHandler: { data, response, error in
-				// Handle results
-				var	returnResults :String?
-				var	returnError = error
-				if data != nil {
-					// Success
-					returnResults = String(data: data!, encoding: .utf8)
-					if returnResults == nil {
-						// Decode error
-						returnError = HTTPEndpointClientError.invalidReturnInfo
-					}
-				}
+			strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
+				// Check if cancelled
+				guard !httpEndpointRequest.isCancelled else { return }
 
-				// Call completion proc
-				completionProcQueue.async() { completionProc(returnResults, returnError) }
+				// Handle results
+				httpEndpointRequest.resultsProc(data: $0, response: $1 as? HTTPURLResponse, error: $2,
+						completionProcQueue: completionProcQueue)
 			}).resume()
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(urlRequest :URLRequest, completionProcQueue :DispatchQueue = .main,
-			completionProc :@escaping (_ info :[String : Any]?, _ error :Error?) -> Void) {
-		// Perform in background
-		DispatchQueue.global().async() { [weak self] in
-			// Log
-			if self?.logTransactions ?? false { NSLog("HTTPEndpointClient - sending \(urlRequest)") }
+	func queue(_ basicHTTPEndpointRequest :BasicHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
+			completionProc :@escaping (_ error :Error?) -> Void) {
+		// Setup
+		basicHTTPEndpointRequest.completionProc = completionProc
 
-			// Resume data task
-			self?.urlSession.dataTask(with: urlRequest, completionHandler: { data, response, error in
-				// Handle results
-				var	returnInfo :[String : Any]?
-				var	returnError = error
-				if data != nil {
-					// Success
-					do {
-						// Decode results
-						returnInfo = try JSONSerialization.jsonObject(with: data!, options: []) as? [String : Any]
-						if returnInfo == nil {
-							// Decode error
-							returnError = HTTPEndpointClientError.invalidReturnInfo
-						}
-					} catch {
-						// Error
-						returnError = error
-					}
-				}
-
-				// Call completion proc
-				completionProcQueue.async() { completionProc(returnInfo, returnError) }
-			}).resume()
-		}
+		// Perform
+		queue(basicHTTPEndpointRequest, completionProcQueue: completionProcQueue)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(urlRequest :URLRequest, completionProcQueue :DispatchQueue = .main,
-			completionProc :@escaping (_ infos :[[String : Any]]?, _ error :Error?) -> Void) {
-		// Perform in background
-		DispatchQueue.global().async() { [weak self] in
-			// Log
-			if self?.logTransactions ?? false { NSLog("HTTPEndpointClient - sending \(urlRequest)") }
+	func queue(_ headHTTPEndpointRequest :HeadHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
+			headersProc :@escaping (_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void) {
+		// Setup
+		headHTTPEndpointRequest.headersProc = headersProc
 
-			// Resume data task
-			self?.urlSession.dataTask(with: urlRequest, completionHandler: { data, response, error in
-				// Handle results
-				var	returnInfos :[[String : Any]]?
-				var	returnError = error
-				if data != nil {
-					// Success
-					do {
-						// Decode results
-						returnInfos = try JSONSerialization.jsonObject(with: data!, options: []) as? [[String : Any]]
-						if returnInfos == nil {
-							// Decode error
-							returnError = HTTPEndpointClientError.invalidReturnInfo
-						}
-					} catch {
-						// Error
-						returnError = error
-					}
-				}
+		// Perform
+		queue(headHTTPEndpointRequest, completionProcQueue: completionProcQueue)
+	}
 
-				// Call completion proc
-				completionProcQueue.async() { completionProc(returnInfos, returnError) }
-			}).resume()
-		}
+	//------------------------------------------------------------------------------------------------------------------
+	func queue(_ stringHTTPEndpointRequest :StringHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
+			stringProc :@escaping (_ string :String?, _ error :Error?) -> Void) {
+		// Setup
+		stringHTTPEndpointRequest.stringProc = stringProc
+
+		// Perform
+		queue(stringHTTPEndpointRequest, completionProcQueue: completionProcQueue)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func queue<T>(_ jsonHTTPEndpointRequest :JSONHTTPEndpointRequest<T>, completionProcQueue :DispatchQueue = .main,
+			infoProc :@escaping(_ info :T?, _ error :Error?) -> Void) {
+		// Setup
+		jsonHTTPEndpointRequest.infoProc = infoProc
+
+		// Perform
+		queue(jsonHTTPEndpointRequest, completionProcQueue: completionProcQueue)
 	}
 }

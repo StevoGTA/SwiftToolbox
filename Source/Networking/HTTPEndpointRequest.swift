@@ -29,26 +29,15 @@ extension HTTPEndpointRequestError : LocalizedError {
 // MARK: HTTPEndpointRequest
 class HTTPEndpointRequest {
 
-	// MARK: Types
-	enum MultiValueQueryParameterHandling {
-		case useComma
-		case repeatKey
-	}
-
-	struct Options {
-
-		// MARK: Properties
-		let	multiValueQueryParameterHandling = MultiValueQueryParameterHandling.repeatKey
-		let	maximumURLLength = 1024
-	}
-
 	// MARK: Properties
-	let	method :HTTPEndpointMethod
-	let	path :String
-	let	queryParameters :[String : Any]?
-	let	headers :[String : String]?
-	let	timeoutInterval :TimeInterval
-	let	bodyData :Data?
+					let	method :HTTPEndpointMethod
+					let	path :String
+					let	queryParameters :[String : Any]?
+					let	headers :[String : String]?
+					let	timeoutInterval :TimeInterval
+					let	bodyData :Data?
+
+	private(set)	var	isCancelled = false
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -93,50 +82,34 @@ class HTTPEndpointRequest {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func urlRequest(with serverPrefix :String, options :Options = Options()) -> URLRequest {
-		// Setup
-		var	urlRequest = URLRequest(url: URL(string: "\(serverPrefix)\(self.path)")!)
-		switch self.method {
-			case .get:		urlRequest.httpMethod = "GET"
-			case .head:		urlRequest.httpMethod = "HEAD"
-			case .patch:	urlRequest.httpMethod = "PATCH"
-			case .post:		urlRequest.httpMethod = "POST"
-			case .put:		urlRequest.httpMethod = "PUT"
-		}
-
-		// Query parameters
-// TODO: Query parameters
-
-		self.headers?.forEach() { urlRequest.setValue($0.value, forHTTPHeaderField: $0.key) }
-		urlRequest.timeoutInterval = self.timeoutInterval
-		urlRequest.httpBody = self.bodyData
-
-		return urlRequest
+	func cancel() {
+		// Mark as cancelled
+		self.isCancelled = true
 	}
-}
 
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - HTTPEndpointRequestResultsHandler
-protocol HTTPEndpointRequestResultsHandler {
-
-	// MARK: Types
-	associatedtype Results
-
-	// MARK: Methods
-	func transformResults(data :Data?, response :HTTPURLResponse?, error :Error?) -> Results
-	func resultsProc(_ results :Results) -> Void
+	// MARK: Internal Methods
+	//------------------------------------------------------------------------------------------------------------------
+	func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?, completionProcQueue :DispatchQueue) ->
+			Void {}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - BasicHTTPEndpointRequest
-class BasicHTTPEndpointRequest : HTTPEndpointRequest, HTTPEndpointRequestResultsHandler {
+class BasicHTTPEndpointRequest : HTTPEndpointRequest {
 
-	// MARK: HTTPEndpointRequestResultsHandler implementation
-	typealias Results = Error?
-
-	func transformResults(data: Data?, response: HTTPURLResponse?, error: Error?) -> Error? { error }
-
-	func resultsProc(_ results: Error?) { self.completionProc(results) }
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
+			completionProcQueue :DispatchQueue) {
+		// Queue
+		completionProcQueue.async() {
+			// Check if cancelled
+			if !self.isCancelled {
+				// Call proc
+				self.completionProc(error)
+			}
+		}
+	}
 
 	// MARK: Properties
 	var	completionProc :(_ error :Error?) -> Void = { _ in }
@@ -144,17 +117,20 @@ class BasicHTTPEndpointRequest : HTTPEndpointRequest, HTTPEndpointRequestResults
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HeadHTTPEndpointRequest
-class HeadHTTPEndpointRequest : HTTPEndpointRequest, HTTPEndpointRequestResultsHandler {
+class HeadHTTPEndpointRequest : HTTPEndpointRequest {
 
-	// MARK: HTTPEndpointRequestResultsHandler implementation
-	typealias Results = (headers :[AnyHashable : Any]?, error :Error?)
-
-	func transformResults(data: Data?, response: HTTPURLResponse?, error: Error?) ->
-			(headers: [AnyHashable : Any]?, error: Error?) { ( response?.allHeaderFields, error ) }
-
-	func resultsProc(_ results: (headers: [AnyHashable : Any]?, error: Error?)) {
-		// Call proc
-		self.headersProc(results.headers, results.error)
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
+			completionProcQueue :DispatchQueue) {
+		// Queue
+		completionProcQueue.async() {
+			// Check if cancelled
+			if !self.isCancelled {
+				// Call proc
+				self.headersProc(response?.allHeaderFields, error)
+			}
+		}
 	}
 
 	// MARK: Properties
@@ -163,29 +139,34 @@ class HeadHTTPEndpointRequest : HTTPEndpointRequest, HTTPEndpointRequestResultsH
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - StringHTTPEndpointRequest
-class StringHTTPEndpointRequest : HTTPEndpointRequest, HTTPEndpointRequestResultsHandler {
+class StringHTTPEndpointRequest : HTTPEndpointRequest {
 
-	// MARK: HTTPEndpointRequestResultsHandler implementation
-	typealias Results = (string :String?, error :Error?)
-
-	func transformResults(data: Data?, response: HTTPURLResponse?, error: Error?) -> (string: String?, error: Error?) {
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
+			completionProcQueue :DispatchQueue) {
 		// Handle results
+		var	string :String? = nil
+		var	returnError :Error? = error
 		if data != nil {
-			// Try to copmose string from data
-			if let string = String(data: data!, encoding: .utf8) {
-				// Success
-				return (string, nil)
-			} else {
+			// Try to compose string from data
+			string = String(data: data!, encoding: .utf8)
+
+			if string == nil {
 				// Unable to transform results
-				return (nil, HTTPEndpointRequestError.unableToProcessResponseData)
+				returnError = HTTPEndpointRequestError.unableToProcessResponseData
 			}
-		} else {
-			// Error
-			return (nil, error)
+		}
+
+		// Queue
+		completionProcQueue.async() {
+			// Check if cancelled
+			if !self.isCancelled {
+				// Call proc
+				self.stringProc(string, returnError)
+			}
 		}
 	}
-
-	func resultsProc(_ results: (string: String?, error: Error?)) { self.stringProc(results.string, results.error) }
 
 	// MARK: Properties
 	var	stringProc :(_ string :String?, _ error :Error?) -> Void = { _,_ in }
@@ -193,29 +174,34 @@ class StringHTTPEndpointRequest : HTTPEndpointRequest, HTTPEndpointRequestResult
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - JSONHTTPEndpointRequest
-class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest, HTTPEndpointRequestResultsHandler {
+class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 
-	// MARK: HTTPEndpointRequestResultsHandler implementation
-	typealias Results = (info :T?, error :Error?)
-
-	func transformResults(data: Data?, response: HTTPURLResponse?, error: Error?) -> Results {
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
+			completionProcQueue :DispatchQueue) {
 		// Handle results
+		var	info :T? = nil
+		var	returnError :Error? = error
 		if data != nil {
 			// Try to compose info from data
-			if let info = try? JSONSerialization.jsonObject(with: data!, options: []) as? T {
-				// Success
-				return (info, nil)
-			} else {
+			info = try? JSONSerialization.jsonObject(with: data!, options: []) as? T
+
+			if info == nil {
 				// Unable to transform results
-				return (nil, HTTPEndpointRequestError.unableToProcessResponseData)
+				returnError = HTTPEndpointRequestError.unableToProcessResponseData
 			}
-		} else {
-			// Error
-			return (nil, error)
+		}
+
+		// Queue
+		completionProcQueue.async() {
+			// Check if cancelled
+			if !self.isCancelled {
+				// Call proc
+				self.infoProc(info, returnError)
+			}
 		}
 	}
-
-	func resultsProc(_ results: (info: T?, error: Error?)) { self.infoProc(results.info, results.error) }
 
 	// MARK: Properties
 	var	infoProc :(_ info :T?, _ error :Error?) -> Void = { _,_ in }

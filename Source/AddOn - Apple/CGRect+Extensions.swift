@@ -12,6 +12,9 @@ import CoreGraphics
 // MARK: CGRect extensions
 extension CGRect {
 
+	// MARK: Properties
+	var	center :CGPoint { CGPoint(x: self.midX, y: self.midY) }
+
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func offset(dx :CGFloat, dy :CGFloat) -> CGRect
