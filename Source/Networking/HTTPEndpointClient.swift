@@ -8,6 +8,11 @@
 
 import Foundation
 
+/*
+	Rework needed:
+		HTTPEndpointRequest may generate multiple URLRequests
+*/
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointRequest extension
 extension HTTPEndpointRequest {
@@ -18,7 +23,51 @@ extension HTTPEndpointRequest {
 			multiValueQueryParameterHandling :HTTPEndpointClient.MultiValueQueryParameterHandling,
 			maximumURLLength :Int) -> URLRequest {
 		// Setup
-		var	urlRequest = URLRequest(url: URL(string: "\(serverPrefix)\(self.path)")!)
+		var	url :URL
+		if self.path.hasPrefix("http") || self.path.hasPrefix("https") {
+			// Already have fully-formed URL
+			url = URL(string: self.path)!
+		} else {
+			// Compose URL
+			var	queryString = ""
+			if let queryParameters = self.queryParameters {
+				// Iterate all query parameters
+				queryParameters.forEach() { key, value in
+					// Check value types
+					if let values = value as? [String] {
+						// [String]
+						switch multiValueQueryParameterHandling {
+							case .repeatKey:
+								// Repeat key
+								values.forEach() {
+									// Add this value
+									if queryString.isEmpty { queryString = "?" } else { queryString += "&" }
+									queryString += "\(key)=\($0)"
+								}
+
+							case .useComma:
+								// Use comma
+								if queryString.isEmpty { queryString = "?" } else { queryString += "&" }
+								queryString += "\(key)=\(String(combining: values, with: ","))"
+						}
+					} else {
+						// Use string interpolation
+						if queryString.isEmpty { queryString = "?" } else { queryString += "&" }
+						queryString += "\(key)=\(value)"
+					}
+				}
+			}
+
+			// Setup URL
+			let	string =
+						serverPrefix +
+								self.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)! +
+								queryString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+			url = URL(string: string)!
+		}
+
+		// Setup URLRequest
+		var	urlRequest = URLRequest(url: url)
 		switch self.method {
 			case .get:		urlRequest.httpMethod = "GET"
 			case .head:		urlRequest.httpMethod = "HEAD"
@@ -26,9 +75,6 @@ extension HTTPEndpointRequest {
 			case .post:		urlRequest.httpMethod = "POST"
 			case .put:		urlRequest.httpMethod = "PUT"
 		}
-
-		// Query parameters
-// TODO: Query parameters
 
 		self.headers?.forEach() { urlRequest.setValue($0.value, forHTTPHeaderField: $0.key) }
 		urlRequest.timeoutInterval = self.timeoutInterval
@@ -97,13 +143,13 @@ class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func queue(_ basicHTTPEndpointRequest :BasicHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
+	func queue(_ successHTTPEndpointRequest :SuccessHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
 			completionProc :@escaping (_ error :Error?) -> Void) {
 		// Setup
-		basicHTTPEndpointRequest.completionProc = completionProc
+		successHTTPEndpointRequest.completionProc = completionProc
 
 		// Perform
-		queue(basicHTTPEndpointRequest, completionProcQueue: completionProcQueue)
+		queue(successHTTPEndpointRequest, completionProcQueue: completionProcQueue)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -114,6 +160,16 @@ class HTTPEndpointClient {
 
 		// Perform
 		queue(headHTTPEndpointRequest, completionProcQueue: completionProcQueue)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func queue(_ dataHTTPEndpointRequest :DataHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
+			dataProc :@escaping (_ data :Data?, _ error :Error?) -> Void) {
+		// Setup
+		dataHTTPEndpointRequest.dataProc = dataProc
+
+		// Perform
+		queue(dataHTTPEndpointRequest, completionProcQueue: completionProcQueue)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

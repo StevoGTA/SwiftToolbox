@@ -12,6 +12,10 @@ import Foundation
 // MARK: URL
 extension URL {
 
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func from(_ string :String?) -> URL? { (string != nil) ? URL(string: string!) : nil }
+
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func subPath(relativeTo url :URL) -> String? {

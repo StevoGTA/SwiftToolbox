@@ -80,6 +80,17 @@ class HTTPEndpointRequest {
 		self.bodyData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
 	}
 
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = 60.0) {
+		// Store
+		self.method = method
+		self.path = url.absoluteString
+		self.queryParameters = nil
+		self.headers = nil
+		self.timeoutInterval = timeoutInterval
+		self.bodyData = nil
+	}
+
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func cancel() {
@@ -95,7 +106,7 @@ class HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - BasicHTTPEndpointRequest
-class BasicHTTPEndpointRequest : HTTPEndpointRequest {
+class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -135,6 +146,28 @@ class HeadHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
 	var	headersProc :(_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void = { _,_ in }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - DataHTTPEndpointRequest
+class DataHTTPEndpointRequest : HTTPEndpointRequest {
+
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
+			completionProcQueue :DispatchQueue) {
+		// Queue
+		completionProcQueue.async() {
+			// Check if cancelled
+			if !self.isCancelled {
+				// Call proc
+				self.dataProc(data, error)
+			}
+		}
+	}
+
+	// MARK: Properties
+	var	dataProc :(_ data :Data?, _ error :Error?) -> Void = { _,_ in }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
