@@ -30,31 +30,24 @@ extension HTTPEndpointRequest {
 		} else {
 			// Compose URL
 			var	queryString = ""
-			if let queryParameters = self.queryParameters {
-				// Iterate all query parameters
-				queryParameters.forEach() { key, value in
-					// Check value types
-					if let values = value as? [String] {
-						// [String]
-						switch multiValueQueryParameterHandling {
-							case .repeatKey:
-								// Repeat key
-								values.forEach() {
-									// Add this value
-									if queryString.isEmpty { queryString = "?" } else { queryString += "&" }
-									queryString += "\(key)=\($0)"
-								}
+			queryParameters?.forEach() { key, value in
+				// Check value types
+				if let values = value as? [Any] {
+					// Array
+					switch multiValueQueryParameterHandling {
+						case .repeatKey:
+							// Repeat key
+							values.forEach() { queryString += queryString.isEmpty ? "?\(key)=\($0)" : "&\(key)=\($0)" }
 
-							case .useComma:
-								// Use comma
-								if queryString.isEmpty { queryString = "?" } else { queryString += "&" }
-								queryString += "\(key)=\(String(combining: values, with: ","))"
-						}
-					} else {
-						// Use string interpolation
-						if queryString.isEmpty { queryString = "?" } else { queryString += "&" }
-						queryString += "\(key)=\(value)"
+						case .useComma:
+							// Use comma
+							queryString += queryString.isEmpty ? "?\(key)=" : "&\(key)="
+							values.enumerated().forEach()
+								{ queryString += ($0.offset == 0) ? "\($0.element)" : ",\($0.element)" }
 					}
+				} else {
+					// Value
+					queryString += queryString.isEmpty ? "?\(key)=\(value)" : "&\(key)=\(value)"
 				}
 			}
 
@@ -90,12 +83,12 @@ class HTTPEndpointClient {
 
 	// MARK: Types
 	enum MultiValueQueryParameterHandling {
-		case useComma
 		case repeatKey
+		case useComma
 	}
 
 	// MARK: Properties
-			var	logTransactions = true
+			var	logTransactions = false
 
 	private	let	serverPrefix :String
 	private	let	multiValueQueryParameterHandling :MultiValueQueryParameterHandling
@@ -135,8 +128,8 @@ class HTTPEndpointClient {
 				// Check if cancelled
 				guard !httpEndpointRequest.isCancelled else { return }
 
-				// Handle results
-				httpEndpointRequest.resultsProc(data: $0, response: $1 as? HTTPURLResponse, error: $2,
+				// Process results
+				httpEndpointRequest.processResults(response: $1 as! HTTPURLResponse, data: $0, error: $2,
 						completionProcQueue: completionProcQueue)
 			}).resume()
 		}
@@ -154,9 +147,9 @@ class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func queue(_ headHTTPEndpointRequest :HeadHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
-			headersProc :@escaping (_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void) {
+			completionProc :@escaping (_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void) {
 		// Setup
-		headHTTPEndpointRequest.headersProc = headersProc
+		headHTTPEndpointRequest.completionProc = completionProc
 
 		// Perform
 		queue(headHTTPEndpointRequest, completionProcQueue: completionProcQueue)
@@ -164,9 +157,9 @@ class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func queue(_ dataHTTPEndpointRequest :DataHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
-			dataProc :@escaping (_ data :Data?, _ error :Error?) -> Void) {
+			completionProc :@escaping (_ data :Data?, _ error :Error?) -> Void) {
 		// Setup
-		dataHTTPEndpointRequest.dataProc = dataProc
+		dataHTTPEndpointRequest.completionProc = completionProc
 
 		// Perform
 		queue(dataHTTPEndpointRequest, completionProcQueue: completionProcQueue)
@@ -174,9 +167,9 @@ class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func queue(_ stringHTTPEndpointRequest :StringHTTPEndpointRequest, completionProcQueue :DispatchQueue = .main,
-			stringProc :@escaping (_ string :String?, _ error :Error?) -> Void) {
+			completionProc :@escaping (_ string :String?, _ error :Error?) -> Void) {
 		// Setup
-		stringHTTPEndpointRequest.stringProc = stringProc
+		stringHTTPEndpointRequest.completionProc = completionProc
 
 		// Perform
 		queue(stringHTTPEndpointRequest, completionProcQueue: completionProcQueue)
@@ -184,9 +177,9 @@ class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func queue<T>(_ jsonHTTPEndpointRequest :JSONHTTPEndpointRequest<T>, completionProcQueue :DispatchQueue = .main,
-			infoProc :@escaping(_ info :T?, _ error :Error?) -> Void) {
+			completionProc :@escaping(_ info :T?, _ error :Error?) -> Void) {
 		// Setup
-		jsonHTTPEndpointRequest.infoProc = infoProc
+		jsonHTTPEndpointRequest.completionProc = completionProc
 
 		// Perform
 		queue(jsonHTTPEndpointRequest, completionProcQueue: completionProcQueue)
