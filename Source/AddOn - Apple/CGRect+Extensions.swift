@@ -15,27 +15,36 @@ extension CGRect {
 	// MARK: Properties
 	var	center :CGPoint { CGPoint(x: self.midX, y: self.midY) }
 
-	var	asString :String { "{{\(self.origin.x),\(self.origin.y)},{\(self.size.width),\(self.size.height)}}" }
-
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init?(_ string :String?) {
 		// Preflight
 		guard string != nil else { return nil }
 
-		// Decompose components
-		let	components =
-					string!.replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
-							.components(separatedBy: ",")
-		guard components.count == 4 else { return nil }
+		// Get info
+		let	components = string!.components(separatedBy: CharacterSet(charactersIn: "{},"))
+		guard components.count == 10 else { return nil }
+		guard let x = components[2].toDouble() else { return nil }
+		guard let y = components[3].toDouble() else { return nil }
+		guard let width = components[6].toDouble() else { return nil }
+		guard let height = components[7].toDouble() else { return nil }
 
-		// Init
-		self.init(x: CGFloat(components[0])!, y: CGFloat(components[1])!, width: CGFloat(components[2])!,
-				height: CGFloat(components[3])!)
+		self.init(x: x, y: y, width: width, height: height)
 	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func offset(dx :CGFloat, dy :CGFloat) -> CGRect
 		{ CGRect(origin: self.origin.offset(dx: dx, dy: dy), size: self.size) }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: String CoreGraphics Extension
+extension String {
+
+	// MARK: Lifecycle methoeds
+	//------------------------------------------------------------------------------------------------------------------
+	public init(_ rect :CGRect) {
+		self.init("{{\(rect.origin.x),\(rect.origin.y)},{\(rect.size.width),\(rect.size.height)}}")
+	}
 }

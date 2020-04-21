@@ -58,7 +58,11 @@ extension HTTPEndpointStatus {
 // MARK: - ServerResponder
 fileprivate class ServerResponder : HTTPServerResponder {
 
+	// MARK: Properties
+	private	var	trieRouters = [HTTPMethod : TrieRouter<HTTPEndpoint>]()
+
 	// MARK: HTTPServerResponder implementation
+	//------------------------------------------------------------------------------------------------------------------
     func respond(to request: HTTPRequest, on worker: Worker) -> Future<HTTPResponse> {
 		// Get TrieRouter for method
 		guard let trieRouter = self.trieRouters[request.method] else
@@ -100,9 +104,6 @@ fileprivate class ServerResponder : HTTPServerResponder {
 					result: HTTPResponse(status: httpEndpointError.status.httpResponseStatus, body: jsonData))
 		}
     }
-
-	// MARK: Properties
-	private	var	trieRouters = [HTTPMethod : TrieRouter<HTTPEndpoint>]()
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
