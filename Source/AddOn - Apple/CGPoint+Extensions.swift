@@ -42,5 +42,16 @@ extension CGPoint {
 	func offset(dx :CGFloat, dy :CGFloat) -> CGPoint { CGPoint(x: self.x + dx, y: self.y + dy) }
 
 	//------------------------------------------------------------------------------------------------------------------
+	func offset(to point :CGPoint) -> (dx :CGFloat, dy :CGFloat) { (point.x - self.x, point.y - self.y) }
+
+	//------------------------------------------------------------------------------------------------------------------
 	func midpoint(to point :CGPoint) -> CGPoint { CGPoint(x: (self.x + point.x) / 2.0, y: (self.y + point.y) / 2.0) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	func distance(to point :CGPoint) -> CGFloat {
+		// Get offset
+		let	(dx, dy) = offset(to: point)
+
+		return sqrt(dx * dx + dy * dy)
+	}
 }
