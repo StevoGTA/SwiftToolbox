@@ -14,4 +14,13 @@ extension TimeInterval {
 
 	// MARK: Properties
 	static	public	let	`nil` :TimeInterval? = nil
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init?(_ string :String?) {
+		// Check if string is nil
+		guard string != nil else { return nil }
+
+		self.init(string!)
+	}
 }
