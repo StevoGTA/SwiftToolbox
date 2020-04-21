@@ -12,9 +12,6 @@ import Foundation
 // MARK: HTTPEndpointError
 struct HTTPEndpointError : Error, LocalizedError {
 
-	// MARK: LocalizedError implementation
-	var	errorDescription :String? { return "\(self.status): \(self.message)" }
-
 	// MARK: Properties
 	static	let	missingBody = HTTPEndpointError(status: .badRequest, message: "Missing body")
 	static	let	unableToConvertBodyToJSON = HTTPEndpointError(status: .badRequest, message: "Invalid body")
@@ -42,6 +39,9 @@ struct HTTPEndpointError : Error, LocalizedError {
 		self.status = status
 		self.message = message
 	}
+
+	// MARK: LocalizedError implementation
+	var	errorDescription :String? { return "\(self.status): \(self.message)" }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ protocol HTTPEndpoint {
 
 	// MARK: Types
 	typealias PerformResult =
-				(status :HTTPEndpointStatus, headers :[(String, String)], responseBody :HTTPEndpointResponseBody?)
+				(status :HTTPEndpointStatus, headers :[(String, String)]?, responseBody :HTTPEndpointResponseBody?)
 
 	// MARK: Properties
 	var	method :HTTPEndpointMethod { get }
@@ -86,22 +86,14 @@ protocol HTTPEndpoint {
 // MARK: - BasicHTTPEndpoint
 struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
-	// MARK: HTTPEndpoint implementation
-	let	method :HTTPEndpointMethod
-	let	path :String
-
-	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
-		// Perform
-		let	info = try self.validateProc(urlComponents, headers)
-
-		return try self.performProc(info)
-	}
-
 	// MARK: Types
 	typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String]) throws -> T
 	typealias PerformProc = (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
+	let	method :HTTPEndpointMethod
+	let	path :String
+
 	let	validateProc :ValidateProc
 
 	var	performProc :PerformProc!
@@ -115,16 +107,47 @@ struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
 		self.validateProc = validateProc
 	}
+
+	// MARK: HTTPEndpoint implementation
+	//------------------------------------------------------------------------------------------------------------------
+	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
+		// Perform
+		let	info = try self.validateProc(urlComponents, headers)
+
+		return try self.performProc(info)
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - DataHTTPEndpoint
 struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
-	// MARK: HTTPEndpoint implementation
+	// MARK: Types
+	typealias ValidateProc =
+				(_ urlComponents :URLComponents, _ headers :[String : String], _ bodyData :Data) throws -> T
+	typealias PerformProc = (_ info :T) throws -> PerformResult
+
+	// MARK: Properties
 	let	method :HTTPEndpointMethod
 	let	path :String
 
+	let	validateProc :ValidateProc
+
+	var	performProc :PerformProc!
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
+		// Store
+		self.method = method
+		self.path = path
+
+		// Store
+		self.validateProc = validateProc
+	}
+
+	// MARK: HTTPEndpoint implementation
+	//------------------------------------------------------------------------------------------------------------------
 	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
 		// Validate
 		guard bodyData != nil else { throw HTTPEndpointError.missingBody }
@@ -134,13 +157,20 @@ struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
 		return try self.performProc(info)
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - JSONHTTPEndpoint
+struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 
 	// MARK: Types
-	typealias ValidateProc =
-				(_ urlComponents :URLComponents, _ headers :[String : String], _ bodyData :Data) throws -> T
-	typealias PerformProc = (_ info :T) throws -> PerformResult
+	typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String], _ info :T) throws -> U
+	typealias PerformProc = (_ info :U) throws -> PerformResult
 
 	// MARK: Properties
+	let	method :HTTPEndpointMethod
+	let	path :String
+
 	let	validateProc :ValidateProc
 
 	var	performProc :PerformProc!
@@ -155,16 +185,9 @@ struct DataHTTPEndpoint<T> :HTTPEndpoint {
 		// Store
 		self.validateProc = validateProc
 	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - JSONHTTPEndpoint
-struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 
 	// MARK: HTTPEndpoint implementation
-	let	method :HTTPEndpointMethod
-	let	path :String
-
+	//------------------------------------------------------------------------------------------------------------------
 	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
 		// Validate
 		guard bodyData != nil else { throw HTTPEndpointError.missingBody }
@@ -172,28 +195,8 @@ struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 				{ throw HTTPEndpointError.unableToConvertBodyToJSON }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, headers, json)
+		let	info = try self.validateProc(urlComponents, headers, json!)
 
 		return try self.performProc(info)
-	}
-
-	// MARK: Types
-	typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String], _ info :T) throws -> U
-	typealias PerformProc = (_ info :U) throws -> PerformResult
-
-	// MARK: Properties
-	let	validateProc :ValidateProc
-
-	var	performProc :PerformProc!
-
-	// MARK: Lifecycle methods
-	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
-		// Store
-		self.method = method
-		self.path = path
-
-		// Store
-		self.validateProc = validateProc
 	}
 }

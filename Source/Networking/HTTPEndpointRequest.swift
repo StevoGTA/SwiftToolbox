@@ -29,6 +29,13 @@ extension HTTPEndpointRequestError : LocalizedError {
 // MARK: HTTPEndpointRequest
 class HTTPEndpointRequest {
 
+	// MARK: Types
+	enum State {
+		case queued
+		case active
+		case finished
+	}
+
 	// MARK: Properties
 					let	method :HTTPEndpointMethod
 					let	path :String
@@ -37,6 +44,7 @@ class HTTPEndpointRequest {
 					let	timeoutInterval :TimeInterval
 					let	bodyData :Data?
 
+	private(set)	var	state :State = .queued
 	private(set)	var	isCancelled = false
 
 	// MARK: Lifecycle methods
@@ -98,86 +106,81 @@ class HTTPEndpointRequest {
 		self.isCancelled = true
 	}
 
+	//------------------------------------------------------------------------------------------------------------------
+	func transition(to state :State) {
+		// Store state
+		self.state = state
+	}
+
 	// MARK: Internal Methods
 	//------------------------------------------------------------------------------------------------------------------
-	func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?, completionProcQueue :DispatchQueue) ->
-			Void {}
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - BasicHTTPEndpointRequest
+// MARK: - SuccessHTTPEndpointRequest
 class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
-
-	// MARK: HTTPEndpointRequest methods
-	//------------------------------------------------------------------------------------------------------------------
-	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
-			completionProcQueue :DispatchQueue) {
-		// Queue
-		completionProcQueue.async() {
-			// Check if cancelled
-			if !self.isCancelled {
-				// Call proc
-				self.completionProc(error)
-			}
-		}
-	}
 
 	// MARK: Properties
 	var	completionProc :(_ error :Error?) -> Void = { _ in }
+
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(error)
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HeadHTTPEndpointRequest
 class HeadHTTPEndpointRequest : HTTPEndpointRequest {
 
+	// MARK: Properties
+	var	completionProc :(_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void = { _,_ in }
+
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
-			completionProcQueue :DispatchQueue) {
-		// Queue
-		completionProcQueue.async() {
-			// Check if cancelled
-			if !self.isCancelled {
-				// Call proc
-				self.headersProc(response?.allHeaderFields, error)
-			}
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(response?.allHeaderFields, error)
 		}
 	}
-
-	// MARK: Properties
-	var	headersProc :(_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void = { _,_ in }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - DataHTTPEndpointRequest
 class DataHTTPEndpointRequest : HTTPEndpointRequest {
 
+	// MARK: Properties
+	var	completionProc :(_ data :Data?, _ error :Error?) -> Void = { _,_ in }
+
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
-			completionProcQueue :DispatchQueue) {
-		// Queue
-		completionProcQueue.async() {
-			// Check if cancelled
-			if !self.isCancelled {
-				// Call proc
-				self.dataProc(data, error)
-			}
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(data, error)
 		}
 	}
-
-	// MARK: Properties
-	var	dataProc :(_ data :Data?, _ error :Error?) -> Void = { _,_ in }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - StringHTTPEndpointRequest
 class StringHTTPEndpointRequest : HTTPEndpointRequest {
 
+	// MARK: Properties
+	var	completionProc :(_ string :String?, _ error :Error?) -> Void = { _,_ in }
+
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
-			completionProcQueue :DispatchQueue) {
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Handle results
 		var	string :String? = nil
 		var	returnError :Error? = error
@@ -191,28 +194,24 @@ class StringHTTPEndpointRequest : HTTPEndpointRequest {
 			}
 		}
 
-		// Queue
-		completionProcQueue.async() {
-			// Check if cancelled
-			if !self.isCancelled {
-				// Call proc
-				self.stringProc(string, returnError)
-			}
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(string, returnError)
 		}
 	}
-
-	// MARK: Properties
-	var	stringProc :(_ string :String?, _ error :Error?) -> Void = { _,_ in }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - JSONHTTPEndpointRequest
 class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 
+	// MARK: Properties
+	var	completionProc :(_ info :T?, _ error :Error?) -> Void = { _,_ in }
+
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func resultsProc(data :Data?, response :HTTPURLResponse?, error :Error?,
-			completionProcQueue :DispatchQueue) {
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Handle results
 		var	info :T? = nil
 		var	returnError :Error? = error
@@ -226,16 +225,10 @@ class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 			}
 		}
 
-		// Queue
-		completionProcQueue.async() {
-			// Check if cancelled
-			if !self.isCancelled {
-				// Call proc
-				self.infoProc(info, returnError)
-			}
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(info, returnError)
 		}
 	}
-
-	// MARK: Properties
-	var	infoProc :(_ info :T?, _ error :Error?) -> Void = { _,_ in }
 }

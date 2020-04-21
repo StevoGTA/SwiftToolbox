@@ -12,9 +12,6 @@ import CoreGraphics
 // MARK: CGPoint extensions
 extension CGPoint {
 
-	// MARK: Properties
-	var	asString :String { "{\(self.x),\(self.y)}" }
-
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
 	static func interpolated(initial :CGPoint, final :CGPoint, percentage :CGFloat) -> CGPoint {
@@ -29,12 +26,13 @@ extension CGPoint {
 		// Preflight
 		guard string != nil else { return nil }
 
-		// Decompose components
-		let	components = string!.components(separatedBy: ",")
-		guard components.count == 2 else { return nil }
+		// Get info
+		let	components = string!.components(separatedBy: CharacterSet(charactersIn: "{},"))
+		guard components.count == 4 else { return nil }
+		guard let x = components[1].toDouble() else { return nil }
+		guard let y = components[2].toDouble() else { return nil }
 
-		// Init
-		self.init(x: CGFloat(components[0])!, y: CGFloat(components[1])!)
+		self.init(x: x, y: y)
 	}
 
 	// MARK: Instance methods
@@ -54,4 +52,13 @@ extension CGPoint {
 
 		return sqrt(dx * dx + dy * dy)
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: String CoreGraphics Extension
+extension String {
+
+	// MARK: Lifecycle methoeds
+	//------------------------------------------------------------------------------------------------------------------
+	public init(_ point :CGPoint) { self.init("{\(point.x),\(point.y)}") }
 }
