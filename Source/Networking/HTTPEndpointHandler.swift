@@ -72,7 +72,7 @@ protocol HTTPEndpoint {
 
 	// MARK: Types
 	typealias PerformResult =
-				(status :HTTPEndpointStatus, headers :[(String, String)], responseBody :HTTPEndpointResponseBody?)
+				(status :HTTPEndpointStatus, headers :[(String, String)]?, responseBody :HTTPEndpointResponseBody?)
 
 	// MARK: Properties
 	var	method :HTTPEndpointMethod { get }

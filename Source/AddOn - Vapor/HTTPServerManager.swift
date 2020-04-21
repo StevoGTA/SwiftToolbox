@@ -88,7 +88,8 @@ fileprivate class ServerResponder : HTTPServerResponder {
 			return worker.eventLoop.newSucceededFuture(
 					result:
 							HTTPResponse(status: responseStatus.httpResponseStatus,
-									headers: HTTPHeaders(responseHeaders), body: responseBody?.data ?? HTTPBody()))
+									headers: HTTPHeaders(responseHeaders ?? []),
+									body: responseBody?.data ?? HTTPBody()))
 		} catch {
 			// Handle error
 			let	httpEndpointError = error as! HTTPEndpointError

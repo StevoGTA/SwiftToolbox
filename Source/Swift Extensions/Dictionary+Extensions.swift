@@ -141,16 +141,25 @@ extension Dictionary where Key == String, Value == Any {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - Dictionary extension for key pairs
+// MARK: - Dictionary extension for convenience initializers
 public extension Dictionary {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(_ pairs: [Element]) {
-		// Do super
+	init(_ pairs :[Element]) {
+		// Init
 		self.init()
 
 		// Iterate elements and construct dictionary
 		pairs.forEach() { self[$0.key] = $0.value }
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(_ keys :[Key], valueProc :(_ key :Key) -> Value?) {
+		// Init
+		self.init()
+
+		// Iterate keys and construct dicctionary
+		keys.forEach() { self[$0] = valueProc($0) }
 	}
 }
