@@ -33,14 +33,29 @@ extension Date {
 	// MARK: Properties
 	static	public	let	`nil` :Date? = nil
 
-	static			let	standardizedDateFormatter :DateFormatter = {
+	static	private	let	iso8601DateFormatter :DateFormatter = {
+								// Setup
+								let	dateFormatter = DateFormatter()
+								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+
+								return dateFormatter
+							}()
+	static	private	let	rfc3339DateFormatter :DateFormatter = {
+								let	dateFormatter = DateFormatter()
+								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+
+								return dateFormatter
+							}()
+	static	private	let	rfc3339ExtendedDateFormatter :DateFormatter = {
 								let	dateFormatter = DateFormatter()
 								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 
 								return dateFormatter
 							}()
 
-					var	standardized :String { return Date.standardizedDateFormatter.string(from: self) }
+					var	iso8601 :String { return Date.iso8601DateFormatter.string(from: self) }
+					var	rfc3339 :String { return Date.rfc3339DateFormatter.string(from: self) }
+					var	rfc3339Extended :String { return Date.rfc3339ExtendedDateFormatter.string(from: self) }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -51,12 +66,42 @@ extension Date {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init?(fromStandardized standardizedString :String?) {
+	init?(fromISO8601 string :String?) {
 		// Preflight
-		guard standardizedString != nil else { return nil }
+		guard string != nil else { return nil }
 
 		// Setup
-		if let date = Date.standardizedDateFormatter.date(from: standardizedString!) {
+		if let date = type(of: self).iso8601DateFormatter.date(from: string!) {
+			// Got date
+			self.init(timeIntervalSinceNow: date.timeIntervalSinceNow)
+		} else {
+			// Invalid
+			return nil
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init?(fromRFC3339 string :String?) {
+		// Preflight
+		guard string != nil else { return nil }
+
+		// Setup
+		if let date = type(of: self).rfc3339DateFormatter.date(from: string!) {
+			// Got date
+			self.init(timeIntervalSinceNow: date.timeIntervalSinceNow)
+		} else {
+			// Invalid
+			return nil
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init?(fromRFC3339Extended string :String?) {
+		// Preflight
+		guard string != nil else { return nil }
+
+		// Setup
+		if let date = type(of: self).rfc3339ExtendedDateFormatter.date(from: string!) {
 			// Got date
 			self.init(timeIntervalSinceNow: date.timeIntervalSinceNow)
 		} else {

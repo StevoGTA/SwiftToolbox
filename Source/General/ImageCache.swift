@@ -118,7 +118,7 @@ class FilesystemImageCache :ImageCache {
 
 			// Write
 			try self.file.setContents(data)
-			try self.file.setExtendedAttribute(name: "lastAccessedDate", value: self.lastAccessedDate.standardized)
+			try self.file.setExtendedAttribute(name: "lastAccessedDate", value: self.lastAccessedDate.rfc3339Extended)
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
@@ -130,7 +130,7 @@ class FilesystemImageCache :ImageCache {
 
 			if let lastAccessedDateString = try? file.stringForExtendedAttributeName(name: "lastAccessedDate") {
 				// Have last accessed date string
-				self.lastAccessedDate = Date(fromStandardized: lastAccessedDateString)!
+				self.lastAccessedDate = Date(fromRFC3339Extended: lastAccessedDateString)!
 			} else {
 				// Assume is now
 				self.lastAccessedDate = Date()
@@ -144,7 +144,7 @@ class FilesystemImageCache :ImageCache {
 			self.lastAccessedDate = Date()
 
 			// Update filesystem
-			try self.file.setExtendedAttribute(name: "lastAccessedDate", value: self.lastAccessedDate.standardized)
+			try self.file.setExtendedAttribute(name: "lastAccessedDate", value: self.lastAccessedDate.rfc3339Extended)
 		}
 	}
 
