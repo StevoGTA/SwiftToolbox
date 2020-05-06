@@ -7,10 +7,14 @@
 //
 
 import CoreGraphics
+import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: CGSize extension
 extension CGSize {
+
+	// MARK: Properties
+	var	aspectRatio :CGFloat { self.width / self.height }
 
 	// MARK: Lifecycle methoeds
 	//------------------------------------------------------------------------------------------------------------------

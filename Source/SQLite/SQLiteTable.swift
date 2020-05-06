@@ -211,7 +211,7 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
-			where sqliteWhere :SQLiteWhere? = nil, processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc)
+			where sqliteWhere :SQLiteWhere? = nil, processValuesProc :SQLiteResultsRow.ProcessValuesProc)
 			throws {
 		// Perform
 		try select(columnNamesString: columnNamesString(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
@@ -221,7 +221,7 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[(table :SQLiteTable, tableColumn :SQLiteTableColumn)],
 			innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil,
-			processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc) throws {
+			processValuesProc :SQLiteResultsRow.ProcessValuesProc) throws {
 		// Perform
 		try select(columnNamesString: columnNamesString(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
 				processValuesProc: processValuesProc)
@@ -348,7 +348,7 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	private func select(columnNamesString :String, innerJoin :SQLiteInnerJoin?, where sqliteWhere :SQLiteWhere?,
-			processValuesProc :@escaping SQLiteResultsRow.ProcessValuesProc) throws {
+			processValuesProc :SQLiteResultsRow.ProcessValuesProc) throws {
 		// Check if we have SQLiteWhere
 		if sqliteWhere != nil {
 			// Iterate all groups in SQLiteWhere
