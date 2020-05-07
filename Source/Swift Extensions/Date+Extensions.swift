@@ -33,20 +33,20 @@ extension Date {
 	// MARK: Properties
 	static	public	let	`nil` :Date? = nil
 
-	static	private	let	iso8601DateFormatter :DateFormatter = {
+	static			let	iso8601DateFormatter :DateFormatter = {
 								// Setup
 								let	dateFormatter = DateFormatter()
 								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
 
 								return dateFormatter
 							}()
-	static	private	let	rfc3339DateFormatter :DateFormatter = {
+	static			let	rfc3339DateFormatter :DateFormatter = {
 								let	dateFormatter = DateFormatter()
 								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
 
 								return dateFormatter
 							}()
-	static	private	let	rfc3339ExtendedDateFormatter :DateFormatter = {
+	static			let	rfc3339ExtendedDateFormatter :DateFormatter = {
 								let	dateFormatter = DateFormatter()
 								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 
