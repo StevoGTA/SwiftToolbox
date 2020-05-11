@@ -153,3 +153,15 @@ extension String {
 		return path.hasPrefix(self) ? path.substring(fromCharacterIndex: self.count) : nil
 	}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - String Currency Extension
+extension String {
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init(currencyValueInCents value :Int, addDollarSign :Bool = true) {
+		// Init with format
+		self.init(format: addDollarSign ? "$%d:%02d" : "%d:%02d", value / 100, value % 100)
+	}
+}
