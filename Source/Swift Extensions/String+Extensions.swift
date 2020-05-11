@@ -196,6 +196,6 @@ extension String {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(currencyValueInCents value :Int, addDollarSign :Bool = true) {
 		// Init with format
-		self.init(format: addDollarSign ? "$%d:%02d" : "%d:%02d", value / 100, value % 100)
+		self.init(format: addDollarSign ? "$%d.%02d" : "%d.%02d", value / 100, value % 100)
 	}
 }
