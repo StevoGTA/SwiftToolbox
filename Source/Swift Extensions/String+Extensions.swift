@@ -155,6 +155,40 @@ extension String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// MARK: - String Time extension
+enum TimeFormat {
+	case minutesSeconds			// 00:00
+	case hoursMinutesSeconds	// 00:00:00
+}
+
+extension String {
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init(for timeInterval :TimeInterval, using timeFormat :TimeFormat) {
+		// Check format
+		var	timeIntervalUse = timeInterval
+		switch timeFormat {
+			case .minutesSeconds:
+				// Minutes:Seconds
+				let	minutes = Int((timeIntervalUse + 0.5) / 60.0)
+				timeIntervalUse -= TimeInterval(minutes) * 60.0
+				let	seconds = Int(timeIntervalUse + 0.5)
+				self.init(format: "%02d:%02d", minutes, seconds)
+
+			case .hoursMinutesSeconds:
+				// Hours:Minutes:Seconds
+				let	hours = Int((timeIntervalUse + 0.5) / 60.0 / 60.0)
+				timeIntervalUse -= TimeInterval(hours) * 60.0 * 60.0
+				let	minutes = Int((timeIntervalUse + 0.5) / 60.0)
+				timeIntervalUse -= TimeInterval(minutes) * 60.0
+				let	seconds = Int(timeIntervalUse + 0.5)
+				self.init(format: "%02d:%02d:%02d", hours, minutes, seconds)
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // MARK: - String Currency Extension
 extension String {
 
