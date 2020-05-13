@@ -13,7 +13,10 @@ import Foundation
 class File {
 
 	// MARK: Properties
-	internal	let	url :URL
+			var	name :String { self.url.lastPathComponent }
+			var	path :String { self.url.path }
+
+	private	let	url :URL
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------

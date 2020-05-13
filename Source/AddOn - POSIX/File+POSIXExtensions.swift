@@ -14,5 +14,5 @@ extension File {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func remove() throws { if unlink(self.url.path) == -1 { throw POSIXError.general(errno) } }
+	func remove() throws { if unlink(self.path) == -1 { throw POSIXError.general(errno) } }
 }
