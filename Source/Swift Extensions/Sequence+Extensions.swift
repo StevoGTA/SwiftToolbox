@@ -26,7 +26,7 @@ extension Sequence {
     func sorted(stringKeyProc :(Self.Element) throws -> String,
 			keyCompareProc: (String, String) -> Bool = { return $0 < $1 }) rethrows -> [Self.Element] {
 		// Must have at least 2 elements
-		guard self.underestimatedCount > 1 else { return self as! [Self.Element] }
+		guard self.underestimatedCount > 1 else { return Array(self) }
 
 		// Create map
 		var	map :[MapItem<Element>] =

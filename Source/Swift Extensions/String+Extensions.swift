@@ -155,7 +155,7 @@ extension String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - String Formatting extension
+// MARK: - String Time extension
 enum TimeFormat {
 	case minutesSeconds			// 00:00
 	case hoursMinutesSeconds	// 00:00:00
@@ -185,5 +185,17 @@ extension String {
 				let	seconds = Int(timeIntervalUse + 0.5)
 				self.init(format: "%02d:%02d:%02d", hours, minutes, seconds)
 		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - String Currency Extension
+extension String {
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init(currencyValueInCents value :Int, addDollarSign :Bool = true) {
+		// Init with format
+		self.init(format: addDollarSign ? "$%d.%02d" : "%d.%02d", value / 100, value % 100)
 	}
 }
