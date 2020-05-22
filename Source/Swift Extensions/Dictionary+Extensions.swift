@@ -9,12 +9,36 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: Dictionary extension for String keys and native values
-extension Dictionary where Key == String {
+// MARK: Dictionary extension for convenience initializers
+public extension Dictionary {
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init(_ pairs :[Element]) {
+		// Init
+		self.init()
+
+		// Iterate elements and construct dictionary
+		pairs.forEach() { self[$0.key] = $0.value }
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(_ keys :[Key], valueProc :(_ key :Key) -> Value?) {
+		// Init
+		self.init()
+
+		// Iterate keys and construct dicctionary
+		keys.forEach() { self[$0] = valueProc($0) }
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: Dictionary extension for values of Arrays and Sets
+extension Dictionary {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func stringArray(for key :String) -> [String]? {
+	public func stringArray(for key :Key) -> [String]? {
 		// Check what we have
 		if let array = self[key] as? [String] {
 			// Have array
@@ -137,29 +161,5 @@ extension Dictionary where Key == String, Value == Any {
 		}
 
 		return true
-	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - Dictionary extension for convenience initializers
-public extension Dictionary {
-
-	// MARK: Lifecycle methods
-	//------------------------------------------------------------------------------------------------------------------
-	init(_ pairs :[Element]) {
-		// Init
-		self.init()
-
-		// Iterate elements and construct dictionary
-		pairs.forEach() { self[$0.key] = $0.value }
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	init(_ keys :[Key], valueProc :(_ key :Key) -> Value?) {
-		// Init
-		self.init()
-
-		// Iterate keys and construct dicctionary
-		keys.forEach() { self[$0] = valueProc($0) }
 	}
 }

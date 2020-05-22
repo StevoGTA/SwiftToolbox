@@ -9,29 +9,35 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: File extension
+// MARK: File extended attribute extension
 extension File {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func setExtendedAttribute(name :String, data :Data) throws {
+	func setExtendedAttributeValue(_ value :Data, for name :String) throws {
 		// Write data
-		let	result :Int32 = data.withUnsafeBytes()
-					{ setxattr(self.url.path, name, $0.bindMemory(to: UInt8.self).baseAddress!, data.count, 0, 0) }
-		guard result != -1 else {  throw POSIXError.general(errno) }
+		let	result :Int32 = value.withUnsafeBytes()
+					{ setxattr(self.url.path, name, $0.bindMemory(to: UInt8.self).baseAddress!, value.count, 0, 0) }
+		if result == -1 { throw POSIXError.general(errno) }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func setExtendedAttribute(name :String, value :String) throws {
-		// Write string
-		try setExtendedAttribute(name: name, data: value.data(using: .utf8)!)
+	func setExtendedAttributeValue(_ value :String, for name :String) throws {
+		// Write data
+		try setExtendedAttributeValue(value.data(using: .utf8)!, for: name)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func dataForExtendedAttribute(name :String) throws -> Data {
+	func setExtendedAttributeValue(_ value :TimeInterval, for name :String) throws {
+		// Write data
+		try setExtendedAttributeValue(withUnsafeBytes(of: value) { Data($0) }, for: name)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func dataForExtendedAttribute(name :String) throws -> Data? {
 		// Query size
 		let	size = getxattr(self.url.path, name, nil, 0, 0, 0)
-		guard size != -1 else { throw POSIXError.general(errno) }
+		guard size != -1 else { return nil }
 
 		// Read data
 		let	buffer = malloc(size)!
@@ -45,9 +51,19 @@ extension File {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func stringForExtendedAttributeName(name :String) throws -> String {
-		// Retrieve string
-		String(data: try dataForExtendedAttribute(name: name), encoding: .utf8)!
+	func stringForExtendedAttributeName(name :String) throws -> String? {
+		// Retrieve data
+		guard let data = try dataForExtendedAttribute(name: name) else { return nil }
+
+		return String(data: data, encoding: .utf8)!
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func timeIntervalForExtendedAttributeName(name :String) throws -> TimeInterval? {
+		// Retrieve data
+		guard let data = try dataForExtendedAttribute(name: name) else { return nil }
+
+		return data.withUnsafeBytes {$0.load(as: TimeInterval.self) }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

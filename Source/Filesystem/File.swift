@@ -12,6 +12,9 @@ import Foundation
 // MARK: File
 class File {
 
+	// MARK: Types
+	typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
+
 	// MARK: Properties
 	internal	let	url :URL
 

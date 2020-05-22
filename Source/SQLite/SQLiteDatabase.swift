@@ -28,7 +28,7 @@ extension SQLiteDatabaseError : LocalizedError {
 // MARK: - SQLiteDatabase
 public class SQLiteDatabase {
 
-	// MARK: Options
+	// MARK: Types
 	public	struct Options : OptionSet {
 
 				// MARK: Properties
