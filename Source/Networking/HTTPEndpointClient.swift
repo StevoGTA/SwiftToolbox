@@ -103,6 +103,7 @@ class HTTPEndpointClient {
 	private	let	maximumURLLength :Int
 	private	let	urlSession :URLSession
 	private	let	maximumConcurrentHTTPEndpointRequests :Int
+
 	private	let	updateActiveHTTPEndpointRequestsLock = Lock()
 
 	private	var	activeHTTPEndpointRequestInfos = LockingArray<HTTPEndpointRequestInfo>()
@@ -185,22 +186,25 @@ class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func cancel(identifier :String) {
-		// Iterate all
-		self.activeHTTPEndpointRequestInfos.perform() {
-			// Check identifier
-			if $0.identifier == identifier {
+		// One at a time please...
+		self.updateActiveHTTPEndpointRequestsLock.perform() {
+			// Iterate all
+			self.activeHTTPEndpointRequestInfos.forEach() {
+				// Check identifier
+				if $0.identifier == identifier {
+					// Identifier matches, cancel
+					$0.httpEndpointRequest.cancel()
+				}
+			}
+			self.queuedHTTPEndpointRequestInfos.removeAll() {
+				// Check identifier
+				guard $0.identifier == identifier else { return false }
+
 				// Identifier matches, cancel
 				$0.httpEndpointRequest.cancel()
+
+				return true
 			}
-		}
-		self.queuedHTTPEndpointRequestInfos.removeAll() {
-			// Check identifier
-			guard $0.identifier == identifier else { return false }
-
-			// Identifier matches, cancel
-			$0.httpEndpointRequest.cancel()
-
-			return true
 		}
 	}
 
@@ -223,10 +227,11 @@ class HTTPEndpointClient {
 					(self.activeHTTPEndpointRequestInfos.count < self.maximumConcurrentHTTPEndpointRequests) {
 				// Get first queued
 				let	httpEndpointRequestInfo = self.queuedHTTPEndpointRequestInfos.removeFirst()
-				guard !httpEndpointRequestInfo.httpEndpointRequest.isCancelled else { continue }
+				let	httpEndpointRequest = httpEndpointRequestInfo.httpEndpointRequest
+				guard !httpEndpointRequest.isCancelled else { continue }
 
 				// Activate
-				httpEndpointRequestInfo.httpEndpointRequest.transition(to: .active)
+				httpEndpointRequest.transition(to: .active)
 				self.activeHTTPEndpointRequestInfos.append(httpEndpointRequestInfo)
 
 				// Perform in background
@@ -236,7 +241,7 @@ class HTTPEndpointClient {
 
 					// Setup
 					let	urlRequest =
-								httpEndpointRequestInfo.httpEndpointRequest.urlRequest(with: strongSelf.serverPrefix,
+								httpEndpointRequest.urlRequest(with: strongSelf.serverPrefix,
 										multiValueQueryParameterHandling: strongSelf.multiValueQueryParameterHandling,
 										maximumURLLength: strongSelf.maximumURLLength)
 
@@ -246,14 +251,13 @@ class HTTPEndpointClient {
 					// Resume data task
 					strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
 						// Transition to finished
-						httpEndpointRequestInfo.httpEndpointRequest.transition(to: .finished)
+						httpEndpointRequest.transition(to: .finished)
 
 						// Check if cancelled
-						guard !httpEndpointRequestInfo.httpEndpointRequest.isCancelled else { return }
-
-						// Process results
-						httpEndpointRequestInfo.httpEndpointRequest.processResults(response: $1 as? HTTPURLResponse,
-								data: $0, error: $2)
+						if !httpEndpointRequest.isCancelled {
+							// Process results
+							httpEndpointRequest.processResults(response: $1 as? HTTPURLResponse, data: $0, error: $2)
+						}
 
 						// Update
 						strongSelf.updateActiveHTTPEndpointRequests()

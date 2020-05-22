@@ -80,7 +80,7 @@ extension FileManager {
 			// Check folder/file
 			if try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
 				// File
-				fileProc(File($0), $0.subPath(relativeTo: url)!)
+				fileProc(File($0), $0.lastPathComponent)
 			}
 		}
 	}
