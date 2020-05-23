@@ -118,17 +118,17 @@ class FilesystemDataCache : DataCache {
 
 			// Write
 			try self.file.setContents(data)
-			try self.file.setExtendedAttribute(name: "lastAccessedDate", value: self.lastAccessedDate.rfc3339Extended)
+			try self.file.setExtendedAttribute(self.lastAccessedDate.rfc3339Extended, for: "lastAccessedDate")
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
-		init(url :URL) {
+		init(file :File) {
 			// Setup
-			self.file = File(url)
-			self.size = url.fileSize ?? 0
+			self.file = file
+			self.size = file.size
 
 			// Retrieve last accessed date from filesystem
-			if let lastAccessedDateString = try? file.stringForExtendedAttributeName(name: "lastAccessedDate") {
+			if let lastAccessedDateString = try? file.string(forExtendedAttributeNamed: "lastAccessedDate") {
 				// Have last accessed date string
 				self.lastAccessedDate = Date(fromRFC3339Extended: lastAccessedDateString)!
 			} else {
@@ -144,7 +144,7 @@ class FilesystemDataCache : DataCache {
 			self.lastAccessedDate = Date()
 
 			// Update filesystem
-			try self.file.setExtendedAttribute(name: "lastAccessedDate", value: self.lastAccessedDate.rfc3339Extended)
+			try self.file.setExtendedAttribute(self.lastAccessedDate.rfc3339Extended, for: "lastAccessedDate")
 		}
 	}
 
@@ -168,7 +168,7 @@ class FilesystemDataCache : DataCache {
 		// Note existing files
 		FileManager.default.enumerateFiles(in: self.folderURL, includingPropertiesForKeys: [.fileSizeKey]) {
 			// Update map
-			self.map[$1] = ItemInfo(url: $0)
+			self.map[$1] = ItemInfo(file: $0)
 		}
 	}
 
@@ -188,7 +188,7 @@ class FilesystemDataCache : DataCache {
 		// Note existing files
 		FileManager.default.enumerateFiles(in: self.folderURL, includingPropertiesForKeys: [.fileSizeKey]) {
 			// Update map
-			self.map[$1] = ItemInfo(url: $0)
+			self.map[$1] = ItemInfo(file: $0)
 		}
 	}
 

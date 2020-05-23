@@ -33,7 +33,7 @@ extension File {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func data(ForExtendedAttributeNamed name :String) throws -> Data? {
+	func data(forExtendedAttributeNamed name :String) throws -> Data? {
 		// Query size
 		let	size = getxattr(self.path, name, nil, 0, 0, 0)
 		guard size != -1 else { throw POSIXError.general(errno) }
@@ -50,17 +50,17 @@ extension File {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func string(ForExtendedAttributeNamed name :String) throws -> String? {
+	func string(forExtendedAttributeNamed name :String) throws -> String? {
 		// Retrieve data
-		guard let data = try data(ForExtendedAttributeNamed: name) else { return nil }
+		guard let data = try data(forExtendedAttributeNamed: name) else { return nil }
 
 		return String(data: data, encoding: .utf8)!
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func timeInterval(ForExtendedAttributeNamed name :String) throws -> TimeInterval? {
+	func timeInterval(forExtendedAttributeNamed name :String) throws -> TimeInterval? {
 		// Retrieve data
-		guard let data = try data(ForExtendedAttributeNamed: name) else { return nil }
+		guard let data = try data(forExtendedAttributeNamed: name) else { return nil }
 
 		return data.withUnsafeBytes {$0.load(as: TimeInterval.self) }
 	}
@@ -74,7 +74,7 @@ extension File {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func setExtendedAttribute(string :String, for name :String) throws {
+	func setExtendedAttribute(_ string :String, for name :String) throws {
 		// Write string
 		try setExtendedAttribute(string.data(using: .utf8)!, for: name)
 	}

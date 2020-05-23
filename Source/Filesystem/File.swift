@@ -18,6 +18,7 @@ class File {
 	// MARK: Properties
 			var	name :String { self.url.lastPathComponent }
 			var	path :String { self.url.path }
+			var	size :Int64 { self.url.fileSize! }
 
 	private	let	url :URL
 
