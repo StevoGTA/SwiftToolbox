@@ -125,7 +125,7 @@ class FilesystemDataCache : DataCache {
 		init(file :File) {
 			// Setup
 			self.file = file
-			self.size = file.size
+			self.size = file.size ?? 0
 
 			// Retrieve last accessed date from filesystem
 			if let lastAccessedDateString = try? file.string(forExtendedAttributeNamed: "lastAccessedDate") {
