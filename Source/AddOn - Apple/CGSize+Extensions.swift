@@ -30,6 +30,23 @@ extension CGSize {
 
 		self.init(width: width, height: height)
 	}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func aspectFit(in size :CGSize) -> CGSize {
+		// Setup
+		let	widthFactor = size.width / self.width
+		let	heightFactor = size.height / self.height
+
+		// Check which dimension is more constrained
+		if widthFactor < heightFactor {
+			// Width constrained
+			return CGSize(width: self.width * widthFactor, height: self.height * widthFactor)
+		} else {
+			// Height constrained
+			return CGSize(width: self.width * heightFactor, height: self.height * heightFactor)
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
