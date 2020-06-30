@@ -16,7 +16,18 @@ extension CGRect {
 	// MARK: Properties
 	var	center :CGPoint { CGPoint(x: self.midX, y: self.midY) }
 
+	var	upperLeft :CGPoint { self.origin }
+	var	upperRight :CGPoint { self.origin.offset(dx: self.width, dy: 0.0) }
+	var	lowerLeft :CGPoint { self.origin.offset(dx: 0.0, dy: self.height) }
+	var	lowerRight :CGPoint { self.origin.offset(dx: self.width, dy: self.height) }
+
 	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init(center :CGPoint, size :CGSize) {
+		// Init
+		self.init(origin: center.offset(dx: -size.width * 0.5, dy: -size.height * 0.5), size: size)
+	}
+
 	//------------------------------------------------------------------------------------------------------------------
 	init?(_ string :String?) {
 		// Preflight
@@ -35,8 +46,15 @@ extension CGRect {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func offset(dx :CGFloat, dy :CGFloat) -> CGRect
+	func offsetBy(dx :CGFloat, dy :CGFloat) -> CGRect
 		{ CGRect(origin: self.origin.offset(dx: dx, dy: dy), size: self.size) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	func bounded(to rect :CGRect) -> CGRect {
+		// Return rect
+		return offsetBy(dx: min(max(rect.minX - self.minX, 0.0), rect.maxX - self.maxX),
+				dy: min(max(rect.minY - self.minY, 0.0), rect.maxY - self.maxY))
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
