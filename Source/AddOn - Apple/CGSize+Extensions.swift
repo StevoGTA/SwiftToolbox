@@ -47,6 +47,9 @@ extension CGSize {
 			return CGSize(width: self.width * heightFactor, height: self.height * heightFactor)
 		}
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func scaledBy(_ factor :CGFloat) -> CGSize { CGSize(width: self.width * factor, height: self.height * factor) }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
