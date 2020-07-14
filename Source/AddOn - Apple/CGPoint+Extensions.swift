@@ -38,7 +38,7 @@ extension CGPoint {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func offset(dx :CGFloat, dy :CGFloat) -> CGPoint { CGPoint(x: self.x + dx, y: self.y + dy) }
+	func offsetBy(dx :CGFloat, dy :CGFloat) -> CGPoint { CGPoint(x: self.x + dx, y: self.y + dy) }
 
 	//------------------------------------------------------------------------------------------------------------------
 	func offset(to point :CGPoint) -> (dx :CGFloat, dy :CGFloat) { (point.x - self.x, point.y - self.y) }

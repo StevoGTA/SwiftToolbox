@@ -14,18 +14,30 @@ import Foundation
 extension CGRect {
 
 	// MARK: Properties
-	var	center :CGPoint { CGPoint(x: self.midX, y: self.midY) }
-
 	var	upperLeft :CGPoint { self.origin }
-	var	upperRight :CGPoint { self.origin.offset(dx: self.width, dy: 0.0) }
-	var	lowerLeft :CGPoint { self.origin.offset(dx: 0.0, dy: self.height) }
-	var	lowerRight :CGPoint { self.origin.offset(dx: self.width, dy: self.height) }
+	var	middleLeft :CGPoint { CGPoint(x: self.minX, y: self.midY) }
+	var	lowerLeft :CGPoint { CGPoint(x: self.minX, y: self.maxY) }
+
+	var	upperCenter :CGPoint { CGPoint(x: self.midX, y: self.minY) }
+	var	center :CGPoint { CGPoint(x: self.midX, y: self.midY) }
+	var	lowerCenter :CGPoint { CGPoint(x: self.midX, y: self.maxY) }
+
+	var	upperRight :CGPoint { CGPoint(x: self.maxX, y: self.minY) }
+	var	middleRight :CGPoint { CGPoint(x: self.maxX, y: self.midY) }
+	var	lowerRight :CGPoint { CGPoint(x: self.maxX, y: self.maxY) }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(center :CGPoint, size :CGSize) {
 		// Init
-		self.init(origin: center.offset(dx: -size.width * 0.5, dy: -size.height * 0.5), size: size)
+		self.init(origin: center.offsetBy(dx: -size.width * 0.5, dy: -size.height * 0.5), size: size)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(point1 :CGPoint, point2 :CGPoint) {
+		// Init
+		self.init(x: min(point1.x, point2.x), y: min(point1.y, point2.y),
+				width: abs(point2.x - point1.x), height: abs(point2.y - point1.y))
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -47,7 +59,7 @@ extension CGRect {
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func offsetBy(dx :CGFloat, dy :CGFloat) -> CGRect
-		{ CGRect(origin: self.origin.offset(dx: dx, dy: dy), size: self.size) }
+		{ CGRect(origin: self.origin.offsetBy(dx: dx, dy: dy), size: self.size) }
 
 	//------------------------------------------------------------------------------------------------------------------
 	func bounded(to rect :CGRect) -> CGRect {

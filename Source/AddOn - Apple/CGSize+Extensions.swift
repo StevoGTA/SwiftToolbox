@@ -33,6 +33,9 @@ extension CGSize {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	func adjustedBy(dw :CGFloat, dh :CGFloat) -> CGSize { CGSize(width: self.width + dw, height: self.height + dh) }
+
+	//------------------------------------------------------------------------------------------------------------------
 	func aspectFit(in size :CGSize) -> CGSize {
 		// Setup
 		let	widthFactor = size.width / self.width
