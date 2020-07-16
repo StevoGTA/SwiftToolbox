@@ -89,6 +89,25 @@ class HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, urlEncodedBody :[String : Any]) {
+		// Setup
+		var	headersUse = headers ?? [:]
+		headersUse["Content-Type"] = "application/x-www-form-urlencoded"
+
+		// Store
+		self.method = method
+		self.path = path
+		self.queryParameters = queryParameters
+		self.headers = headersUse
+		self.timeoutInterval = timeoutInterval
+		self.bodyData =
+				String(combining: urlEncodedBody.map({ "\($0.key)=\($0.value)" }), with: "&")
+					.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+					.data(using: .utf8)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = 60.0) {
 		// Store
 		self.method = method
