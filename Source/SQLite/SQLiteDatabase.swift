@@ -50,6 +50,14 @@ public class SQLiteDatabase {
 	private	let	database :OpaquePointer
 	private	let	statementPerformer :SQLiteStatementPerfomer
 
+	// Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func doesExist(at url :URL) -> Bool {
+		// Check for known extensions
+		return FileManager.default.fileExists(atPath: url.appendingPathExtension("sqlite").path) ||
+				FileManager.default.fileExists(atPath: url.appendingPathExtension("sqlite3").path)
+	}
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(url :URL, options :Options = [.walMode]) throws {

@@ -137,42 +137,6 @@ class HTTPEndpointRequest {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - SuccessHTTPEndpointRequest
-class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
-
-	// MARK: Properties
-	var	completionProc :(_ error :Error?) -> Void = { _ in }
-
-	// MARK: HTTPEndpointRequest methods
-	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
-		// Check cancelled
-		if !self.isCancelled {
-			// Call proc
-			self.completionProc(error)
-		}
-	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - HeadHTTPEndpointRequest
-class HeadHTTPEndpointRequest : HTTPEndpointRequest {
-
-	// MARK: Properties
-	var	completionProc :(_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void = { _,_ in }
-
-	// MARK: HTTPEndpointRequest methods
-	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
-		// Check cancelled
-		if !self.isCancelled {
-			// Call proc
-			self.completionProc(response?.allHeaderFields, error)
-		}
-	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 // MARK: - DataHTTPEndpointRequest
 class DataHTTPEndpointRequest : HTTPEndpointRequest {
 
@@ -191,32 +155,107 @@ class DataHTTPEndpointRequest : HTTPEndpointRequest {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - StringHTTPEndpointRequest
-class StringHTTPEndpointRequest : HTTPEndpointRequest {
+// MARK: - FileHTTPEndpointRequest
+class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
-	var	completionProc :(_ string :String?, _ error :Error?) -> Void = { _,_ in }
+			var	completionProc :(_ error :Error?) -> Void = { _ in }
+
+	private	let	destinationURL :URL
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, destinationURL :URL) {
+		// Store
+		self.destinationURL = destinationURL
+
+		// Do super
+		super.init(method: method, path: path, queryParameters: queryParameters, headers: headers,
+				timeoutInterval: timeoutInterval)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, bodyData :Data,
+			destinationURL :URL) {
+		// Store
+		self.destinationURL = destinationURL
+
+		// Do super
+		super.init(method: method, path: path, queryParameters: queryParameters, headers: headers,
+				timeoutInterval: timeoutInterval, bodyData: bodyData)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, jsonBody :Any,
+			destinationURL :URL) {
+		// Store
+		self.destinationURL = destinationURL
+
+		// Do super
+		super.init(method: method, path: path, queryParameters: queryParameters, headers: headers,
+				timeoutInterval: timeoutInterval, jsonBody: jsonBody)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, urlEncodedBody :[String : Any],
+			destinationURL :URL) {
+		// Store
+		self.destinationURL = destinationURL
+
+		// Do super
+		super.init(method: method, path: path, queryParameters: queryParameters, headers: headers,
+				timeoutInterval: timeoutInterval, urlEncodedBody: urlEncodedBody)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = 60.0, destinationURL :URL) {
+		// Store
+		self.destinationURL = destinationURL
+
+		// Do super
+		super.init(method: method, url: url, timeoutInterval: timeoutInterval)
+	}
 
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
 	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
-		// Handle results
-		var	string :String? = nil
-		var	returnError :Error? = error
-		if data != nil {
-			// Try to compose string from data
-			string = String(data: data!, encoding: .utf8)
-
-			if string == nil {
-				// Unable to transform results
-				returnError = HTTPEndpointRequestError.unableToProcessResponseData
+		// Check cancelled
+		if !self.isCancelled {
+			// Handle results
+			if data != nil {
+				do {
+					// Store
+					try data!.write(to: self.destinationURL)
+				} catch {
+					// Error
+					self.completionProc(error)
+				}
+			} else {
+				// Error
+				self.completionProc(error)
 			}
 		}
+	}
+}
 
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - HeadHTTPEndpointRequest
+class HeadHTTPEndpointRequest : HTTPEndpointRequest {
+
+	// MARK: Properties
+	var	completionProc :(_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void = { _,_ in }
+
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Call proc
-			self.completionProc(string, returnError)
+			self.completionProc(response?.allHeaderFields, error)
 		}
 	}
 }
@@ -248,6 +287,55 @@ class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 		if !self.isCancelled {
 			// Call proc
 			self.completionProc(info, returnError)
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - SuccessHTTPEndpointRequest
+class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
+
+	// MARK: Properties
+	var	completionProc :(_ error :Error?) -> Void = { _ in }
+
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(error)
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - StringHTTPEndpointRequest
+class StringHTTPEndpointRequest : HTTPEndpointRequest {
+
+	// MARK: Properties
+	var	completionProc :(_ string :String?, _ error :Error?) -> Void = { _,_ in }
+
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+		// Handle results
+		var	string :String? = nil
+		var	returnError :Error? = error
+		if data != nil {
+			// Try to compose string from data
+			string = String(data: data!, encoding: .utf8)
+
+			if string == nil {
+				// Unable to transform results
+				returnError = HTTPEndpointRequestError.unableToProcessResponseData
+			}
+		}
+
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(string, returnError)
 		}
 	}
 }

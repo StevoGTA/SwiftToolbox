@@ -29,6 +29,18 @@ extension FileManager {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	func fileExists(at url :URL) -> Bool { fileExists(atPath: url.path) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	func createFolder(at url :URL, attributes: [FileAttributeKey : Any]? = nil) throws {
+		// Check if already exists
+		if !fileExists(at: url) {
+			// Create
+			try createDirectory(at: url, withIntermediateDirectories: true, attributes: attributes)
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFoldersFiles(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], folderProc :FolderProc, fileProc :File.SubPathProc) {
 		// Setup

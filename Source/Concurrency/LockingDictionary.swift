@@ -30,7 +30,20 @@ public class LockingDictionary<T : Hashable, U> {
 	public func set(_ value :U?, for key :T) { self.lock.write() { self.map[key] = value } }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func merge(_ map :[T : U]) { self.lock.write() { self.map.merge(map) { $1 } } }
+	public func merge(_ map :[T : U]) { self.lock.write() { self.map.merge(map, uniquingKeysWith: { $1 }) } }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func update(for key :T, with proc :(_ previous :U?) -> U?) {
+		// Update value under lock
+		self.lock.write() {
+			// Retrieve current value
+			let	value = self.map[key]
+			self.map[key] = nil
+
+			// Call proc and set new value
+			self.map[key] = proc(value)
+		}
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func remove(_ key :T) { self.lock.write() { self.map[key] = nil } }

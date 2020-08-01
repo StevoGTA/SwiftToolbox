@@ -211,20 +211,20 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
-			where sqliteWhere :SQLiteWhere? = nil, processValuesProc :SQLiteResultsRow.ProcessValuesProc)
-			throws {
+			where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil,
+			processValuesProc :SQLiteResultsRow.ProcessValuesProc) throws {
 		// Perform
 		try select(columnNamesString: columnNamesString(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
-				processValuesProc: processValuesProc)
+				orderBy: orderBy, processValuesProc: processValuesProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[(table :SQLiteTable, tableColumn :SQLiteTableColumn)],
-			innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil,
+			innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil,
 			processValuesProc :SQLiteResultsRow.ProcessValuesProc) throws {
 		// Perform
 		try select(columnNamesString: columnNamesString(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
-				processValuesProc: processValuesProc)
+				orderBy: orderBy, processValuesProc: processValuesProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -348,14 +348,16 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	private func select(columnNamesString :String, innerJoin :SQLiteInnerJoin?, where sqliteWhere :SQLiteWhere?,
-			processValuesProc :SQLiteResultsRow.ProcessValuesProc) throws {
+			orderBy :SQLiteOrderBy?, processValuesProc :SQLiteResultsRow.ProcessValuesProc) throws {
 		// Check if we have SQLiteWhere
 		if sqliteWhere != nil {
 			// Iterate all groups in SQLiteWhere
 			let	variableNumberLimit = self.statementPerformer.variableNumberLimit
 			try sqliteWhere!.forEachValueGroup(chunkSize: variableNumberLimit) { string, values in
 				// Compose statement
-				let	statement = "SELECT \(columnNamesString) FROM `\(self.name)`" + (innerJoin?.string ?? "") + string
+				let	statement =
+							"SELECT \(columnNamesString) FROM `\(self.name)`" + (innerJoin?.string ?? "") + string +
+									(orderBy?.string ?? "")
 
 				// Run lean
 				try autoreleasepool() {
@@ -366,7 +368,9 @@ public struct SQLiteTable {
 			}
 		} else {
 			// No SQLiteWhere
-			let	statement = "SELECT \(columnNamesString) FROM `\(self.name)`" + (innerJoin?.string ?? "")
+			let	statement =
+						"SELECT \(columnNamesString) FROM `\(self.name)`" + (innerJoin?.string ?? "") +
+								(orderBy?.string ?? "")
 
 			// Run lean
 			try autoreleasepool() {
