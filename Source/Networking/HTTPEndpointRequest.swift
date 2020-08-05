@@ -230,6 +230,9 @@ class FileHTTPEndpointRequest : HTTPEndpointRequest {
 				do {
 					// Store
 					try data!.write(to: self.destinationURL)
+
+					// Call completion
+					self.completionProc(nil)
 				} catch {
 					// Error
 					self.completionProc(error)
