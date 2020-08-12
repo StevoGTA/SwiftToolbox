@@ -179,7 +179,7 @@ class FilesystemDataCache : DataCache {
 		let	url = URL(fileURLWithPath: path)
 
 		// Store
-		self.folderURL = url.appendingPathComponent(folderName)
+		self.folderURL = !folderName.isEmpty ? url.appendingPathComponent(folderName) : url
 		self.sizeLimit = sizeLimit
 
 		// Setup
@@ -196,7 +196,13 @@ class FilesystemDataCache : DataCache {
 	//------------------------------------------------------------------------------------------------------------------
 	func store(_ data :Data, for identifier :String) throws {
 		// Setup
-		let	file = File(self.folderURL.appendingPathComponent(identifier))
+		let	url = self.folderURL.appendingPathComponent(identifier)
+		let	file = File(url)
+
+		// Create folder if needed
+		try FileManager.default.createFolder(at: url.deletingLastPathComponent())
+
+		// Create ItemInfo which will write the data
 		let	itemInfo = try ItemInfo(file: file, data: data)
 
 		// Update map
