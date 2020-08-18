@@ -86,24 +86,9 @@ extension String {
 							return components(separatedBy: "/")
 						}
 					}
-	public	var	firstPathComponent :String? {
-						// Get path components
-						let	pathComponents = self.pathComponents
-
-						return (pathComponents.count > 0) ? pathComponents.first! : nil
-					}
-	public	var	lastPathComponent :String? {
-						// Get path components
-						let	pathComponents = self.pathComponents
-
-						return (pathComponents.count > 0) ? pathComponents.last! : nil
-					}
-	public	var	lastPathComponentWithoutPathExtension :String? {
-						// Get path components
-						let	pathComponents = self.pathComponents
-
-						return (pathComponents.count > 0) ? pathComponents.last!.deletingPathExtension : nil
-					}
+	public	var	firstPathComponent :String? { self.pathComponents.first }
+	public	var	lastPathComponent :String? { self.pathComponents.last }
+	public	var	lastPathComponentWithoutPathExtension :String? { self.pathComponents.last?.deletingPathExtension }
 	public	var	deletingFirstPathComponent :String {
 						// Get path components
 						let	pathComponents = self.pathComponents
@@ -118,12 +103,7 @@ extension String {
 						return (pathComponents.count > 1) ?
 								self.substring(toCharacterIndex: self.count - pathComponents.last!.count - 1) : ""
 					}
-	public	var	pathExtension :String? {
-						// Split path by "."
-						let	nameComponents = self.components(separatedBy: ".")
-
-						return (nameComponents.count > 0) ? nameComponents.last! : nil
-					}
+	public	var	pathExtension :String? { self.components(separatedBy: ".").last }
 	public	var	deletingPathExtension :String {
 						// Split path by "."
 						let	nameComponents = self.components(separatedBy: ".")
@@ -138,13 +118,19 @@ extension String {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func appending(pathComponent :String) -> String {
-		return self.isEmpty ? pathComponent : self + "/" + pathComponent
-	}
+	public func appending(pathComponent :String) -> String { self.isEmpty ? pathComponent : self + "/" + pathComponent }
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func appending(pathExtension :String) -> String {
 		return !pathExtension.isEmpty ? self + "." + pathExtension : self
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func lastPathComponents(_ count :Int) -> [String] { return self.pathComponents.suffix(count) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func lastPathComponentsSubPath(_ count :Int) -> String {
+		return String(combining: lastPathComponents(count), with: "/")
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

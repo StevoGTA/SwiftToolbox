@@ -120,7 +120,7 @@ extension FileManager {
 				// Is regular file
 				if try! childURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
 					// Call proc
-					fileProc(File(childURL), childURL.subPath(relativeTo: url)!)
+					fileProc(File(childURL), childURL.path.lastPathComponentsSubPath(directoryEnumerator.level))
 				}
 			}
 		}
