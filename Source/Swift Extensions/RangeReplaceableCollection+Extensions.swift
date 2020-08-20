@@ -22,6 +22,18 @@ extension RangeReplaceableCollection where Iterator.Element : Equatable {
 			remove(at: found)
 		}  
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public mutating func remove(_ array :[Self.Iterator.Element]) {
+		// Iterate array
+		array.forEach() {
+			// Check for existence in this array
+			if let index = firstIndex(of: $0) {
+				// Remove
+				remove(at: index)
+			}
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -53,10 +53,10 @@ extension FileManager {
 			// Check folder/file
 			if !(try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
 				// Folder
-				folderProc($0, $0.subPath(relativeTo: url)!)
+				folderProc($0, $0.lastPathComponent)
 			} else {
 				// File
-				fileProc(File($0), $0.subPath(relativeTo: url)!)
+				fileProc(File($0), $0.lastPathComponent)
 			}
 		}
 	}
@@ -74,7 +74,7 @@ extension FileManager {
 			// Check folder/file
 			if !(try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
 				// Folder
-				folderProc($0, $0.subPath(relativeTo: url)!)
+				folderProc($0, $0.lastPathComponent)
 			}
 		}
 	}
@@ -106,7 +106,7 @@ extension FileManager {
 		// Check options
 		if options.contains(.sorted) {
 			// Perform sorted
-			enumerateFilesDeep(rootURL: url, url: url, includingPropertiesForKeys: keysUse, options: options,
+			enumerateFilesDeep(levels: 0, url: url, includingPropertiesForKeys: keysUse, options: options,
 					fileProc: fileProc)
 		} else {
 			// Perform
@@ -128,7 +128,7 @@ extension FileManager {
 
 	// Private methods
 	//------------------------------------------------------------------------------------------------------------------
-	private func enumerateFilesDeep(rootURL :URL, url :URL, includingPropertiesForKeys keys: [URLResourceKey],
+	private func enumerateFilesDeep(levels :Int, url :URL, includingPropertiesForKeys keys: [URLResourceKey],
 			options: EnumerationOptions, fileProc :File.SubPathProc) {
 		// Iterate all urls
 		var	urls = try! contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [])
@@ -137,10 +137,10 @@ extension FileManager {
 			// Check folder/file
 			if try! $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
 				// File
-				fileProc(File($0), $0.subPath(relativeTo: rootURL)!)
+				fileProc(File($0), $0.path.lastPathComponentsSubPath(levels + 1))
 			} else {
 				// Folder
-				enumerateFilesDeep(rootURL: rootURL, url: $0, includingPropertiesForKeys: keys, options: options,
+				enumerateFilesDeep(levels: levels + 1, url: $0, includingPropertiesForKeys: keys, options: options,
 						fileProc: fileProc)
 			}
 		}
