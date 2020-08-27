@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointMethod
-enum HTTPEndpointMethod {
+public enum HTTPEndpointMethod {
 	case get
 	case head
 	case patch
@@ -20,7 +20,7 @@ enum HTTPEndpointMethod {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointStatus
-enum HTTPEndpointStatus : UInt {
+public enum HTTPEndpointStatus : UInt {
 	case ok = 200
 
 	case badRequest = 400

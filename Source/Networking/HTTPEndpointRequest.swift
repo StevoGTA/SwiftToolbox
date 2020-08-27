@@ -27,7 +27,7 @@ extension HTTPEndpointRequestError : LocalizedError {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointRequest
-class HTTPEndpointRequest {
+public class HTTPEndpointRequest {
 
 	// MARK: Types
 	enum State {
@@ -49,7 +49,7 @@ class HTTPEndpointRequest {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+	public init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
 			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0) {
 		// Store
 		self.method = method
@@ -61,7 +61,7 @@ class HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+	public init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
 			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, bodyData :Data) {
 		// Store
 		self.method = method
@@ -73,7 +73,7 @@ class HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+	public init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
 			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, jsonBody :Any) {
 		// Setup
 		var	headersUse = headers ?? [:]
@@ -89,7 +89,7 @@ class HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
+	public init(method :HTTPEndpointMethod, path :String, queryParameters :[String : Any]? = nil,
 			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, urlEncodedBody :[String : Any]) {
 		// Setup
 		var	headersUse = headers ?? [:]
@@ -108,7 +108,7 @@ class HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = 60.0) {
+	public init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = 60.0) {
 		// Store
 		self.method = method
 		self.path = url.absoluteString
@@ -120,7 +120,7 @@ class HTTPEndpointRequest {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func cancel() {
+	public func cancel() {
 		// Mark as cancelled
 		self.isCancelled = true
 	}
@@ -138,10 +138,10 @@ class HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - DataHTTPEndpointRequest
-class DataHTTPEndpointRequest : HTTPEndpointRequest {
+public class DataHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
-	var	completionProc :(_ data :Data?, _ error :Error?) -> Void = { _,_ in }
+	public var	completionProc :(_ data :Data?, _ error :Error?) -> Void = { _,_ in }
 
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -159,7 +159,7 @@ class DataHTTPEndpointRequest : HTTPEndpointRequest {
 class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
-			var	completionProc :(_ error :Error?) -> Void = { _ in }
+	public var	completionProc :(_ error :Error?) -> Void = { _ in }
 
 	private	let	destinationURL :URL
 
@@ -247,10 +247,10 @@ class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HeadHTTPEndpointRequest
-class HeadHTTPEndpointRequest : HTTPEndpointRequest {
+public class HeadHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
-	var	completionProc :(_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void = { _,_ in }
+	public var	completionProc :(_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void = { _,_ in }
 
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -265,10 +265,10 @@ class HeadHTTPEndpointRequest : HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - JSONHTTPEndpointRequest
-class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
+public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 
 	// MARK: Properties
-	var	completionProc :(_ info :T?, _ error :Error?) -> Void = { _,_ in }
+	public var	completionProc :(_ info :T?, _ error :Error?) -> Void = { _,_ in }
 
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -278,7 +278,7 @@ class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 		var	returnError :Error? = error
 		if data != nil {
 			// Try to compose info from data
-			info = try? JSONSerialization.jsonObject(with: data!, options: []) as? T
+			info = try! JSONSerialization.jsonObject(with: data!, options: []) as? T
 
 			if info == nil {
 				// Unable to transform results
@@ -296,10 +296,10 @@ class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - SuccessHTTPEndpointRequest
-class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
+public class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
-	var	completionProc :(_ error :Error?) -> Void = { _ in }
+	public var	completionProc :(_ error :Error?) -> Void = { _ in }
 
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -314,10 +314,10 @@ class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - StringHTTPEndpointRequest
-class StringHTTPEndpointRequest : HTTPEndpointRequest {
+public class StringHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
-	var	completionProc :(_ string :String?, _ error :Error?) -> Void = { _,_ in }
+	public var	completionProc :(_ string :String?, _ error :Error?) -> Void = { _,_ in }
 
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------

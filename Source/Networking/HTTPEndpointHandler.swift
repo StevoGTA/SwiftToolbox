@@ -46,7 +46,7 @@ struct HTTPEndpointError : Error, LocalizedError {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointResponseBody
-enum HTTPEndpointResponseBody {
+public enum HTTPEndpointResponseBody {
 
 	// MARK: Values
 	case data(_ value :Data)
@@ -68,7 +68,7 @@ enum HTTPEndpointResponseBody {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpoint
-protocol HTTPEndpoint {
+public protocol HTTPEndpoint {
 
 	// MARK: Types
 	typealias PerformResult =
@@ -84,23 +84,23 @@ protocol HTTPEndpoint {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - BasicHTTPEndpoint
-struct BasicHTTPEndpoint<T> : HTTPEndpoint {
+public struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
 	// MARK: Types
-	typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String]) throws -> T
-	typealias PerformProc = (_ info :T) throws -> PerformResult
+	public typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String]) throws -> T
+	public typealias PerformProc = (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
-	let	method :HTTPEndpointMethod
-	let	path :String
+	public let	method :HTTPEndpointMethod
+	public let	path :String
 
-	let	validateProc :ValidateProc
+	public let	validateProc :ValidateProc
 
-	var	performProc :PerformProc!
+	public var	performProc :PerformProc!
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
+	public init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path
@@ -110,7 +110,8 @@ struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
 	// MARK: HTTPEndpoint implementation
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
+	public func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws ->
+			PerformResult {
 		// Perform
 		let	info = try self.validateProc(urlComponents, headers)
 
@@ -120,24 +121,24 @@ struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - DataHTTPEndpoint
-struct DataHTTPEndpoint<T> :HTTPEndpoint {
+public struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
 	// MARK: Types
-	typealias ValidateProc =
+	public typealias ValidateProc =
 				(_ urlComponents :URLComponents, _ headers :[String : String], _ bodyData :Data) throws -> T
-	typealias PerformProc = (_ info :T) throws -> PerformResult
+	public typealias PerformProc = (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
-	let	method :HTTPEndpointMethod
-	let	path :String
+	public let	method :HTTPEndpointMethod
+	public let	path :String
 
-	let	validateProc :ValidateProc
+	public let	validateProc :ValidateProc
 
-	var	performProc :PerformProc!
+	public var	performProc :PerformProc!
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
+	public init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path
@@ -148,7 +149,8 @@ struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
 	// MARK: HTTPEndpoint implementation
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
+	public func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws ->
+			PerformResult {
 		// Validate
 		guard bodyData != nil else { throw HTTPEndpointError.missingBody }
 
@@ -161,23 +163,24 @@ struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - JSONHTTPEndpoint
-struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
+public struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 
 	// MARK: Types
-	typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String], _ info :T) throws -> U
-	typealias PerformProc = (_ info :U) throws -> PerformResult
+	public typealias ValidateProc =
+				(_ urlComponents :URLComponents, _ headers :[String : String], _ info :T) throws -> U
+	public typealias PerformProc = (_ info :U) throws -> PerformResult
 
 	// MARK: Properties
-	let	method :HTTPEndpointMethod
-	let	path :String
+	public let	method :HTTPEndpointMethod
+	public let	path :String
 
-	let	validateProc :ValidateProc
+	public let	validateProc :ValidateProc
 
-	var	performProc :PerformProc!
+	public var	performProc :PerformProc!
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
+	public init(method :HTTPEndpointMethod, path :String, validateProc :@escaping ValidateProc) {
 		// Store
 		self.method = method
 		self.path = path
@@ -188,14 +191,15 @@ struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 
 	// MARK: HTTPEndpoint implementation
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult {
+	public func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws ->
+			PerformResult {
 		// Validate
 		guard bodyData != nil else { throw HTTPEndpointError.missingBody }
 		guard let json = try? JSONSerialization.jsonObject(with: bodyData!, options: []) as? T else
 				{ throw HTTPEndpointError.unableToConvertBodyToJSON }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, headers, json)
+		let	info = try self.validateProc(urlComponents, headers, json!)
 
 		return try self.performProc(info)
 	}

@@ -61,6 +61,17 @@ public class SQLiteWhere {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func and(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, values :[Any]) -> Self {
+		// Append
+		self.string +=
+				" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
+						" IN (\(SQLiteWhere.variablePlaceholder))"
+		self.values = values
+
+		return self
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func or(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) ->
 			Self {
 		// Append

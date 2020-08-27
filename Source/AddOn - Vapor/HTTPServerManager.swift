@@ -134,14 +134,14 @@ fileprivate class ServerResponder : HTTPServerResponder {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPServerManager
-class HTTPServerManager {
+public class HTTPServerManager {
 
 	// MARK: Properties
 	private	let	serverResponder = ServerResponder()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(port :Int, maxBodySize :Int = 1_000_000) {
+	public init(port :Int, maxBodySize :Int = 1_000_000) {
 		// Run in the background
 		DispatchQueue.global().async() {
 			// Setup
@@ -171,7 +171,7 @@ class HTTPServerManager {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func register(_ httpEndpoint :HTTPEndpoint) {
+	public func register(_ httpEndpoint :HTTPEndpoint) {
 		// Register
 		self.serverResponder.register(httpEndpoint)
 	}

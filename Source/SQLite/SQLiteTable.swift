@@ -210,6 +210,15 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func rowID(for sqliteWhere :SQLiteWhere) throws -> Int? {
+		// Query rowID
+		var	rowID :Int? = nil
+		try select(tableColumns: [.rowID], where: sqliteWhere) { rowID = $0.integer(for: .rowID)! }
+
+		return rowID
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
 			where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil,
 			processValuesProc :SQLiteResultsRow.ProcessValuesProc) throws {

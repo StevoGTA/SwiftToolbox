@@ -86,10 +86,12 @@ public struct SQLiteTableColumn {
 								referencedTableColumn :SQLiteTableColumn)
 
 	// MARK: Properties
-	let	name :String
-	let	kind :Kind
-	let	options :[Options]
-	let	defaultValue :Any?
+	static	let	rowID = SQLiteTableColumn("rowid", .integer, [])
+
+			let	name :String
+			let	kind :Kind
+			let	options :[Options]
+			let	defaultValue :Any?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
