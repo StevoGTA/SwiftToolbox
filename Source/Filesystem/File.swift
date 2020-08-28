@@ -16,11 +16,11 @@ class File {
 	typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
 
 	// MARK: Properties
-			var	name :String { self.url.lastPathComponent }
-			var	path :String { self.url.path }
-			var	size :Int64? { self.url.fileSize }
+	let	url :URL
 
-	private	let	url :URL
+	var	name :String { self.url.lastPathComponent }
+	var	path :String { self.url.path }
+	var	size :Int64? { self.url.fileSize }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
