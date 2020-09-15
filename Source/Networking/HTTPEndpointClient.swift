@@ -8,72 +8,123 @@
 
 import Foundation
 
-/*
-	Rework needed:
-		HTTPEndpointRequest may generate multiple URLRequests
-*/
-
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointRequest extension
 extension HTTPEndpointRequest {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	fileprivate func urlRequest(with serverPrefix :String,
+	fileprivate func urlRequests(with serverPrefix :String,
 			multiValueQueryParameterHandling :HTTPEndpointClient.MultiValueQueryParameterHandling,
-			maximumURLLength :Int) -> URLRequest {
+			maximumURLLength :Int) -> [URLRequest] {
 		// Setup
-		var	url :URL
+		let	urlRequestProc :(_ url :URL) -> URLRequest = {
+					// Setup URLRequest
+					var	urlRequest = URLRequest(url: $0)
+					switch self.method {
+						case .get:		urlRequest.httpMethod = "GET"
+						case .head:		urlRequest.httpMethod = "HEAD"
+						case .patch:	urlRequest.httpMethod = "PATCH"
+						case .post:		urlRequest.httpMethod = "POST"
+						case .put:		urlRequest.httpMethod = "PUT"
+					}
+					self.headers?.forEach() { urlRequest.setValue($0.value, forHTTPHeaderField: $0.key) }
+					urlRequest.timeoutInterval = self.timeoutInterval
+					urlRequest.httpBody = self.bodyData
+
+					return urlRequest
+				}
+
+		var	urlRequests = [URLRequest]()
 		if self.path.hasPrefix("http") || self.path.hasPrefix("https") {
 			// Already have fully-formed URL
-			url = URL(string: self.path)!
+			urlRequests.append(urlRequestProc(URL(string: self.path)!))
 		} else {
 			// Compose URL
-			var	queryString = ""
-			queryParameters?.forEach() { key, value in
-				// Check value types
-				if let values = value as? [Any] {
-					// Array
-					switch multiValueQueryParameterHandling {
-						case .repeatKey:
-							// Repeat key
-							values.forEach() { queryString += queryString.isEmpty ? "?\(key)=\($0)" : "&\(key)=\($0)" }
+			let	queryString =
+						String(combining: self.queryComponents?.map({ "\($0.key)=\($0.value)" }) ?? [],
+										with: "&")
+								.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+			let	urlRequestRoot =
+						serverPrefix + self.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)! +
+								(!queryString.isEmpty ? "?" + queryString : "")
 
-						case .useComma:
-							// Use comma
-							queryString += queryString.isEmpty ? "?\(key)=" : "&\(key)="
-							values.enumerated().forEach()
-								{ queryString += ($0.offset == 0) ? "\($0.element)" : ",\($0.element)" }
+			var	multiValueQueryString = ""
+			let	canAppendQueryComponentProc :( _ queryComponent :String) -> Bool = {
+						// Compose target string
+						let	string =
+									urlRequestRoot + (queryString.isEmpty ? "?" : "&") +
+											(multiValueQueryString.isEmpty ? $0 : multiValueQueryString + "&" + $0)
+													.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+
+						return string.count <= maximumURLLength
 					}
-				} else {
-					// Value
-					queryString += queryString.isEmpty ? "?\(key)=\(value)" : "&\(key)=\(value)"
+			let	appendQueryComponentProc :(_ queryComponent :String) -> Void =
+					{ multiValueQueryString = multiValueQueryString.isEmpty ? $0 : multiValueQueryString + "&" + $0 }
+			let	generateURLRequestProc :() -> Void = {
+						// Append URL Request
+						let	string =
+									urlRequestRoot + (queryString.isEmpty ? "?" : "&") +
+											multiValueQueryString
+													.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+						urlRequests.append(urlRequestProc(URL(string: string)!))
+
+						// Reset
+						multiValueQueryString = ""
+					}
+			let	processQueryComponentProc :(_ queryComponent :String) -> Void = {
+						// Check if can append
+						if !canAppendQueryComponentProc($0) {
+							// Generate URL Request
+							generateURLRequestProc()
+						}
+
+						// Append query component
+						appendQueryComponentProc($0)
+					}
+
+			if let (key, values) = self.multiValueQueryComponent {
+				// Check type
+				switch multiValueQueryParameterHandling {
+					case .repeatKey:
+						// Repeat key
+						values.forEach() { processQueryComponentProc("\(key)=\($0)") }
+
+					case .useComma:
+						// Use comma
+						var	queryComponent = ""
+						values.forEach() {
+							// Compose string with next value
+							let	queryComponentTry = (!queryComponent.isEmpty ? "," : "\(key)=") + "\($0)"
+							if canAppendQueryComponentProc(queryComponentTry) {
+								// We good
+								queryComponent = queryComponentTry
+							} else {
+								// Generate URL Request
+								appendQueryComponentProc(queryComponent)
+								generateURLRequestProc()
+
+								// Reset
+								queryComponent = ""
+							}
+						}
+
+						// Check if have any remaining
+						if !queryComponent.isEmpty {
+							// Append
+							appendQueryComponentProc(queryComponent)
+						}
 				}
 			}
 
-			// Setup URL
-			let	string =
-						serverPrefix +
-								self.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)! +
-								queryString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
-			url = URL(string: string)!
+			// Check if have query string remaining
+			if urlRequests.isEmpty || !multiValueQueryString.isEmpty {
+				// Generate URL Request
+				generateURLRequestProc()
+			}
 		}
 
-		// Setup URLRequest
-		var	urlRequest = URLRequest(url: url)
-		switch self.method {
-			case .get:		urlRequest.httpMethod = "GET"
-			case .head:		urlRequest.httpMethod = "HEAD"
-			case .patch:	urlRequest.httpMethod = "PATCH"
-			case .post:		urlRequest.httpMethod = "POST"
-			case .put:		urlRequest.httpMethod = "PUT"
-		}
-
-		self.headers?.forEach() { urlRequest.setValue($0.value, forHTTPHeaderField: $0.key) }
-		urlRequest.timeoutInterval = self.timeoutInterval
-		urlRequest.httpBody = self.bodyData
-
-		return urlRequest
+		return urlRequests
 	}
 }
 
@@ -92,8 +143,72 @@ public class HTTPEndpointClient {
 		case useComma
 	}
 
-	typealias HTTPEndpointRequestInfo =
-				(httpEndpointRequest :HTTPEndpointRequest, identifier :String, priority :Priority)
+	class HTTPEndpointRequestInfo {
+
+		// MARK: Properties
+				let	httpEndpointRequest :HTTPEndpointRequest
+				let	identifier :String
+				let	priority :Priority
+
+				let	urlRequests :[URLRequest]
+
+		private	var	finishedURLRequestsCount = 0
+
+		// MARK: Lifecycle methods
+		init(httpEndpointRequest :HTTPEndpointRequest, serverPrefix :String,
+					multiValueQueryParameterHandling :HTTPEndpointClient.MultiValueQueryParameterHandling,
+					maximumURLLength :Int, identifier :String, priority :Priority) {
+			// Store
+			self.httpEndpointRequest = httpEndpointRequest
+			self.identifier = identifier
+			self.priority = priority
+
+			// Setup
+			self.urlRequests =
+					httpEndpointRequest.urlRequests(with: serverPrefix,
+							multiValueQueryParameterHandling: multiValueQueryParameterHandling,
+							maximumURLLength: maximumURLLength)
+		}
+
+		// MARK: Instance methods
+		func transition(urlRequest :URLRequest, to state :HTTPEndpointRequest.State) {
+			// Check state
+			if (state == .active) && (self.httpEndpointRequest.state == .queued) {
+				// Transition to active
+				self.httpEndpointRequest.transition(to: .active)
+			} else if state == .finished {
+				// One more finished
+				self.finishedURLRequestsCount += 1
+
+				// Check if finished finished
+				if self.finishedURLRequestsCount == self.urlRequests.count {
+					// Finished finished
+					self.httpEndpointRequest.transition(to: .finished)
+				}
+			}
+		}
+	}
+
+	class HTTPEndpointRequestPerformInfo {
+
+		// MARK: Properties
+						let	httpEndpointRequestInfo :HTTPEndpointRequestInfo
+						let	urlRequest :URLRequest
+
+		private(set)	var	state :HTTPEndpointRequest.State = .queued
+
+						var	isCancelled :Bool { self.httpEndpointRequestInfo.httpEndpointRequest.isCancelled }
+
+		// MARK: Lifecycle methods
+		init(httpEndpointRequestInfo :HTTPEndpointRequestInfo, urlRequest :URLRequest) {
+			// Store
+			self.httpEndpointRequestInfo = httpEndpointRequestInfo
+			self.urlRequest = urlRequest
+		}
+
+		// MARK: Instance methods
+		func transition(to state :HTTPEndpointRequest.State) { self.state = state }
+	}
 
 	// MARK: Properties
 			var	logTransactions = false
@@ -102,49 +217,57 @@ public class HTTPEndpointClient {
 	private	let	multiValueQueryParameterHandling :MultiValueQueryParameterHandling
 	private	let	maximumURLLength :Int
 	private	let	urlSession :URLSession
-	private	let	maximumConcurrentHTTPEndpointRequests :Int
+	private	let	maximumConcurrentURLRequests :Int
 
-	private	let	updateActiveHTTPEndpointRequestsLock = Lock()
+	private	let	updateActiveHTTPEndpointRequestPerformInfosLock = Lock()
 
-	private	var	activeHTTPEndpointRequestInfos = LockingArray<HTTPEndpointRequestInfo>()
-	private	var	queuedHTTPEndpointRequestInfos = LockingArray<HTTPEndpointRequestInfo>()
+	private	var	activeHTTPEndpointRequestPerformInfos = LockingArray<HTTPEndpointRequestPerformInfo>()
+	private	var	queuedHTTPEndpointRequestPerformInfos = LockingArray<HTTPEndpointRequestPerformInfo>()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(serverPrefix :String, multiValueQueryParameterHandling :MultiValueQueryParameterHandling = .repeatKey,
 			maximumURLLength :Int = 1024, urlSession :URLSession = URLSession.shared,
-			maximumConcurrentHTTPEndpointRequests :Int? = nil) {
+			maximumConcurrentURLRequests :Int? = nil) {
 		// Store
 		self.serverPrefix = serverPrefix
 		self.multiValueQueryParameterHandling = multiValueQueryParameterHandling
 		self.maximumURLLength = maximumURLLength
 		self.urlSession = urlSession
-		self.maximumConcurrentHTTPEndpointRequests =
-				maximumConcurrentHTTPEndpointRequests ?? urlSession.configuration.httpMaximumConnectionsPerHost
+		self.maximumConcurrentURLRequests =
+				maximumConcurrentURLRequests ?? urlSession.configuration.httpMaximumConnectionsPerHost
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	convenience public init(scheme :String, hostName :String, port :Int? = nil,
 			multiValueQueryParameterHandling :MultiValueQueryParameterHandling = .repeatKey,
 			maximumURLLength :Int = 1024, urlSession :URLSession = URLSession.shared,
-			maximumConcurrentHTTPEndpointRequests :Int? = nil) {
+			maximumConcurrentURLRequests :Int? = nil) {
 		// Setup
 		let	serverPrefix = (port != nil) ? "\(scheme)://\(hostName):\(port!)" : "\(scheme)://\(hostName)"
 
 		self.init(serverPrefix: serverPrefix, multiValueQueryParameterHandling: multiValueQueryParameterHandling,
 				maximumURLLength: maximumURLLength, urlSession: urlSession,
-				maximumConcurrentHTTPEndpointRequests: maximumConcurrentHTTPEndpointRequests)
+				maximumConcurrentURLRequests: maximumConcurrentURLRequests)
 	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ httpEndpointRequest :HTTPEndpointRequest, identifier :String = "",
 			priority :Priority = .normal) {
-		// Add to queue
-		self.queuedHTTPEndpointRequestInfos.append((httpEndpointRequest, identifier, priority))
+		// Setup
+		let	httpEndpointRequestInfo =
+					HTTPEndpointRequestInfo(httpEndpointRequest: httpEndpointRequest, serverPrefix: self.serverPrefix,
+							multiValueQueryParameterHandling: self.multiValueQueryParameterHandling,
+							maximumURLLength: self.maximumURLLength, identifier: identifier, priority: priority)
+		httpEndpointRequestInfo.urlRequests.forEach() {
+			// Add to queued
+			self.queuedHTTPEndpointRequestPerformInfos.append(
+					HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: httpEndpointRequestInfo, urlRequest: $0))
+		}
 
 		// Update active
-		updateActiveHTTPEndpointRequests()
+		updateHTTPEndpointRequestPerformInfos()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -201,21 +324,21 @@ public class HTTPEndpointClient {
 	//------------------------------------------------------------------------------------------------------------------
 	public func cancel(identifier :String) {
 		// One at a time please...
-		self.updateActiveHTTPEndpointRequestsLock.perform() {
+		self.updateActiveHTTPEndpointRequestPerformInfosLock.perform() {
 			// Iterate all
-			self.activeHTTPEndpointRequestInfos.forEach() {
+			self.activeHTTPEndpointRequestPerformInfos.forEach() {
 				// Check identifier
-				if $0.identifier == identifier {
+				if $0.httpEndpointRequestInfo.identifier == identifier {
 					// Identifier matches, cancel
-					$0.httpEndpointRequest.cancel()
+					$0.httpEndpointRequestInfo.httpEndpointRequest.cancel()
 				}
 			}
-			self.queuedHTTPEndpointRequestInfos.removeAll() {
+			self.queuedHTTPEndpointRequestPerformInfos.removeAll() {
 				// Check identifier
-				guard $0.identifier == identifier else { return false }
+				guard $0.httpEndpointRequestInfo.identifier == identifier else { return false }
 
 				// Identifier matches, cancel
-				$0.httpEndpointRequest.cancel()
+				$0.httpEndpointRequestInfo.httpEndpointRequest.cancel()
 
 				return true
 			}
@@ -224,57 +347,70 @@ public class HTTPEndpointClient {
 
 	// MARK: Private methods
 	//------------------------------------------------------------------------------------------------------------------
-	private func updateActiveHTTPEndpointRequests() {
+	private func updateHTTPEndpointRequestPerformInfos() {
 		// One at a time please...
-		self.updateActiveHTTPEndpointRequestsLock.perform() {
+		self.updateActiveHTTPEndpointRequestPerformInfosLock.perform() {
 			// Remove finished
-			self.activeHTTPEndpointRequestInfos.removeAll() { $0.httpEndpointRequest.state == .finished }
+			self.activeHTTPEndpointRequestPerformInfos.removeAll() { $0.state == .finished }
 
 			// Ensure we have available active "slots"
-			guard self.activeHTTPEndpointRequestInfos.count < self.maximumConcurrentHTTPEndpointRequests else { return }
+			guard self.activeHTTPEndpointRequestPerformInfos.count < self.maximumConcurrentURLRequests else { return }
 
 			// Sort queued
-			self.queuedHTTPEndpointRequestInfos.sort() { $0.priority.rawValue < $1.priority.rawValue }
+			self.queuedHTTPEndpointRequestPerformInfos.sort()
+				{ $0.httpEndpointRequestInfo.priority.rawValue < $1.httpEndpointRequestInfo.priority.rawValue }
 
 			// Activate up to the maximum
-			while (self.queuedHTTPEndpointRequestInfos.count > 0) &&
-					(self.activeHTTPEndpointRequestInfos.count < self.maximumConcurrentHTTPEndpointRequests) {
+			while (self.queuedHTTPEndpointRequestPerformInfos.count > 0) &&
+					(self.activeHTTPEndpointRequestPerformInfos.count < self.maximumConcurrentURLRequests) {
 				// Get first queued
-				let	httpEndpointRequestInfo = self.queuedHTTPEndpointRequestInfos.removeFirst()
-				let	httpEndpointRequest = httpEndpointRequestInfo.httpEndpointRequest
-				guard !httpEndpointRequest.isCancelled else { continue }
+				let	httpEndpointRequestPerformInfo = self.queuedHTTPEndpointRequestPerformInfos.removeFirst()
+				guard !httpEndpointRequestPerformInfo.isCancelled else { continue }
+
+				let	httpEndpointRequestInfo = httpEndpointRequestPerformInfo.httpEndpointRequestInfo
+				let	urlRequest = httpEndpointRequestPerformInfo.urlRequest
 
 				// Activate
-				httpEndpointRequest.transition(to: .active)
-				self.activeHTTPEndpointRequestInfos.append(httpEndpointRequestInfo)
+				httpEndpointRequestPerformInfo.transition(to: .active)
+				httpEndpointRequestInfo.transition(urlRequest: urlRequest, to: .active)
+				self.activeHTTPEndpointRequestPerformInfos.append(httpEndpointRequestPerformInfo)
 
 				// Perform in background
 				DispatchQueue.global().async() { [weak self] in
 					// Ensure we are still around
 					guard let strongSelf = self else { return }
-
-					// Setup
-					let	urlRequest =
-								httpEndpointRequest.urlRequest(with: strongSelf.serverPrefix,
-										multiValueQueryParameterHandling: strongSelf.multiValueQueryParameterHandling,
-										maximumURLLength: strongSelf.maximumURLLength)
+					let	logTransactions = strongSelf.logTransactions
 
 					// Log
-					if strongSelf.logTransactions { NSLog("HTTPEndpointClient - sending \(urlRequest)") }
+					if logTransactions { NSLog("HTTPEndpointClient - sending \(urlRequest)") }
 
 					// Resume data task
 					strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
+						// Log
+						if logTransactions {
+							// Check situation
+							if $1 != nil {
+								// Success
+								NSLog("HTTPEndpointClient - received \($1!)")
+							} else {
+								// Error
+								NSLog("HTTPEndpointClinet - received error \($2!) for request \(urlRequest)")
+							}
+						}
+
 						// Transition to finished
-						httpEndpointRequest.transition(to: .finished)
+						httpEndpointRequestPerformInfo.transition(to: .finished)
+						httpEndpointRequestInfo.transition(urlRequest: urlRequest, to: .finished)
 
 						// Check if cancelled
-						if !httpEndpointRequest.isCancelled {
+						if !httpEndpointRequestPerformInfo.isCancelled {
 							// Process results
-							httpEndpointRequest.processResults(response: $1 as? HTTPURLResponse, data: $0, error: $2)
+							httpEndpointRequestPerformInfo.httpEndpointRequestInfo.httpEndpointRequest.processResults(
+									response: $1 as? HTTPURLResponse, data: $0, error: $2)
 						}
 
 						// Update
-						strongSelf.updateActiveHTTPEndpointRequests()
+						strongSelf.updateHTTPEndpointRequestPerformInfos()
 					}).resume()
 				}
 			}
