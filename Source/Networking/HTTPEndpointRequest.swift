@@ -283,12 +283,13 @@ public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 		var	info :T? = nil
 		var	returnError :Error? = error
 		if data != nil {
-			// Try to compose info from data
-			info = try! JSONSerialization.jsonObject(with: data!, options: []) as? T
-
-			if info == nil {
-				// Unable to transform results
-				returnError = HTTPEndpointRequestError.unableToProcessResponseData
+			// Catch errors
+			do {
+				// Try to compose info from data
+				info = try JSONSerialization.jsonObject(with: data!, options: []) as? T
+			} catch {
+				// Error
+				returnError = error
 			}
 		}
 
