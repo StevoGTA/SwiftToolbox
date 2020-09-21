@@ -30,15 +30,23 @@ public extension Dictionary {
 		// Iterate keys and construct dicctionary
 		keys.forEach() { self[$0] = valueProc($0) }
 	}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func map<T, U>(keyProc :(_ key :Key) -> T = { $0 as! T },
+			valueProc :(_ value :Value) -> U = { $0 as! U }) -> [T : U] {
+		// Setup
+		Dictionary<T, U>(self.map({ (keyProc($0), valueProc($1)) }))
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Dictionary extension for values of Arrays and Sets
-extension Dictionary {
+public extension Dictionary {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func stringArray(for key :Key) -> [String]? {
+	func stringArray(for key :Key) -> [String]? {
 		// Check what we have
 		if let array = self[key] as? [String] {
 			// Have array
@@ -53,7 +61,7 @@ extension Dictionary {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public mutating func appendArrayValueElement<T>(key :Key, value :T) {
+	mutating func appendArrayValueElement<T>(key :Key, value :T) {
 		// Check if has existing array
 		if var array = (self[key] as? [T]) {
 			// Has existing array
@@ -132,14 +140,14 @@ extension Dictionary {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - Dictionary extension for String keys and Any values
-extension Dictionary where Key == String, Value == Any {
+public	extension Dictionary where Key == String, Value == Any {
 
 	// MARK: Properties
-	public	var	data :Data { return try! JSONSerialization.data(withJSONObject: self, options: []) }
+	var	data :Data { return try! JSONSerialization.data(withJSONObject: self, options: []) }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func equals(_ other :[Key : Value]) -> Bool {
+	func equals(_ other :[Key : Value]) -> Bool {
 		// Key count must match
 		guard self.count == other.count else { return false }
 

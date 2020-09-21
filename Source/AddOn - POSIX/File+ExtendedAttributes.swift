@@ -14,7 +14,7 @@ extension File {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func extendedAttributeNames() throws -> [String] {
+	func extendedAttributeNames() throws -> Set<String> {
 		// Query size
 		let	size = listxattr(self.path, nil, 0, 0)
 		guard size != -1 else { throw POSIXError.general(errno) }
@@ -25,7 +25,7 @@ extension File {
 			// Success
 			let	string = String(bytes: Data(bytes: buffer, count: size), encoding: .utf8)!
 
-			return string.components(separatedBy: "\0").dropLast()
+			return Set<String>(string.components(separatedBy: "\0").dropLast())
 		} else {
 			// Error
 			throw POSIXError.general(errno)
@@ -36,7 +36,7 @@ extension File {
 	func data(forExtendedAttributeNamed name :String) throws -> Data? {
 		// Query size
 		let	size = getxattr(self.path, name, nil, 0, 0, 0)
-		guard size != -1 else { throw POSIXError.general(errno) }
+		guard size != -1 else { return nil }
 
 		// Read data
 		let	buffer = malloc(size)!
@@ -66,7 +66,7 @@ extension File {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func setExtendedAttribute(_ data :Data, for name :String) throws {
+	func set(_ data :Data, forExtendedAttributeNamed name :String) throws {
 		// Write data
 		let	result :Int32 = data.withUnsafeBytes()
 					{ setxattr(self.path, name, $0.bindMemory(to: UInt8.self).baseAddress!, data.count, 0, 0) }
@@ -74,19 +74,19 @@ extension File {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func setExtendedAttribute(_ string :String, for name :String) throws {
+	func set(_ string :String, forExtendedAttributeNamed name :String) throws {
 		// Write string
-		try setExtendedAttribute(string.data(using: .utf8)!, for: name)
+		try set(string.data(using: .utf8)!, forExtendedAttributeNamed: name)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func setExtendedAttribute(_ timeInterval :TimeInterval, for name :String) throws {
+	func set(_ timeInterval :TimeInterval, forExtendedAttributeNamed name :String) throws {
 		// Write data
-		try setExtendedAttribute(withUnsafeBytes(of: timeInterval, { Data($0) }), for: name)
+		try set(withUnsafeBytes(of: timeInterval, { Data($0) }), forExtendedAttributeNamed: name)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func removeExtendedAttribute(name :String) throws {
+	func remove(extendedAttributeNamed name :String) throws {
 		// Try to remove
 		if removexattr(self.path, name, 0) == -1 {
 			// Error
