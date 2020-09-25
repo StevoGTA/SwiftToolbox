@@ -26,7 +26,10 @@ extension URL {
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func from(_ string :String?) -> URL? { (string != nil) ? URL(string: string!) : nil }
+	static func from(string :String?) -> URL? { (string != nil) ? URL(string: string!) : nil }
+
+	//------------------------------------------------------------------------------------------------------------------
+	static func from(path :String?) -> URL? { (path != nil) ? URL(fileURLWithPath: path!) : nil }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
