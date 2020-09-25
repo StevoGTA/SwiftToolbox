@@ -89,7 +89,6 @@ class IAPProduct {
 				let	purchaseAvailabilityChangedProc :PurchaseAvailabilityChangedProc
 				let	transactionResultChangedProc :TransactionResultChangedProc
 
-
 				var	isAvailableForPurchase :Bool { self.product != nil }
 				var	isPurchasedOrActive :Bool {
 							// What kind are we

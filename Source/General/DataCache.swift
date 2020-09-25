@@ -118,7 +118,7 @@ class FilesystemDataCache : DataCache {
 
 			// Write
 			try self.file.setContents(data)
-			try self.file.setExtendedAttribute(self.lastAccessedDate.rfc3339Extended, for: "lastAccessedDate")
+			try self.file.set(self.lastAccessedDate.rfc3339Extended, forExtendedAttributeNamed: "lastAccessedDate")
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ class FilesystemDataCache : DataCache {
 			self.lastAccessedDate = Date()
 
 			// Update filesystem
-			try self.file.setExtendedAttribute(self.lastAccessedDate.rfc3339Extended, for: "lastAccessedDate")
+			try self.file.set(self.lastAccessedDate.rfc3339Extended, forExtendedAttributeNamed: "lastAccessedDate")
 		}
 	}
 
