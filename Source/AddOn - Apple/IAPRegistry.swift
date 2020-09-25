@@ -87,7 +87,6 @@ class IAPProduct {
 				let	kind :Kind
 
 				let	purchaseAvailabilityChangedProc :PurchaseAvailabilityChangedProc
-				let	transactionResultChangedProc :TransactionResultChangedProc
 
 				var	isAvailableForPurchase :Bool { self.product != nil }
 				var	isPurchasedOrActive :Bool {
@@ -121,14 +120,12 @@ class IAPProduct {
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(id :String, kind :Kind,
-			purchaseAvailabilityChangedProc :@escaping PurchaseAvailabilityChangedProc = { _,_ in },
-			transactionResultChangedProc :@escaping TransactionResultChangedProc = { _,_,_ in }) {
+			purchaseAvailabilityChangedProc :@escaping PurchaseAvailabilityChangedProc = { _,_ in }) {
 		// Store
 		self.id = id
 		self.kind = kind
 
 		self.purchaseAvailabilityChangedProc = purchaseAvailabilityChangedProc
-		self.transactionResultChangedProc = transactionResultChangedProc
 
 		// Check if can be restored
 		if self.kind.isRestorable {
@@ -145,12 +142,13 @@ class IAPProduct {
 
 	// MARK: Fileprivate methods
 	//------------------------------------------------------------------------------------------------------------------
-	fileprivate func process(paymentTransaction :SKPaymentTransaction) {
+	fileprivate func process(paymentTransaction :SKPaymentTransaction) ->
+			(transactionResult :TransactionResult, error :Error?)? {
 		// Check transaction state
 		switch paymentTransaction.transactionState {
 			case .purchasing, .deferred:
 				// Purchasing
-				break
+				return nil
 
 			case .purchased, .restored:
 				// Successfully purchased or restored
@@ -167,25 +165,21 @@ class IAPProduct {
 										  ],
 										  forKey: storageKey)
 
-				// Call handler
-				self.transactionResultChangedProc(self,
-						(paymentTransaction.transactionState == .purchased) ? .purchased : .restored, nil)
+				return ((paymentTransaction.transactionState == .purchased) ? .purchased : .restored, nil)
 
 			case .failed:
 				// Failed
 				if (paymentTransaction.error! as NSError).code == SKError.Code.paymentCancelled.rawValue {
 					// Cancelled
-					// Call handler
-					self.transactionResultChangedProc(self, .cancelled, nil)
+					return (.cancelled, nil)
 				} else {
 					// Some other error
-					// Call handler
-					self.transactionResultChangedProc(self, .error, paymentTransaction.error)
+					return (.error, paymentTransaction.error)
 				}
 
 			@unknown default:
 				// How to know about these?
-				break
+				return nil
 		}
 	}
 }
@@ -202,6 +196,11 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	static			let	shared = IAPRegistry()
 
 	static			var	canMakePurchases :Bool { SKPaymentQueue.canMakePayments() }
+
+			private	let	transactionResultChangedProcsByApplicationUsername =
+								LockingDictionary<String, IAPProduct.TransactionResultChangedProc>()
+			private	let	transactionResultChangedProcsByProductIdentifier =
+								LockingDictionary<String, IAPProduct.TransactionResultChangedProc>()
 
 			private	var	productsMap = [/* id */ String : IAPProduct]()
 
@@ -229,12 +228,34 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 			let	product = self.productsMap[$0.payment.productIdentifier]!
 
 			// Process
-			product.process(paymentTransaction: $0)
+			let	result = product.process(paymentTransaction: $0)
 
 			// Check state
 			if $0.transactionState != .purchasing {
 				// Finish transaction
 				queue.finishTransaction($0)
+			}
+
+			// Check result
+			if result != nil {
+				// Retrieve proc
+				if let applicationUsername = $0.payment.applicationUsername,
+						let transactionResultChangedProc =
+								self.transactionResultChangedProcsByApplicationUsername.value(
+										for: applicationUsername) {
+					// Call proc
+					transactionResultChangedProc(product, result!.transactionResult, result!.error)
+
+					// Cleanup
+					self.transactionResultChangedProcsByApplicationUsername.remove(applicationUsername)
+				} else if let transactionResultChangedProc =
+						self.transactionResultChangedProcsByProductIdentifier.value(for: $0.payment.productIdentifier) {
+					// Call proc
+					transactionResultChangedProc(product, result!.transactionResult, result!.error)
+
+					// Cleanup
+					self.transactionResultChangedProcsByProductIdentifier.remove($0.payment.productIdentifier)
+				}
 			}
 		}
 	}
@@ -264,11 +285,6 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	//------------------------------------------------------------------------------------------------------------------
 	func productsRequest(_ request :SKProductsRequest, didReceive response :SKProductsResponse) {
 		// Handle invalid product identifiers
-//	#if defined(_DEBUG)
-//if response.invalidProductIdentifiers.count > 0
-//			NSLog(@"IAPRegistry: received these invalid Product Identifiers: %@",
-//					response.invalidProductIdentifiers);
-//	#endif
 		response.invalidProductIdentifiers.forEach() {
 			// Call proc
 			self.productsMap[$0]!.purchaseAvailabilityChangedProc(self.productsMap[$0]!, false)
@@ -276,10 +292,6 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 
 		// Handle valid products
 		response.products.forEach() {
-//	#if defined(_DEBUG)
-//			NSLog(@"IAPRegistry: have active product with identifier: %@", product.productIdentifier);
-//	#endif
-
 			// Get product
 			let	product = self.productsMap[$0.productIdentifier]!
 
@@ -293,15 +305,6 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 
 	//------------------------------------------------------------------------------------------------------------------
 	func requestDidFinish(_ request :SKRequest) {
-//	#if defined(_DEBUG)
-//		NSUInteger	activeProductsCount = 0;
-//		for (IAPProduct* product in mProductsArray) {
-//			if (product.product != nil)
-//				activeProductsCount++;
-//		}
-//		NSLog(@"IAPRegistry: have total of %lu active products", (unsigned long) activeProductsCount);
-//	#endif
-
 		// Call proc
 		self.activeProductsRequestCompletionProc!()
 
@@ -315,10 +318,6 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 
 	//------------------------------------------------------------------------------------------------------------------
 	func request(_ request :SKRequest, didFailWithError error :Error) {
-//	#if defined(_DEBUG)
-//		NSLog(@"IAPRegistry: request active products error: %@", error);
-//	#endif
-
 		// Iterate all products
 		self.productsMap.values.forEach() { product in
 			// Check if have a product yet
@@ -370,17 +369,30 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	func product(for id :String) -> IAPProduct? { self.productsMap[id] }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func purchase(product :IAPProduct, quantity :Int = 1) {
+	func purchase(product :IAPProduct, quantity :Int = 1, usernameValue :String? = nil,
+			transactionResultChangedProc :@escaping IAPProduct.TransactionResultChangedProc = { _,_,_ in }) {
 		// Setup
 		let	payment = SKMutablePayment(product: product.product!)
+		payment.applicationUsername = usernameValue
 		payment.quantity = quantity
+
+		if usernameValue != nil {
+			// Store proc
+			self.transactionResultChangedProcsByApplicationUsername.set(transactionResultChangedProc,
+					for: usernameValue!)
+		} else {
+			// Store proc
+			self.transactionResultChangedProcsByProductIdentifier.set(transactionResultChangedProc, for: product.id)
+		}
 
 		// Add to queue
 		SKPaymentQueue.default().add(payment)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func purchase(id :String, quantity :Int = 1, productProc :(_ id :String) -> IAPProduct) {
+	func purchase(id :String, quantity :Int = 1, usernameValue :String? = nil,
+			productProc :(_ id :String) -> IAPProduct,
+			transactionResultChangedProc :@escaping IAPProduct.TransactionResultChangedProc = { _,_,_ in }) {
 		// Setup
 		var	product = self.productsMap[id]
 		if product == nil {
@@ -392,17 +404,19 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 		// Check if available for purchase
 		if product!.isAvailableForPurchase {
 			// Purchase
-			purchase(product: product!, quantity: quantity)
+			purchase(product: product!, quantity: quantity, usernameValue: usernameValue,
+					transactionResultChangedProc: transactionResultChangedProc)
 		} else {
 			// Reload
 			retryUnavailableProducts() { [weak self] in
 				// Check if available for purchase
 				if product!.isAvailableForPurchase {
 					// Available
-					self?.purchase(product: product!, quantity: quantity)
+					self?.purchase(product: product!, quantity: quantity, usernameValue: usernameValue,
+							transactionResultChangedProc: transactionResultChangedProc)
 				} else {
 					// Unavailable
-					product!.transactionResultChangedProc(product!, .error,
+					transactionResultChangedProc(product!, .error,
 							IAPRegistryError.productNotAvailableForPurchase(productID: id))
 				}
 			}

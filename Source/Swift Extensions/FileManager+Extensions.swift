@@ -138,6 +138,12 @@ extension FileManager {
 		}
 	}
 
+	//------------------------------------------------------------------------------------------------------------------
+	func remove(_ file :File) throws { try removeItem(at: file.url) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	func remove(_ folder :Folder) throws { try removeItem(at: folder.url) }
+
 	// Private methods
 	//------------------------------------------------------------------------------------------------------------------
 	private func enumerateFilesDeep(levels :Int, url :URL, includingPropertiesForKeys keys: [URLResourceKey],
