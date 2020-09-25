@@ -18,8 +18,7 @@ public enum SQLiteDatabaseError : Error {
 extension SQLiteDatabaseError : LocalizedError {
 	public	var	errorDescription :String? {
 						switch self {
-							case .failedToOpen:
-								return "SQLiteDatabase failed to open"
+							case .failedToOpen:	return "SQLiteDatabase failed to open"
 						}
 					}
 }

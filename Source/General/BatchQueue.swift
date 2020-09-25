@@ -16,7 +16,7 @@ public class BatchQueue<T> {
 	public typealias Proc = (_ items :[T]) -> Void
 
 	// MARK: Properties
-	static	public	var	defaultMaximumBatchSize :Int { return 500 }
+	static	public	var	defaultMaximumBatchSize :Int { 500 }
 
 			private	let	maximumBatchSize :Int
 			private	let	proc :Proc

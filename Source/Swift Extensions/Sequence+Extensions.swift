@@ -24,21 +24,20 @@ extension Sequence {
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
     func sorted(stringKeyProc :(Self.Element) throws -> String,
-			keyCompareProc: (String, String) -> Bool = { return $0 < $1 }) rethrows -> [Self.Element] {
+			keyCompareProc: (String, String) -> Bool = { $0 < $1 }) rethrows -> [Self.Element] {
 		// Must have at least 2 elements
 		guard self.underestimatedCount > 1 else { return Array(self) }
 
 		// Create map
 		var	map :[MapItem<Element>] =
 					try autoreleasepool()
-							{ return try self.map(
-									{ return MapItem<Element>(key: try stringKeyProc($0), element: $0) }) }
+							{ try self.map({ MapItem<Element>(key: try stringKeyProc($0), element: $0) }) }
 
 		// Sort keys
-		autoreleasepool() { map.sort(by: { return keyCompareProc($0.key, $1.key) }) }
+		autoreleasepool() { map.sort(by: { keyCompareProc($0.key, $1.key) }) }
 
 		// Reconstruct sorted sequence
-		let	sortedSequence = autoreleasepool() { return map.map({ return $0.element }) }
+		let	sortedSequence = autoreleasepool() { map.map({ $0.element }) }
 
 		return sortedSequence
 	}

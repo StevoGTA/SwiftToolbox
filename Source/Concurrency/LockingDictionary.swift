@@ -26,7 +26,7 @@ public class LockingDictionary<T : Hashable, U> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func value(for key :T) -> U? { return self.lock.read() { self.map[key] } }
+	public func value(for key :T) -> U? { self.lock.read() { self.map[key] } }
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func set(_ value :U?, for key :T) { self.lock.write() { self.map[key] = value } }
@@ -62,8 +62,8 @@ public class LockingDictionary<T : Hashable, U> {
 public class LockingArrayDictionary<T : Hashable, U> {
 
 	// MARK: Properties
-	public	var	isEmpty :Bool { return self.lock.read() { self.map.isEmpty } }
-	public	var	values :[U] { return self.lock.read() { Array(self.map.values.joined()) } }
+	public	var	isEmpty :Bool { self.lock.read() { self.map.isEmpty } }
+	public	var	values :[U] { self.lock.read() { Array(self.map.values.joined()) } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
 
@@ -92,5 +92,5 @@ public class LockingArrayDictionary<T : Hashable, U> {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func values(for key :T) -> [U]? { return self.lock.read() { self.map[key] } }
+	public func values(for key :T) -> [U]? { self.lock.read() { self.map[key] } }
 }

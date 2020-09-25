@@ -11,7 +11,7 @@
 public class LockingError {
 
 	// MARK: Properties
-	public	var	error :Error? { return self.lock.read() { return self.errorInternal } }
+	public	var	error :Error? { self.lock.read() { self.errorInternal } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
 

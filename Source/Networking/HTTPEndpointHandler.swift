@@ -22,15 +22,15 @@ struct HTTPEndpointError : Error, LocalizedError {
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
 	static func badRequest(with message :String) -> HTTPEndpointError
-			{ return HTTPEndpointError(status: .badRequest, message: message) }
+			{ HTTPEndpointError(status: .badRequest, message: message) }
 	static func unauthorized(with message :String) -> HTTPEndpointError
-			{ return HTTPEndpointError(status: .unauthorized, message: message) }
+			{ HTTPEndpointError(status: .unauthorized, message: message) }
 	static func forbidden(with message :String) -> HTTPEndpointError
-			{ return HTTPEndpointError(status: .forbidden, message: message) }
+			{ HTTPEndpointError(status: .forbidden, message: message) }
 	static func notFound(with message :String) -> HTTPEndpointError
-			{ return HTTPEndpointError(status: .notFound, message: message) }
+			{ HTTPEndpointError(status: .notFound, message: message) }
 	static func conflict(with message :String) -> HTTPEndpointError
-			{ return HTTPEndpointError(status: .conflict, message: message) }
+			{ HTTPEndpointError(status: .conflict, message: message) }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ struct HTTPEndpointError : Error, LocalizedError {
 	}
 
 	// MARK: LocalizedError implementation
-	var	errorDescription :String? { return "\(self.status): \(self.message)" }
+	var	errorDescription :String? { "\(self.status): \(self.message)" }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -199,7 +199,7 @@ public struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 				{ throw HTTPEndpointError.unableToConvertBodyToJSON }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, headers, json)
+		let	info = try self.validateProc(urlComponents, headers, json!)
 
 		return try self.performProc(info)
 	}

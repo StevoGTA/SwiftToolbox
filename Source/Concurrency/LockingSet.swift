@@ -11,7 +11,7 @@
 public class LockingSet<T : Hashable> {
 
 	// MARK: Properties
-	public	var	values :Set<T> { return self.lock.read() { return self.set } }
+	public	var	values :Set<T> { self.lock.read() { self.set } }
 	
 	private	let	lock = ReadPreferringReadWriteLock()
 
@@ -23,7 +23,7 @@ public class LockingSet<T : Hashable> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func contains(_ value :T) -> Bool { return self.lock.read() { return self.set.contains(value) } }
+	public func contains(_ value :T) -> Bool { self.lock.read() { self.set.contains(value) } }
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func insert(_ value :T) { self.lock.write() { self.set.insert(value) } }

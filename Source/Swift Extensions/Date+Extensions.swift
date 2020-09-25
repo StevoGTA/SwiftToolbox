@@ -41,21 +41,23 @@ extension Date {
 								return dateFormatter
 							}()
 	static			let	rfc3339DateFormatter :DateFormatter = {
+								// Setup
 								let	dateFormatter = DateFormatter()
 								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
 
 								return dateFormatter
 							}()
 	static			let	rfc3339ExtendedDateFormatter :DateFormatter = {
+								// Setup
 								let	dateFormatter = DateFormatter()
 								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 
 								return dateFormatter
 							}()
 
-					var	iso8601 :String { return Date.iso8601DateFormatter.string(from: self) }
-					var	rfc3339 :String { return Date.rfc3339DateFormatter.string(from: self) }
-					var	rfc3339Extended :String { return Date.rfc3339ExtendedDateFormatter.string(from: self) }
+					var	iso8601 :String { Date.iso8601DateFormatter.string(from: self) }
+					var	rfc3339 :String { Date.rfc3339DateFormatter.string(from: self) }
+					var	rfc3339Extended :String { Date.rfc3339ExtendedDateFormatter.string(from: self) }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------

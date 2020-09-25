@@ -30,8 +30,8 @@ extension CGPoint {
 		// Get info
 		let	components = string!.components(separatedBy: CharacterSet(charactersIn: "{},"))
 		guard components.count == 4 else { return nil }
-		guard let x = components[1].toDouble() else { return nil }
-		guard let y = components[2].toDouble() else { return nil }
+		guard let x = components[1].asDouble else { return nil }
+		guard let y = components[2].asDouble else { return nil }
 
 		self.init(x: x, y: y)
 	}

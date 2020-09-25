@@ -130,10 +130,7 @@ public struct SQLiteTable {
 
 	// MARK: Property methods
 	//------------------------------------------------------------------------------------------------------------------
-	public subscript(dynamicMember member :String) -> SQLiteTableColumn {
-		// Return table column
-		return self.tableColumnsMap[member]!
-	}
+	public subscript(dynamicMember member :String) -> SQLiteTableColumn { self.tableColumnsMap[member]! }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -192,7 +189,7 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func hasRow(where sqliteWhere :SQLiteWhere) -> Bool { return count(where: sqliteWhere) > 0 }
+	public func hasRow(where sqliteWhere :SQLiteWhere) -> Bool { count(where: sqliteWhere) > 0 }
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func count(where sqliteWhere :SQLiteWhere? = nil) -> UInt {

@@ -15,6 +15,8 @@ extension String {
 	// MARK: Properties
 	static	let	`nil` :String? = nil
 
+			var	asDouble :Double? { NumberFormatter().number(from: self)?.doubleValue }
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(combining components :[String], with separator :String = ", ") {
@@ -34,13 +36,6 @@ extension String {
 		}
 
 		self.init(string)
-	}
-
-	// MARK: Instance methods
-	//------------------------------------------------------------------------------------------------------------------
-	func toDouble() -> Double? {
-		// Convert to double
-		return NumberFormatter().number(from: self)?.doubleValue
 	}
 }
 

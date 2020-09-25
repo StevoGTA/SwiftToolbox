@@ -48,10 +48,10 @@ extension CGRect {
 		// Get info
 		let	components = string!.components(separatedBy: CharacterSet(charactersIn: "{},"))
 		guard components.count == 10 else { return nil }
-		guard let x = components[2].toDouble() else { return nil }
-		guard let y = components[3].toDouble() else { return nil }
-		guard let width = components[6].toDouble() else { return nil }
-		guard let height = components[7].toDouble() else { return nil }
+		guard let x = components[2].asDouble else { return nil }
+		guard let y = components[3].asDouble else { return nil }
+		guard let width = components[6].asDouble else { return nil }
+		guard let height = components[7].asDouble else { return nil }
 
 		self.init(x: x, y: y, width: width, height: height)
 	}

@@ -146,7 +146,7 @@ class SQLiteStatementPerfomer {
 	}
 
 	// MARK: Properties
-			var	variableNumberLimit :Int { return Int(sqlite3_limit(self.database, SQLITE_LIMIT_VARIABLE_NUMBER, -1)) }
+			var	variableNumberLimit :Int { Int(sqlite3_limit(self.database, SQLITE_LIMIT_VARIABLE_NUMBER, -1)) }
 
 	private	let	database :OpaquePointer
 	private	let	lock = Lock()
@@ -170,7 +170,7 @@ class SQLiteStatementPerfomer {
 					SQLiteStatement(statement: string, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
 
 		// Check for transaction
-		if var sqliteStatements = self.transactionsMapLock.read({ return self.transactionsMap[Thread.current] }) {
+		if var sqliteStatements = self.transactionsMapLock.read({ self.transactionsMap[Thread.current] }) {
 			// In transaction
 			self.transactionsMapLock.write() {
 				// Add sqlite statement
@@ -198,7 +198,7 @@ class SQLiteStatementPerfomer {
 	//------------------------------------------------------------------------------------------------------------------
 	func performAsTransaction(_ proc :() -> TransactionResult) {
 		// Internals check
-		guard self.transactionsMapLock.read({ return self.transactionsMap[Thread.current] }) == nil else {
+		guard self.transactionsMapLock.read({ self.transactionsMap[Thread.current] }) == nil else {
 			// Error
 			fatalError("SQLiteStatementPerfomer performAsTransaction() called while already in transaction")
 		}

@@ -11,8 +11,8 @@
 public class LockingArray<T> {
 
 	// MARK: Properties
-	public	var	count :Int { return self.lock.read() { self.array.count } }
-	public	var	values :[T] { return self.lock.read() { self.array } }
+	public	var	count :Int { self.lock.read() { self.array.count } }
+	public	var	values :[T] { self.lock.read() { self.array } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
 

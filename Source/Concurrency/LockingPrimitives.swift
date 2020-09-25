@@ -11,7 +11,7 @@
 public class LockingValue<T> {
 
 	// MARK: Properties
-	public	var	value :T { return self.lock.read() { return self.valueInternal } }
+	public	var	value :T { self.lock.read() { self.valueInternal } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
 
@@ -37,7 +37,7 @@ public class LockingValue<T> {
 public class LockingNumeric<T : Numeric> {
 
 	// MARK: Properties
-	public	var	value :T { return self.lock.read() { return self.valueInternal } }
+	public	var	value :T { self.lock.read() { self.valueInternal } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
 

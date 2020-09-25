@@ -201,7 +201,7 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	// MARK: Properties
 	static			let	shared = IAPRegistry()
 
-	static			var	canMakePurchases :Bool { return SKPaymentQueue.canMakePayments() }
+	static			var	canMakePurchases :Bool { SKPaymentQueue.canMakePayments() }
 
 			private	var	productsMap = [/* id */ String : IAPProduct]()
 

@@ -13,7 +13,7 @@ import Foundation
 extension Array {
 
 	// MARK: Properties
-	static	public	var	`nil` :Array? { return nil }
+	static	public	var	`nil` :Array? { nil }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------

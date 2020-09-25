@@ -12,7 +12,7 @@ extension RangeReplaceableCollection where Iterator.Element : Equatable {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func contains(_ element :Self.Iterator.Element) -> Bool { return firstIndex(of: element) != nil }
+	public func contains(_ element :Self.Iterator.Element) -> Bool { firstIndex(of: element) != nil }
 
 	//------------------------------------------------------------------------------------------------------------------
 	public mutating func remove(_ element: Self.Iterator.Element) {

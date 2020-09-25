@@ -143,7 +143,7 @@ public extension Dictionary {
 public	extension Dictionary where Key == String, Value == Any {
 
 	// MARK: Properties
-	var	data :Data { return try! JSONSerialization.data(withJSONObject: self, options: []) }
+	var	data :Data { try! JSONSerialization.data(withJSONObject: self, options: []) }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------

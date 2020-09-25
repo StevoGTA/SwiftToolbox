@@ -14,6 +14,7 @@ extension FourCharCode {
 
 	// MARK: Properties
 	var	description :String {
+				// Setup
 				let utf16 = [
 								UInt16((self >> 24) & 0xFF),
 								UInt16((self >> 16) & 0xFF),
@@ -43,5 +44,5 @@ extension FourCharCode {
 
 	// MARK: methods
 	//------------------------------------------------------------------------------------------------------------------
-	func toString() -> String { return self.description }
+	func toString() -> String { self.description }
 }
