@@ -23,6 +23,9 @@ extension URL {
 					return nil
 				}
 			}
+	var	creationDate :Date? { (try? resourceValues(forKeys: [.creationDateKey]))?.creationDate }
+	var	contentModificationDate :Date?
+				{ (try? resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
