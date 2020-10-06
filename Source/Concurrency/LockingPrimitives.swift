@@ -65,7 +65,7 @@ public class LockingNumeric<T : Numeric> {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func subtract(_ value :T) {
-		// Add
+		// Subtract
 		self.lock.write() { self.valueInternal -= value }
 	}
 }
