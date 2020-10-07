@@ -98,7 +98,12 @@ extension String {
 						return (pathComponents.count > 1) ?
 								self.substring(toCharacterIndex: self.count - pathComponents.last!.count - 1) : ""
 					}
-	public	var	pathExtension :String? { self.components(separatedBy: ".").last }
+	public	var	pathExtension :String? {
+						// Setup
+						let	components = self.components(separatedBy: ".")
+
+						return (components.count > 1) ? components.last : nil
+					}
 	public	var	deletingPathExtension :String {
 						// Split path by "."
 						let	nameComponents = self.components(separatedBy: ".")

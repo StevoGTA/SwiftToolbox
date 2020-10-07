@@ -40,64 +40,6 @@ extension FileManager {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func enumerateFoldersFiles(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
-			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			folderProc :Folder.SubPathProc, fileProc :File.SubPathProc) {
-		// Setup
-		let	keysUse = (keys ?? []) + [.isRegularFileKey]
-
-		// Iterate all urls
-		var	urls = try! contentsOfDirectory(at: url, includingPropertiesForKeys: keysUse, options: [])
-		if options.contains(.sorted) { urls = urls.sorted(by: { $0.path < $1.path }) }
-		for url in urls {
-			// Check for cancelled
-			if isCancelledProc() { return }
-
-			// Check folder/file
-			if !(try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
-				// Folder
-				folderProc(Folder(url), url.lastPathComponent)
-			} else {
-				// File
-				fileProc(File(url), url.lastPathComponent)
-			}
-		}
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func enumerateFoldersFilesDeep(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
-			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			folderProc :Folder.SubPathProc, fileProc :File.SubPathProc) {
-		// Setup
-		let	keysUse = (keys ?? []) + [.isRegularFileKey]
-
-		// Check options
-		if options.contains(.sorted) {
-			// Perform sorted
-			enumerateFoldersFilesDeep(levels: 0, url: url, includingPropertiesForKeys: keysUse, options: options,
-					isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
-		} else {
-			// Perform
-			let	directoryEnumerator =
-						enumerator(at: url, includingPropertiesForKeys: keysUse, options: [], errorHandler: nil)!
-			for element in directoryEnumerator {
-				// Check for cancelled
-				if isCancelledProc() { return }
-
-				// Is regular file
-				let	childURL = element as! URL
-				if try! childURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
-					// File
-					fileProc(File(childURL), childURL.path.lastPathComponentsSubPath(directoryEnumerator.level))
-				} else {
-					// Folder
-					folderProc(Folder(childURL), childURL.path.lastPathComponentsSubPath(directoryEnumerator.level))
-				}
-			}
-		}
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFolders(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			folderProc :Folder.SubPathProc) {
@@ -114,7 +56,7 @@ extension FileManager {
 			// Check folder/file
 			if !(try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
 				// Folder
-				folderProc(Folder(url), url.lastPathComponent)
+				autoreleasepool() { folderProc(Folder(url), url.lastPathComponent) }
 			}
 		}
 	}
@@ -136,39 +78,46 @@ extension FileManager {
 			// Check folder/file
 			if try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
 				// File
-				fileProc(File(url), url.lastPathComponent)
+				autoreleasepool() { fileProc(File(url), url.lastPathComponent) }
 			}
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func enumerateFilesDeep(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+	func enumerateFoldersFiles(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			fileProc :File.SubPathProc) {
+			folderProc :Folder.SubPathProc, fileProc :File.SubPathProc) {
 		// Setup
 		let	keysUse = (keys ?? []) + [.isRegularFileKey]
 
-		// Check options
-		if options.contains(.sorted) {
-			// Perform sorted
-			enumerateFilesDeep(levels: 0, url: url, includingPropertiesForKeys: keysUse, options: options,
-					isCancelledProc: isCancelledProc, fileProc: fileProc)
-		} else {
-			// Perform
-			let	directoryEnumerator =
-						enumerator(at: url, includingPropertiesForKeys: keysUse, options: [], errorHandler: nil)!
-			for element in directoryEnumerator {
-				// Check for cancelled
-				if isCancelledProc() { return }
+		// Iterate all urls
+		var	urls = try! contentsOfDirectory(at: url, includingPropertiesForKeys: keysUse, options: [])
+		if options.contains(.sorted) { urls = urls.sorted(by: { $0.path < $1.path }) }
+		for url in urls {
+			// Check for cancelled
+			if isCancelledProc() { return }
 
-				// Is regular file
-				let	childURL = element as! URL
-				if try! childURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
-					// Call proc
-					fileProc(File(childURL), childURL.path.lastPathComponentsSubPath(directoryEnumerator.level))
-				}
+			// Check folder/file
+			if !(try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
+				// Folder
+				autoreleasepool() { folderProc(Folder(url), url.lastPathComponent) }
+			} else {
+				// File
+				autoreleasepool() { fileProc(File(url), url.lastPathComponent) }
 			}
 		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func enumerateFoldersFilesDeep(in url :URL, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
+			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) {
+		// Setup
+		let	keysUse = (keys ?? []) + [.isRegularFileKey]
+
+		// Enumerate
+		enumerateFoldersFilesDeep(levels: 0, url: url, includingPropertiesForKeys: keysUse, options: options,
+				isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -179,13 +128,12 @@ extension FileManager {
 
 	// Private methods
 	//------------------------------------------------------------------------------------------------------------------
-	private func enumerateFoldersFilesDeep(levels :Int, url :URL, includingPropertiesForKeys keys: [URLResourceKey],
-			options: EnumerationOptions, isCancelledProc :IsCancelledProc, folderProc :Folder.SubPathProc,
-			fileProc :File.SubPathProc) {
+	private func enumerateFoldersFilesDeep(levels :Int, url :URL,
+			includingPropertiesForKeys keys: [URLResourceKey], options: EnumerationOptions,
+			isCancelledProc :IsCancelledProc, folderProc :Folder.SubPathDeepProc, fileProc :File.SubPathProc) {
 		// Setup
-		let	urls =
-					try! contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [])
-							.sorted(by: { $0.path < $1.path })
+		var	urls = try! contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [])
+		if options.contains(.sorted) { urls.sort(by: { $0.path < $1.path }) }
 
 		// Iterate URLs and process files
 		var	folderURLs = [URL]()
@@ -196,7 +144,7 @@ extension FileManager {
 			// Check folder/file
 			if try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
 				// File
-				fileProc(File(url), url.path.lastPathComponentsSubPath(levels + 1))
+				autoreleasepool() { fileProc(File(url), url.path.lastPathComponentsSubPath(levels + 1)) }
 			} else {
 				// Folder
 				folderURLs.append(url)
@@ -209,34 +157,11 @@ extension FileManager {
 			if isCancelledProc() { return }
 
 			// Call proc
-			folderProc(Folder(url), url.path.lastPathComponentsSubPath(levels + 1))
-
-			// Process folder
-			enumerateFoldersFiles(in: url, includingPropertiesForKeys: keys, options: options,
-					isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
-		}
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	private func enumerateFilesDeep(levels :Int, url :URL, includingPropertiesForKeys keys: [URLResourceKey],
-			options: EnumerationOptions, isCancelledProc :IsCancelledProc, fileProc :File.SubPathProc) {
-		// Iterate all urls
-		let	urls =
-					try! contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [])
-							.sorted(by: { $0.path < $1.path })
-
-		for url in urls {
-			// Check for cancelled
-			if isCancelledProc() { return }
-
-			// Check folder/file
-			if try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! {
-				// File
-				fileProc(File(url), url.path.lastPathComponentsSubPath(levels + 1))
-			} else {
-				// Folder
-				enumerateFilesDeep(levels: levels + 1, url: url, includingPropertiesForKeys: keys, options: options,
-						isCancelledProc: isCancelledProc, fileProc: fileProc)
+			if autoreleasepool(
+					invoking: { folderProc(Folder(url), url.path.lastPathComponentsSubPath(levels + 1)) }) == .process {
+				// Process folder
+				enumerateFoldersFilesDeep(levels: levels + 1, url: url, includingPropertiesForKeys: keys,
+						options: options, isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
 			}
 		}
 	}

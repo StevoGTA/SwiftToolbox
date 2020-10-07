@@ -13,7 +13,13 @@ import Foundation
 class Folder {
 
 	// MARK: Types
+	enum Action {
+		case process
+		case ignore
+	}
+
 	typealias SubPathProc = (_ folder :Folder, _ subPath :String) -> Void
+	typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
 
 	// MARK: Properties
 	let	url :URL
