@@ -37,6 +37,13 @@ extension String {
 
 		self.init(string)
 	}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func filtered(by characterSet :CharacterSet) -> String {
+		// Return filtered string
+		return String(self.unicodeScalars.filter({ characterSet.contains($0) }))
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -46,16 +53,19 @@ extension String {
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func substring(toCharacterIndex index :Int) -> String {
+		// Return string
 		return String(self[..<self.index(self.startIndex, offsetBy: index)])
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	func substring(fromCharacterIndex index :Int) -> String {
+		// Return string
 		return String(self[self.index(self.startIndex, offsetBy: index)...])
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	func substring(fromCharacterIndex fromIndex :Int, toCharacterIndex toIndex :Int) -> String {
+		// Setup
 		let	startIndex = self.index(self.startIndex, offsetBy: fromIndex)
 		let	endIndex = self.index(self.startIndex, offsetBy: toIndex)
 
@@ -184,4 +194,33 @@ extension String {
 		// Init with format
 		self.init(format: addDollarSign ? "$%d.%02d" : "%d.%02d", value / 100, value % 100)
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - String Phone Number Extension
+extension String {
+
+	// MARK: Properties
+	var	asPhoneNumberForDisplay :String {
+				// Setup
+				let	test = self + "          "
+				let	areaCode = test.substring(toCharacterIndex: 3).filtered(by: .decimalDigits)
+				let	prefix =
+							test.substring(fromCharacterIndex: 3, toCharacterIndex: 6)
+									.filtered(by: .decimalDigits)
+				let	suffix =
+							test.substring(fromCharacterIndex: 6, toCharacterIndex: 10)
+									.filtered(by: .decimalDigits)
+
+				if areaCode.count < 3 {
+					// Partial area code
+					return "(\(areaCode)"
+				} else if prefix.count < 3 {
+					// Partial prefix
+					return "(\(areaCode)) \(prefix)"
+				} else {
+					// Go for it
+					return "(\(areaCode)) \(prefix)-\(suffix)"
+				}
+			}
 }
