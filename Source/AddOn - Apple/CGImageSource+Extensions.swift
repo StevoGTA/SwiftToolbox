@@ -45,6 +45,10 @@ extension CGImageMetadataTag {
 
 						return [name! as String :
 								(value as! [String : CGImageMetadataTag]).mapValues({ $0.transmogrifiedValue })]
+
+					default:
+						// Unknown
+						fatalError("Unknown case \(CGImageMetadataTagGetType(self)) in CGImageMetadataTag extension")
 				}
 			}
 }

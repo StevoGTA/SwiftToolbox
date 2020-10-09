@@ -71,16 +71,7 @@ class IAPProduct {
 		case oneYear
 	}
 
-	enum TransactionResult {
-		case purchased
-		case restored
-		case cancelled
-		case error
-	}
-
 	typealias PurchaseAvailabilityChangedProc = (_ product :IAPProduct, _ availableForPurchase :Bool) -> Void
-	typealias TransactionResultChangedProc =
-				(_ product :IAPProduct, _ transactionResult :TransactionResult, _ error :Error?) -> Void
 
 	// MARK: Properties
 				let	id :String
@@ -89,31 +80,6 @@ class IAPProduct {
 				let	purchaseAvailabilityChangedProc :PurchaseAvailabilityChangedProc
 
 				var	isAvailableForPurchase :Bool { self.product != nil }
-				var	isPurchasedOrActive :Bool {
-							// What kind are we
-							switch self.kind {
-								case .consumable:
-									// Consumable
-									return false
-
-								case .nonConsumable:
-									// Non-consumable
-									return self.purchaseDate != nil
-
-								case .autoRenewableSubscription(_), .nonRenewableSubscription(_), .freeSubscription(_):
-									// Subscriptions
-									return (self.purchaseDate != nil) && (self.expirationDate! < Date())
-							}
-						}
-				var	purchaseDate :Date?
-				var	purchaseTransactionIdentifier :String?
-				var	expirationDate :Date? {
-							// Setup
-							guard let purchaseDate = self.purchaseDate else { return nil }
-							guard let period = self.kind.period else { return nil }
-
-							return Calendar.current.date(byAdding: period, to: purchaseDate)
-						}
 
 	fileprivate	var	product :SKProduct?
 
@@ -126,61 +92,15 @@ class IAPProduct {
 		self.kind = kind
 
 		self.purchaseAvailabilityChangedProc = purchaseAvailabilityChangedProc
-
-		// Check if can be restored
-		if self.kind.isRestorable {
-			// Restore
-			let	storageKey = "IAPProduct:\(self.id)"
-			if let storedInfo = UserDefaults.standard.dictionary(forKey: storageKey) {
-				// Store info
-				self.purchaseDate =
-						Date.withTimeIntervalSince1970(storedInfo["purchaseTimeIntervalSince1970"] as? TimeInterval)
-				self.purchaseTransactionIdentifier = storedInfo["purchaseTransactionIdentifier"] as? String
-			}
-		}
 	}
 
-	// MARK: Fileprivate methods
+	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	fileprivate func process(paymentTransaction :SKPaymentTransaction) ->
-			(transactionResult :TransactionResult, error :Error?)? {
-		// Check transaction state
-		switch paymentTransaction.transactionState {
-			case .purchasing, .deferred:
-				// Purchasing
-				return nil
+	func expirationDate(with purchaseDate :Date) -> Date? {
+		// Setup
+		guard let period = self.kind.period else { return nil }
 
-			case .purchased, .restored:
-				// Successfully purchased or restored
-				self.purchaseDate =
-						(paymentTransaction.original != nil) ?
-								paymentTransaction.original?.transactionDate : paymentTransaction.transactionDate
-				self.purchaseTransactionIdentifier = paymentTransaction.transactionIdentifier
-
-				// Store for later
-				let	storageKey = "IAPProduct:\(self.id)"
-				UserDefaults.standard.set([
-											"purchaseTimeIntervalSince1970": self.purchaseDate!.timeIntervalSince1970,
-											"purchaseTransactionIdentifier": self.purchaseTransactionIdentifier!,
-										  ],
-										  forKey: storageKey)
-
-				return ((paymentTransaction.transactionState == .purchased) ? .purchased : .restored, nil)
-
-			case .failed:
-				// Failed
-				if (paymentTransaction.error! as NSError).code == SKError.Code.paymentCancelled.rawValue {
-					// Cancelled
-					return (.cancelled, nil)
-				} else {
-					// Some other error
-					return (.error, paymentTransaction.error)
-				}
-
-			@unknown default:
-				// How to know about these?
-				return nil
-		}
+		return Calendar.current.date(byAdding: period, to: purchaseDate)
 	}
 }
 
@@ -192,17 +112,24 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	typealias RetryUnavailableProductsCompletionProc = () -> Void
 	typealias RestoreCompletedTransactionsCompletionProc = (_ error :Error?) -> Void
 
+	typealias PurchaseStateInfo =
+			(productIdentifier :String, paymentTransactionState :SKPaymentTransactionState,
+					purchaseTransactionIdentifier :String?, purchaseDate :Date?, error :Error?)
+	typealias PurchaseStateChangeProc =
+			(_ purchaseStateInfo :PurchaseStateInfo, _ info :[String : Any]?) -> Void
+
 	// MARK: Properties
 	static			let	shared = IAPRegistry()
 
 	static			var	canMakePurchases :Bool { SKPaymentQueue.canMakePayments() }
 
-			private	let	transactionResultChangedProcsByApplicationUsername =
-								LockingDictionary<String, IAPProduct.TransactionResultChangedProc>()
-			private	let	transactionResultChangedProcsByProductIdentifier =
-								LockingDictionary<String, IAPProduct.TransactionResultChangedProc>()
+			private	let	sqliteDatabase :SQLiteDatabase
+			private	let	infoTable :SQLiteTable
+			private	let	purchasesTable :SQLiteTable
 
-			private	var	productsMap = [/* id */ String : IAPProduct]()
+			private	let	purchaseStateChangeProcProcs = LockingDictionary<String, PurchaseStateChangeProc>()
+
+			private	var	productsCache = [/* id */ String : IAPProduct]()
 
 			private	var	activeProductsRequest :SKProductsRequest?
 			private	var	activeProductsRequestCompletionProc :RetryUnavailableProductsCompletionProc?
@@ -212,10 +139,61 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	override init() {
+		// Catch errors
+		do {
+			// Setup
+			let	libraryFolderURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
+
+			self.sqliteDatabase = try SQLiteDatabase(url: libraryFolderURL.appendingPathComponent("IAPRegistry"))
+
+			self.infoTable =
+					self.sqliteDatabase.table(name: "Info", options: [.withoutRowID],
+							tableColumns: [
+											SQLiteTableColumn("key", .text, [.primaryKey, .unique, .notNull]),
+											SQLiteTableColumn("value", .text, [.notNull]),
+										  ])
+			self.purchasesTable =
+					self.sqliteDatabase.table(name: "TransferItems",
+							tableColumns: [
+											SQLiteTableColumn("id", .text, [.notNull, .primaryKey]),
+											SQLiteTableColumn("productIdentifier", .text, [.notNull]),
+											SQLiteTableColumn("quantity", .integer, [.notNull]),
+											SQLiteTableColumn("info", .blob, []),
+											SQLiteTableColumn("time", .real, [.notNull]),
+											SQLiteTableColumn("transactionState", .integer, []),
+											SQLiteTableColumn("purchaseTransactionIdentifier", .text, []),
+											SQLiteTableColumn("purchaseTime", .real, []),
+											SQLiteTableColumn("purchaseError", .text, []),
+										  ])
+		} catch {
+			// Error
+			fatalError("IAPRegistry unable to initialize database.")
+		}
+
 		// Do super
 		super.init()
 
-		// Setup
+		// Finish setup
+		self.infoTable.create()
+
+		var	version :Int?
+		try! self.infoTable.select(tableColumns: [self.infoTable.valueTableColumn],
+				where: SQLiteWhere(tableColumn: self.infoTable.keyTableColumn, value: "version")) {
+			// Process values
+			version = Int($0.text(for: self.infoTable.valueTableColumn)!)!
+		}
+
+		self.purchasesTable.create()
+
+		if version == nil {
+			// Initialize version
+			version = 1
+			_ = self.infoTable.insertRow([
+											(self.infoTable.keyTableColumn, "version"),
+											(self.infoTable.valueTableColumn, version!),
+										 ])
+		}
+
 		SKPaymentQueue.default().add(self)
 	}
 
@@ -223,40 +201,105 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	//------------------------------------------------------------------------------------------------------------------
 	func paymentQueue(_ queue :SKPaymentQueue, updatedTransactions transactions :[SKPaymentTransaction]) {
 		// Iterate all transactions
-		transactions.forEach() {
-			// Get product
-			let	product = self.productsMap[$0.payment.productIdentifier]!
+		transactions.forEach() { paymentTransaction in
+			// Get purchases that match the product identifier
+			var	purchaseInfos = [(id :String, info :[String : Any]?, purchaseTransactionIdentifier :String?)]()
+			try! self.purchasesTable.select(
+					tableColumns: [
+									self.purchasesTable.idTableColumn,
+									self.purchasesTable.infoTableColumn,
+									self.purchasesTable.purchaseTransactionIdentifierTableColumn,
+								  ],
+					where:
+							SQLiteWhere(tableColumn: self.purchasesTable.productIdentifierTableColumn,
+									value: paymentTransaction.payment.productIdentifier)) {
+						// Process values
+						let	id = $0.text(for: self.purchasesTable.idTableColumn)!
+						let	info :[String : Any]? = Dictionary.from($0.blob(for: self.purchasesTable.infoTableColumn))
+						let	purchaseTransactionIdentifier =
+									$0.text(for: self.purchasesTable.purchaseTransactionIdentifierTableColumn)
 
-			// Process
-			let	result = product.process(paymentTransaction: $0)
+						// Add
+						purchaseInfos.append((id, info, purchaseTransactionIdentifier))
+					}
 
-			// Check state
-			if $0.transactionState != .purchasing {
-				// Finish transaction
-				queue.finishTransaction($0)
+			// Get purchase info
+			guard let purchaseInfo =
+					purchaseInfos.first(
+									where: { $0.purchaseTransactionIdentifier ==
+											paymentTransaction.transactionIdentifier }) ??
+							purchaseInfos.first(where: { $0.purchaseTransactionIdentifier == nil }) else { return }
+
+			// Check transaction state
+			let	sqliteWhere = SQLiteWhere(tableColumn: self.purchasesTable.idTableColumn, value: purchaseInfo.id)
+			var	purchaseDate :Date? = nil
+			var	error :Error? = nil
+			switch paymentTransaction.transactionState {
+				case .purchasing, .deferred:
+					// In-progress
+					self.purchasesTable.update(
+							[
+								(self.purchasesTable.transactionStateTableColumn,
+										paymentTransaction.transactionState.rawValue),
+							],
+							where: sqliteWhere)
+
+					return
+
+				case .purchased, .restored:
+					// Successfully purchased or restored
+					purchaseDate = paymentTransaction.original?.transactionDate ?? paymentTransaction.transactionDate
+					self.purchasesTable.update(
+							[
+								(self.purchasesTable.transactionStateTableColumn,
+										paymentTransaction.transactionState.rawValue),
+								(self.purchasesTable.purchaseTransactionIdentifierTableColumn,
+										paymentTransaction.transactionIdentifier!),
+								(self.purchasesTable.purchaseTimeTableColumn, purchaseDate!.timeIntervalSince1970),
+							],
+							where: sqliteWhere)
+
+					// We have handled the transaction
+					queue.finishTransaction(paymentTransaction)
+
+				case .failed:
+					// Failed
+					error = paymentTransaction.error
+					if (error! as NSError).code == SKError.Code.paymentCancelled.rawValue {
+						// Cancelled
+						self.purchasesTable.update(
+								[
+									(self.purchasesTable.transactionStateTableColumn,
+											paymentTransaction.transactionState.rawValue),
+								],
+								where: sqliteWhere)
+					} else {
+						// Some other error
+						self.purchasesTable.update(
+								[
+									(self.purchasesTable.transactionStateTableColumn,
+											paymentTransaction.transactionState.rawValue),
+									(self.purchasesTable.purchaseTransactionIdentifierTableColumn,
+											paymentTransaction.transactionIdentifier!),
+									(self.purchasesTable.purchaseErrorTableColumn,
+											error!.localizedDescription),
+								],
+								where: sqliteWhere)
+					}
+
+					// We have handled the transaction
+					queue.finishTransaction(paymentTransaction)
+
+				@unknown default:
+					// How to know about these?
+					fatalError("IAPRegistry unknown transaction state")
 			}
 
-			// Check result
-			if result != nil {
-				// Retrieve proc
-				if let applicationUsername = $0.payment.applicationUsername,
-						let transactionResultChangedProc =
-								self.transactionResultChangedProcsByApplicationUsername.value(
-										for: applicationUsername) {
-					// Call proc
-					transactionResultChangedProc(product, result!.transactionResult, result!.error)
-
-					// Cleanup
-					self.transactionResultChangedProcsByApplicationUsername.remove(applicationUsername)
-				} else if let transactionResultChangedProc =
-						self.transactionResultChangedProcsByProductIdentifier.value(for: $0.payment.productIdentifier) {
-					// Call proc
-					transactionResultChangedProc(product, result!.transactionResult, result!.error)
-
-					// Cleanup
-					self.transactionResultChangedProcsByProductIdentifier.remove($0.payment.productIdentifier)
-				}
-			}
+			let	purchaseStateInfo =
+						(paymentTransaction.payment.productIdentifier, paymentTransaction.transactionState,
+								paymentTransaction.transactionIdentifier, purchaseDate, error)
+			self.purchaseStateChangeProcProcs.value(for: purchaseInfo.id)?(purchaseStateInfo, purchaseInfo.info)
+			self.purchaseStateChangeProcProcs.remove(purchaseInfo.id)
 		}
 	}
 
@@ -287,13 +330,13 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 		// Handle invalid product identifiers
 		response.invalidProductIdentifiers.forEach() {
 			// Call proc
-			self.productsMap[$0]!.purchaseAvailabilityChangedProc(self.productsMap[$0]!, false)
+			self.productsCache[$0]!.purchaseAvailabilityChangedProc(self.productsCache[$0]!, false)
 		}
 
 		// Handle valid products
 		response.products.forEach() {
 			// Get product
-			let	product = self.productsMap[$0.productIdentifier]!
+			let	product = self.productsCache[$0.productIdentifier]!
 
 			// Update product
 			product.product = $0
@@ -319,7 +362,7 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	//------------------------------------------------------------------------------------------------------------------
 	func request(_ request :SKRequest, didFailWithError error :Error) {
 		// Iterate all products
-		self.productsMap.values.forEach() { product in
+		self.productsCache.values.forEach() { product in
 			// Check if have a product yet
 			guard product.product != nil else { return }
 
@@ -339,13 +382,13 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	//------------------------------------------------------------------------------------------------------------------
 	func add(_ product :IAPProduct) {
 		// Store info
-		self.productsMap[product.id] = product
+		self.productsCache[product.id] = product
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	func add(_ products :[IAPProduct]) {
 		// Iterate products
-		products.forEach() { self.productsMap[$0.id] = $0 }
+		products.forEach() { self.productsCache[$0.id] = $0 }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -354,7 +397,7 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 		self.activeProductsRequestCompletionProc = completionProc
 
 		// Setup
-		let	productIDs = self.productsMap.values.filter({ !$0.isAvailableForPurchase }).map({ $0.id })
+		let	productIDs = self.productsCache.values.filter({ !$0.isAvailableForPurchase }).map({ $0.id })
 
 		// Do we have any un-resolved products
 		if !productIDs.isEmpty {
@@ -366,58 +409,76 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func product(for id :String) -> IAPProduct? { self.productsMap[id] }
+	func product(for id :String) -> IAPProduct? { self.productsCache[id] }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func purchase(product :IAPProduct, quantity :Int = 1, usernameValue :String? = nil,
-			transactionResultChangedProc :@escaping IAPProduct.TransactionResultChangedProc = { _,_,_ in }) {
+	func purchase(product :IAPProduct, quantity :Int = 1, info :[String : Any]? = nil,
+			purchaseStateChangeProc :@escaping PurchaseStateChangeProc = { _,_ in }) {
 		// Setup
 		let	payment = SKMutablePayment(product: product.product!)
-		payment.applicationUsername = usernameValue
 		payment.quantity = quantity
 
-		if usernameValue != nil {
-			// Store proc
-			self.transactionResultChangedProcsByApplicationUsername.set(transactionResultChangedProc,
-					for: usernameValue!)
+		// Store
+		let	id = UUID().base64EncodedString
+		if info != nil {
+			// Have data
+			_ = self.purchasesTable.insertRow([
+												(self.purchasesTable.idTableColumn, id),
+												(self.purchasesTable.productIdentifierTableColumn,
+														product.product!.productIdentifier),
+												(self.purchasesTable.quantityTableColumn, quantity),
+												(self.purchasesTable.infoTableColumn,
+														try! JSONSerialization.data(withJSONObject: info!,
+																options: [])),
+												(self.purchasesTable.timeTableColumn, Date().timeIntervalSince1970),
+											  ])
 		} else {
-			// Store proc
-			self.transactionResultChangedProcsByProductIdentifier.set(transactionResultChangedProc, for: product.id)
+			// Don't have data
+			_ = self.purchasesTable.insertRow([
+												(self.purchasesTable.idTableColumn, id),
+												(self.purchasesTable.productIdentifierTableColumn,
+														product.product!.productIdentifier),
+												(self.purchasesTable.quantityTableColumn, quantity),
+												(self.purchasesTable.timeTableColumn, Date().timeIntervalSince1970),
+											  ])
 		}
+
+		// Store proc
+		self.purchaseStateChangeProcProcs.set(purchaseStateChangeProc, for: id)
 
 		// Add to queue
 		SKPaymentQueue.default().add(payment)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func purchase(id :String, quantity :Int = 1, usernameValue :String? = nil,
-			productProc :(_ id :String) -> IAPProduct,
-			transactionResultChangedProc :@escaping IAPProduct.TransactionResultChangedProc = { _,_,_ in }) {
+	func purchase(id :String, quantity :Int = 1, info :[String : Any]? = nil, productProc :(_ id :String) -> IAPProduct,
+			purchaseStateChangeProc :@escaping PurchaseStateChangeProc = { _,_ in }) {
 		// Setup
-		var	product = self.productsMap[id]
+		var	product = self.productsCache[id]
 		if product == nil {
 			// Create product
 			product = productProc(id)
-			self.productsMap[id] = product
+			self.productsCache[id] = product
 		}
 
 		// Check if available for purchase
 		if product!.isAvailableForPurchase {
 			// Purchase
-			purchase(product: product!, quantity: quantity, usernameValue: usernameValue,
-					transactionResultChangedProc: transactionResultChangedProc)
+			purchase(product: product!, quantity: quantity, info: info,
+					purchaseStateChangeProc: purchaseStateChangeProc)
 		} else {
 			// Reload
 			retryUnavailableProducts() { [weak self] in
 				// Check if available for purchase
 				if product!.isAvailableForPurchase {
 					// Available
-					self?.purchase(product: product!, quantity: quantity, usernameValue: usernameValue,
-							transactionResultChangedProc: transactionResultChangedProc)
+					self?.purchase(product: product!, quantity: quantity, info: info,
+							purchaseStateChangeProc: purchaseStateChangeProc)
 				} else {
 					// Unavailable
-					transactionResultChangedProc(product!, .error,
-							IAPRegistryError.productNotAvailableForPurchase(productID: id))
+					purchaseStateChangeProc(
+							(id, .failed, nil, nil, IAPRegistryError.productNotAvailableForPurchase(productID: id)),
+									info)
 				}
 			}
 		}
