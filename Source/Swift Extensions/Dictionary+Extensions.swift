@@ -140,10 +140,18 @@ public extension Dictionary {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - Dictionary extension for String keys and Any values
-public	extension Dictionary where Key == String, Value == Any {
+public extension Dictionary where Key == String, Value == Any {
 
 	// MARK: Properties
 	var	data :Data { try! JSONSerialization.data(withJSONObject: self, options: []) }
+
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func from(_ data :Data?) -> [Key : Value]? {
+		// Return info
+		return (data != nil) ?
+				try! JSONSerialization.jsonObject(with: data!, options: []) as! [Key : Value] : nil
+	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
