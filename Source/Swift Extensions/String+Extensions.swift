@@ -212,7 +212,10 @@ extension String {
 							test.substring(fromCharacterIndex: 6, toCharacterIndex: 10)
 									.filtered(by: .decimalDigits)
 
-				if areaCode.count < 3 {
+				if areaCode.isEmpty {
+					// Nothing
+					return ""
+				} else if areaCode.count < 3 {
 					// Partial area code
 					return "(\(areaCode)"
 				} else if prefix.count < 3 {
