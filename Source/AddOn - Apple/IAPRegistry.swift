@@ -326,7 +326,7 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 									(self.purchasesTable.transactionStateTableColumn,
 											paymentTransaction.transactionState.rawValue),
 									(self.purchasesTable.purchaseTransactionIdentifierTableColumn,
-											paymentTransaction.transactionIdentifier!),
+											paymentTransaction.transactionIdentifier as Any),
 									(self.purchasesTable.purchaseErrorTableColumn,
 											error!.localizedDescription),
 								],
