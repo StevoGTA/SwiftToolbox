@@ -51,4 +51,8 @@ class AnimationTimer : ObservableObject {
 	deinit {
 		self.timer.invalidate()
 	}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func invalidate() { self.timer.invalidate() }
 }
