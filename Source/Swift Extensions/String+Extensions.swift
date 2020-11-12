@@ -212,17 +212,18 @@ extension String {
 							test.substring(fromCharacterIndex: 6, toCharacterIndex: 10)
 									.filtered(by: .decimalDigits)
 
+				// Check results
 				if areaCode.isEmpty {
 					// Nothing
 					return ""
-				} else if areaCode.count < 3 {
+				} else if prefix.isEmpty {
 					// Partial area code
 					return "(\(areaCode)"
-				} else if prefix.count < 3 {
+				} else if suffix.isEmpty {
 					// Partial prefix
 					return "(\(areaCode)) \(prefix)"
 				} else {
-					// Go for it
+					// Full-ish
 					return "(\(areaCode)) \(prefix)-\(suffix)"
 				}
 			}
