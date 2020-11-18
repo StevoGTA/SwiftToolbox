@@ -13,7 +13,7 @@ import Foundation
 extension URLComponents {
 
 	// MARK: Properties
-	var	queryItemsMap :[String : Any] {
+	var	queryItemsMap :[String : Any] {	//	Value is either String or [String]
 				// Convert queryItems to map
 				var	queryItemsMap = [String : Any]()
 				self.queryItems?.forEach() {

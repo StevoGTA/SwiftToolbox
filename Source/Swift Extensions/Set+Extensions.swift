@@ -1,8 +1,9 @@
 //
 //  Set+Extensions.swift
-//  Virtual Sheet Music
+//  Swift Toolbox
 //
 //  Created by Stevo on 8/5/20.
+//  Copyright © 2020 Stevo Brock. All rights reserved.
 //
 
 import Foundation

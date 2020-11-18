@@ -1,9 +1,9 @@
 //
 //  File.swift
-//  Media Player - Apple
+//  Swift Toolbox
 //
 //  Created by Stevo on 4/20/20.
-//  Copyright © 2020 Sunset Magicwerks, LLC. All rights reserved.
+//  Copyright © 2020 Stevo Brock. All rights reserved.
 //
 
 import Foundation
@@ -23,6 +23,10 @@ class File {
 	var	size :Int64? { self.url.fileSize }
 	var	creationDate :Date { self.url.creationDate! }
 	var	modificationDate :Date { self.url.contentModificationDate! }
+
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func from(_ url :URL?) -> File? { (url != nil) ? File(url!) : nil }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------

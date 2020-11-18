@@ -55,6 +55,18 @@ extension Date {
 								return dateFormatter
 							}()
 
+					var	beginningOfDay :Date
+							{ Calendar.current.date(from: Calendar.current.dateComponents([.year, .month, .day],
+									from: self))! }
+					var	endOfDay :Date {
+								// Setup
+								var	dateComponents = DateComponents()
+								dateComponents.day = 1
+								dateComponents.second = -1
+
+								return Calendar.current.date(byAdding: dateComponents, to: self.beginningOfDay)!
+							}
+
 					var	iso8601 :String { Date.iso8601DateFormatter.string(from: self) }
 					var	rfc3339 :String { Date.rfc3339DateFormatter.string(from: self) }
 					var	rfc3339Extended :String { Date.rfc3339ExtendedDateFormatter.string(from: self) }
@@ -110,5 +122,24 @@ extension Date {
 			// Invalid
 			return nil
 		}
+	}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func adding(months :Int) -> Date {
+		// Setup
+		var	dateComponents = DateComponents()
+		dateComponents.month = months
+
+		return NSCalendar.current.date(byAdding: dateComponents, to: self)!
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func adding(years :Int) -> Date {
+		// Setup
+		var	dateComponents = DateComponents()
+		dateComponents.year = years
+
+		return NSCalendar.current.date(byAdding: dateComponents, to: self)!
 	}
 }

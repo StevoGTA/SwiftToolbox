@@ -20,7 +20,8 @@ public enum HTTPEndpointMethod {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointStatus
-public enum HTTPEndpointStatus : UInt {
+public enum HTTPEndpointStatus : Int {
+	// Values
 	case ok = 200
 
 	case badRequest = 400
@@ -30,4 +31,7 @@ public enum HTTPEndpointStatus : UInt {
 	case conflict = 409
 
 	case internalServerError = 500
+
+	// Properties
+	var	isSuccess :Bool { return self == .ok }
 }

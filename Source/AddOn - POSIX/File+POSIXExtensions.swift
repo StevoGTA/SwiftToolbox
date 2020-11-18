@@ -1,9 +1,9 @@
 //
 //  File+POSIXExtensions.swift
-//  Media Player - Apple
+//  Swift Toolbox
 //
 //  Created by Stevo on 4/20/20.
-//  Copyright © 2020 Sunset Magicwerks, LLC. All rights reserved.
+//  Copyright © 2020 Stevo Brock. All rights reserved.
 //
 
 import Foundation

@@ -133,15 +133,15 @@ fileprivate class ServerResponder : HTTPServerResponder {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPServerManager
-public class HTTPServerManager {
+// MARK: - VaporHTTPServer
+public class VaporHTTPServer : HTTPServer {
 
 	// MARK: Properties
 	private	let	serverResponder = ServerResponder()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(port :Int, maxBodySize :Int = 1_000_000) {
+	required public init(port :Int, maxBodySize :Int) {
 		// Run in the background
 		DispatchQueue.global().async() {
 			// Setup
@@ -149,11 +149,11 @@ public class HTTPServerManager {
 			defer { try! group.syncShutdownGracefully() }
 
 			// Catch errors
-			var	server :HTTPServer? = nil
+			var	server :Vapor.HTTPServer? = nil
 			do {
 				// Start server
 				server =
-						try HTTPServer.start(hostname: "0.0.0.0", port: port, responder: self.serverResponder,
+						try Vapor.HTTPServer.start(hostname: "0.0.0.0", port: port, responder: self.serverResponder,
 								maxBodySize: maxBodySize, on: group).wait()
 			} catch {
 				// Error
@@ -171,8 +171,5 @@ public class HTTPServerManager {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func register(_ httpEndpoint :HTTPEndpoint) {
-		// Register
-		self.serverResponder.register(httpEndpoint)
-	}
+	public func register(_ httpEndpoint :HTTPEndpoint) { self.serverResponder.register(httpEndpoint) }
 }

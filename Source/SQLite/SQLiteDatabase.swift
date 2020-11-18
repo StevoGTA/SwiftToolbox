@@ -51,24 +51,25 @@ public class SQLiteDatabase {
 
 	// Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func doesExist(at url :URL) -> Bool {
+	static func doesExist(in folder :Folder, with name :String = "database") -> Bool {
 		// Check for known extensions
-		return FileManager.default.fileExists(atPath: url.appendingPathExtension("sqlite").path) ||
-				FileManager.default.fileExists(atPath: url.appendingPathExtension("sqlite3").path)
+		return FileManager.default.exists(folder.file(with: name.appending(pathExtension: "sqlite"))) ||
+				FileManager.default.exists(folder.file(with: name.appending(pathExtension: "sqlite3")))
 	}
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(url :URL, options :Options = [.walMode]) throws {
+	public init(in folder :Folder, with name :String = "database", options :Options = [.walMode]) throws {
 		// Setup
-		let	pathExtension = url.pathExtension
-		let	urlUse =
-					((pathExtension == "sqlite") || (pathExtension == "sqlite3")) ?
-							url : url.appendingPathExtension("sqlite")
+		let	urlBase = folder.url.appendingPathComponent(name)
+		let	file =
+					FileManager.default.exists(File(urlBase.appendingPathExtension("sqlite3"))) ?
+							File(urlBase.appendingPathExtension("sqlite3")) :
+							File(urlBase.appendingPathExtension("sqlite"))
 
 		// Open
 		var	database :OpaquePointer? = nil
-		if sqlite3_open(urlUse.path, &database) != SQLITE_OK {
+		if sqlite3_open(file.path, &database) != SQLITE_OK {
 			// Failed to open
 			throw SQLiteDatabaseError.failedToOpen
 		}

@@ -199,7 +199,7 @@ public struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 				{ throw HTTPEndpointError.unableToConvertBodyToJSON }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, headers, json)
+		let	info = try self.validateProc(urlComponents, headers, json!)
 
 		return try self.performProc(info)
 	}

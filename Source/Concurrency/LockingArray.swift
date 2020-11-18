@@ -27,6 +27,9 @@ public class LockingArray<T> {
 	public func append(_ value :T) { self.lock.write({ self.array.append(value) }) }
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func append(_ values :[T]) { self.lock.write({ self.array += values }) }
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func forEach(proc :(_ value :T) -> Void) { self.lock.read({ self.array.forEach({ proc($0) }) }) }
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -47,3 +50,7 @@ public class LockingArray<T> {
 	//------------------------------------------------------------------------------------------------------------------
 	public func removeAll() { self.lock.write({ self.array.removeAll() }) }
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Operators
+public func += <T>(left :inout LockingArray<T>, right :[T]) { left.append(right) }

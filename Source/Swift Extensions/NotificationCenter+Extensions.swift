@@ -1,8 +1,9 @@
 //
 //  NotificationCenter+Extensions.swift
-//  Virtual Sheet Music
+//  Swift Toolbox
 //
 //  Created by Stevo on 4/8/20.
+//  Copyright © 2020 Stevo Brock. All rights reserved.
 //
 
 import Foundation
