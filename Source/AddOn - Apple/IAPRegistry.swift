@@ -153,7 +153,7 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 											SQLiteTableColumn("value", .text, [.notNull]),
 										  ])
 			self.purchasesTable =
-					self.sqliteDatabase.table(name: "TransferItems",
+					self.sqliteDatabase.table(name: "Purchases",
 							tableColumns: [
 											SQLiteTableColumn("id", .text, [.notNull, .primaryKey]),
 											SQLiteTableColumn("productIdentifier", .text, [.notNull]),
@@ -203,51 +203,85 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 		// Iterate all transactions
 		transactions.forEach() { paymentTransaction in
 			// Get purchases that match the product identifier
-			var	purchaseInfos = [(id :String, info :[String : Any]?, purchaseTransactionIdentifier :String?)]()
+			typealias PurchaseInfo =
+					(id :String, info :[String : Any]?, transactionState :SKPaymentTransactionState?,
+							purchaseTransactionIdentifier :String?)
+
+			let	productIdentifier = paymentTransaction.payment.productIdentifier
+			var	purchaseInfos = [PurchaseInfo]()
 			try! self.purchasesTable.select(
 					tableColumns: [
 									self.purchasesTable.idTableColumn,
 									self.purchasesTable.infoTableColumn,
+									self.purchasesTable.transactionStateTableColumn,
 									self.purchasesTable.purchaseTransactionIdentifierTableColumn,
 								  ],
 					where:
 							SQLiteWhere(tableColumn: self.purchasesTable.productIdentifierTableColumn,
-									value: paymentTransaction.payment.productIdentifier)) {
+									value: productIdentifier)) {
 						// Process values
 						let	id = $0.text(for: self.purchasesTable.idTableColumn)!
 						let	info :[String : Any]? = Dictionary.from($0.blob(for: self.purchasesTable.infoTableColumn))
+						let	transactionState :Int? = $0.integer(for: self.purchasesTable.transactionStateTableColumn)
 						let	purchaseTransactionIdentifier =
 									$0.text(for: self.purchasesTable.purchaseTransactionIdentifierTableColumn)
 
 						// Add
-						purchaseInfos.append((id, info, purchaseTransactionIdentifier))
+						purchaseInfos.append(
+								(id, info,
+										(transactionState != nil) ?
+												SKPaymentTransactionState(rawValue: transactionState!) : nil,
+										purchaseTransactionIdentifier))
 					}
+			guard !purchaseInfos.isEmpty else {
+				// Not found
+				NSLog("IAPRegistery - did not find any entries matching \(productIdentifier)")
 
-			// Get purchase info
-			guard let purchaseInfo =
-					purchaseInfos.first(
-									where: { $0.purchaseTransactionIdentifier ==
-											paymentTransaction.transactionIdentifier }) ??
-							purchaseInfos.first(where: { $0.purchaseTransactionIdentifier == nil }) else { return }
+				// Go ahead and finish
+				queue.finishTransaction(paymentTransaction)
+
+				return
+			}
 
 			// Check transaction state
-			let	sqliteWhere = SQLiteWhere(tableColumn: self.purchasesTable.idTableColumn, value: purchaseInfo.id)
+			let	purchaseInfo :PurchaseInfo!
 			var	purchaseDate :Date? = nil
 			var	error :Error? = nil
 			switch paymentTransaction.transactionState {
-				case .purchasing, .deferred:
+				case .purchasing:
 					// In-progress
+					purchaseInfo =
+							purchaseInfos.first()
+								{ ($0.purchaseTransactionIdentifier == nil) && ($0.transactionState == nil) }
+					guard purchaseInfo != nil else {
+						NSLog("IAPRegistry - did not find any entries not already in-progress for \(productIdentifier):")
+						NSLog("\(purchaseInfos)")
+
+						return
+					}
+
+					// Update
 					self.purchasesTable.update(
 							[
 								(self.purchasesTable.transactionStateTableColumn,
 										paymentTransaction.transactionState.rawValue),
 							],
-							where: sqliteWhere)
+							where: SQLiteWhere(tableColumn: self.purchasesTable.idTableColumn, value: purchaseInfo!.id))
 
 					return
 
-				case .purchased, .restored:
-					// Successfully purchased or restored
+				case .purchased:
+					// Successfully purchased
+					purchaseInfo =
+							purchaseInfos.first()
+								{ ($0.purchaseTransactionIdentifier == nil) && ($0.transactionState == .purchasing) }
+					guard purchaseInfo != nil else {
+						NSLog("IAPRegistry - did not find any entries in-progress for \(productIdentifier):")
+						NSLog("\(purchaseInfos)")
+
+						return
+					}
+
 					purchaseDate = paymentTransaction.original?.transactionDate ?? paymentTransaction.transactionDate
 					self.purchasesTable.update(
 							[
@@ -257,13 +291,23 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 										paymentTransaction.transactionIdentifier!),
 								(self.purchasesTable.purchaseTimeTableColumn, purchaseDate!.timeIntervalSince1970),
 							],
-							where: sqliteWhere)
+							where: SQLiteWhere(tableColumn: self.purchasesTable.idTableColumn, value: purchaseInfo!.id))
 
 					// We have handled the transaction
 					queue.finishTransaction(paymentTransaction)
 
 				case .failed:
 					// Failed
+					purchaseInfo =
+							purchaseInfos.first()
+								{ ($0.purchaseTransactionIdentifier == nil) && ($0.transactionState == .purchasing) }
+					guard purchaseInfo != nil else {
+						NSLog("IAPRegistry - did not find any entries not already in-progress for \(productIdentifier):")
+						NSLog("\(purchaseInfos)")
+
+						return
+					}
+
 					error = paymentTransaction.error
 					if (error! as NSError).code == SKError.Code.paymentCancelled.rawValue {
 						// Cancelled
@@ -272,7 +316,9 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 									(self.purchasesTable.transactionStateTableColumn,
 											paymentTransaction.transactionState.rawValue),
 								],
-								where: sqliteWhere)
+								where:
+										SQLiteWhere(tableColumn: self.purchasesTable.idTableColumn,
+												value: purchaseInfo!.id))
 					} else {
 						// Some other error
 						self.purchasesTable.update(
@@ -280,15 +326,21 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 									(self.purchasesTable.transactionStateTableColumn,
 											paymentTransaction.transactionState.rawValue),
 									(self.purchasesTable.purchaseTransactionIdentifierTableColumn,
-											paymentTransaction.transactionIdentifier!),
+											paymentTransaction.transactionIdentifier as Any),
 									(self.purchasesTable.purchaseErrorTableColumn,
 											error!.localizedDescription),
 								],
-								where: sqliteWhere)
+								where:
+										SQLiteWhere(tableColumn: self.purchasesTable.idTableColumn,
+												value: purchaseInfo!.id))
 					}
 
 					// We have handled the transaction
 					queue.finishTransaction(paymentTransaction)
+
+				case .deferred, .restored:
+					// Unimplemented since we don't know the flow
+					fatalError("Unimplemented")
 
 				@unknown default:
 					// How to know about these?
@@ -296,7 +348,7 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 			}
 
 			let	purchaseStateInfo =
-						(paymentTransaction.payment.productIdentifier, paymentTransaction.transactionState,
+						(productIdentifier, paymentTransaction.transactionState,
 								paymentTransaction.transactionIdentifier, purchaseDate, error)
 			self.purchaseStateChangeProcProcs.value(for: purchaseInfo.id)?(purchaseStateInfo, purchaseInfo.info)
 			self.purchaseStateChangeProcProcs.remove(purchaseInfo.id)
