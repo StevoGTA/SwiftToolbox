@@ -142,10 +142,8 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 		// Catch errors
 		do {
 			// Setup
-			let	libraryFolderURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
-
-			self.sqliteDatabase = try SQLiteDatabase(url: libraryFolderURL.appendingPathComponent("IAPRegistry"))
-
+			self.sqliteDatabase =
+					try SQLiteDatabase(in: FileManager.default.folder(for: .libraryDirectory), with: "IAPRegistry")
 			self.infoTable =
 					self.sqliteDatabase.table(name: "Info", options: [.withoutRowID],
 							tableColumns: [

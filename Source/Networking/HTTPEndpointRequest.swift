@@ -119,15 +119,16 @@ public class HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = 60.0) {
+	public init(method :HTTPEndpointMethod = .get, url :URL, headers :[String : String]? = nil,
+			timeoutInterval :TimeInterval = 60.0, bodyData :Data? = nil) {
 		// Store
 		self.method = method
 		self.path = url.absoluteString
 		self.queryComponents = nil
 		self.multiValueQueryComponent = nil
-		self.headers = nil
+		self.headers = headers
 		self.timeoutInterval = timeoutInterval
-		self.bodyData = nil
+		self.bodyData = bodyData
 	}
 
 	// MARK: Instance methods

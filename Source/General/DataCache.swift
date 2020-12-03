@@ -149,7 +149,7 @@ class FilesystemDataCache : DataCache {
 	}
 
 	// MARK: Properties
-	private	let	folderURL :URL
+	private	let	folder :Folder
 	private	let	sizeLimit :Int64?
 	private	let	mapLock = ReadPreferringReadWriteLock()
 
@@ -157,16 +157,16 @@ class FilesystemDataCache : DataCache {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(folderURL :URL, sizeLimit :Int64? = nil) throws {
+	init(folder :Folder, sizeLimit :Int64? = nil) throws {
 		// Store
-		self.folderURL = folderURL
+		self.folder = folder
 		self.sizeLimit = sizeLimit
 
 		// Setup
-		try FileManager.default.createDirectory(at: self.folderURL, withIntermediateDirectories: true, attributes: nil)
+		try FileManager.default.createDirectory(at: self.folder.url, withIntermediateDirectories: true, attributes: nil)
 
 		// Note existing files
-		FileManager.default.enumerateFiles(in: self.folderURL, includingPropertiesForKeys: [.fileSizeKey]) {
+		FileManager.default.enumerateFiles(in: self.folder, includingPropertiesForKeys: [.fileSizeKey]) {
 			// Update map
 			self.map[$1] = ItemInfo(file: $0)
 		}
@@ -175,18 +175,17 @@ class FilesystemDataCache : DataCache {
 	//------------------------------------------------------------------------------------------------------------------
 	init(folderName :String, sizeLimit :Int64? = nil) throws {
 		// Setup
-		let	path = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true).first!
-		let	url = URL(fileURLWithPath: path)
+		let	cachesFolder = FileManager.default.folder(for: .cachesDirectory)
+		self.folder = !folderName.isEmpty ? cachesFolder.folder(with: folderName) : cachesFolder
 
 		// Store
-		self.folderURL = !folderName.isEmpty ? url.appendingPathComponent(folderName) : url
 		self.sizeLimit = sizeLimit
 
 		// Setup
-		try FileManager.default.createDirectory(at: self.folderURL, withIntermediateDirectories: true, attributes: nil)
+		try FileManager.default.createDirectory(at: self.folder.url, withIntermediateDirectories: true, attributes: nil)
 
 		// Note existing files
-		FileManager.default.enumerateFiles(in: self.folderURL, includingPropertiesForKeys: [.fileSizeKey]) {
+		FileManager.default.enumerateFiles(in: self.folder, includingPropertiesForKeys: [.fileSizeKey]) {
 			// Update map
 			self.map[$1] = ItemInfo(file: $0)
 		}
@@ -196,11 +195,10 @@ class FilesystemDataCache : DataCache {
 	//------------------------------------------------------------------------------------------------------------------
 	func store(_ data :Data, for identifier :String) throws {
 		// Setup
-		let	url = self.folderURL.appendingPathComponent(identifier)
-		let	file = File(url)
+		let	file = self.folder.file(with: identifier)
 
 		// Create folder if needed
-		try FileManager.default.createFolder(at: url.deletingLastPathComponent())
+		try FileManager.default.create(file.folder)
 
 		// Create ItemInfo which will write the data
 		let	itemInfo = try ItemInfo(file: file, data: data)

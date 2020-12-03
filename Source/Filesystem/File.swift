@@ -19,6 +19,8 @@ class File {
 	let	url :URL
 
 	var	name :String { self.url.lastPathComponent }
+	var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
+
 	var	path :String { self.url.path }
 	var	size :Int64? { self.url.fileSize }
 	var	creationDate :Date { self.url.creationDate! }
