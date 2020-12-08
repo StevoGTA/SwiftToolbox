@@ -163,7 +163,7 @@ public class DataHTTPEndpointRequest : HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - FileHTTPEndpointRequest
-class FileHTTPEndpointRequest : HTTPEndpointRequest {
+public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
 	public var	completionProc :(_ error :Error?) -> Void = { _ in }
@@ -303,24 +303,6 @@ public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - SuccessHTTPEndpointRequest
-public class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
-
-	// MARK: Properties
-	public var	completionProc :(_ error :Error?) -> Void = { _ in }
-
-	// MARK: HTTPEndpointRequest methods
-	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
-		// Check cancelled
-		if !self.isCancelled {
-			// Call proc
-			self.completionProc(error)
-		}
-	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 // MARK: - StringHTTPEndpointRequest
 public class StringHTTPEndpointRequest : HTTPEndpointRequest {
 
@@ -347,6 +329,24 @@ public class StringHTTPEndpointRequest : HTTPEndpointRequest {
 		if !self.isCancelled {
 			// Call proc
 			self.completionProc(string, returnError)
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - SuccessHTTPEndpointRequest
+public class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
+
+	// MARK: Properties
+	public var	completionProc :(_ error :Error?) -> Void = { _ in }
+
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(error)
 		}
 	}
 }

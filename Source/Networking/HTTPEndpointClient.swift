@@ -271,13 +271,23 @@ public class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func queue(_ successHTTPEndpointRequest :SuccessHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping (_ error :Error?) -> Void) {
+	public func queue(_ dataHTTPEndpointRequest :DataHTTPEndpointRequest, identifier :String = "",
+			priority :Priority = .normal, completionProc :@escaping (_ data :Data?, _ error :Error?) -> Void) {
 		// Setup
-		successHTTPEndpointRequest.completionProc = completionProc
+		dataHTTPEndpointRequest.completionProc = completionProc
 
 		// Perform
-		queue(successHTTPEndpointRequest, identifier: identifier, priority: priority)
+		queue(dataHTTPEndpointRequest, identifier: identifier, priority: priority)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func queue(_ fileHTTPEndpointRequest :FileHTTPEndpointRequest, identifier :String = "",
+			priority :Priority = .normal, completionProc :@escaping (_ error :Error?) -> Void) {
+		// Setup
+		fileHTTPEndpointRequest.completionProc = completionProc
+
+		// Perform
+		queue(fileHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -292,13 +302,13 @@ public class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func queue(_ dataHTTPEndpointRequest :DataHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping (_ data :Data?, _ error :Error?) -> Void) {
+	public func queue<T>(_ jsonHTTPEndpointRequest :JSONHTTPEndpointRequest<T>, identifier :String = "",
+			priority :Priority = .normal, completionProc :@escaping(_ info :T?, _ error :Error?) -> Void) {
 		// Setup
-		dataHTTPEndpointRequest.completionProc = completionProc
+		jsonHTTPEndpointRequest.completionProc = completionProc
 
 		// Perform
-		queue(dataHTTPEndpointRequest, identifier: identifier, priority: priority)
+		queue(jsonHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -312,13 +322,13 @@ public class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func queue<T>(_ jsonHTTPEndpointRequest :JSONHTTPEndpointRequest<T>, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping(_ info :T?, _ error :Error?) -> Void) {
+	public func queue(_ successHTTPEndpointRequest :SuccessHTTPEndpointRequest, identifier :String = "",
+			priority :Priority = .normal, completionProc :@escaping (_ error :Error?) -> Void) {
 		// Setup
-		jsonHTTPEndpointRequest.completionProc = completionProc
+		successHTTPEndpointRequest.completionProc = completionProc
 
 		// Perform
-		queue(jsonHTTPEndpointRequest, identifier: identifier, priority: priority)
+		queue(successHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
