@@ -64,9 +64,13 @@ extension HTTPEndpointRequest {
 			let	generateURLRequestProc :() -> Void = {
 						// Append URL Request
 						let	string =
-									urlRequestRoot + (queryString.isEmpty ? "?" : "&") +
-											multiValueQueryString
-													.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+									urlRequestRoot +
+											(!multiValueQueryString.isEmpty ?
+													(queryString.isEmpty ? "?" : "&") +
+															multiValueQueryString
+																	.addingPercentEncoding(
+																			withAllowedCharacters: .urlQueryAllowed)! :
+													"")
 						urlRequests.append(urlRequestProc(URL(string: string)!))
 
 						// Reset
@@ -150,38 +154,47 @@ public class HTTPEndpointClient {
 				let	identifier :String
 				let	priority :Priority
 
-				let	urlRequests :[URLRequest]
-
-		private	var	finishedURLRequestsCount = 0
+		private	var	totalPerformInfosCount = 0
+		private	var	finishedPerformInfosCount = LockingNumeric<Int>()
 
 		// MARK: Lifecycle methods
-		init(httpEndpointRequest :HTTPEndpointRequest, serverPrefix :String,
-					multiValueQueryParameterHandling :HTTPEndpointClient.MultiValueQueryParameterHandling,
-					maximumURLLength :Int, identifier :String, priority :Priority) {
+		init(httpEndpointRequest :HTTPEndpointRequest, identifier :String, priority :Priority) {
 			// Store
 			self.httpEndpointRequest = httpEndpointRequest
 			self.identifier = identifier
 			self.priority = priority
-
-			// Setup
-			self.urlRequests =
-					httpEndpointRequest.urlRequests(with: serverPrefix,
-							multiValueQueryParameterHandling: multiValueQueryParameterHandling,
-							maximumURLLength: maximumURLLength)
 		}
 
 		// MARK: Instance methods
-		func transition(urlRequest :URLRequest, to state :HTTPEndpointRequest.State) {
+		func httpEndpointRequestPerformInfos(serverPrefix :String,
+					multiValueQueryParameterHandling :HTTPEndpointClient.MultiValueQueryParameterHandling,
+					maximumURLLength :Int) -> [HTTPEndpointRequestPerformInfo] {
+			// Setup
+			let	httpEndpointRequest = self.httpEndpointRequest as! HTTPEndpointRequestProcessResults
+			let	urlRequests =
+						httpEndpointRequest.urlRequests(with: serverPrefix,
+								multiValueQueryParameterHandling: multiValueQueryParameterHandling,
+								maximumURLLength: maximumURLLength)
+			let	urlRequestsCount = urlRequests.count
+			self.totalPerformInfosCount = urlRequestsCount
+
+			return urlRequests
+					.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
+							completionProc: {
+								// Call process results
+								httpEndpointRequest.processResults(response: $0, data: $1, error: $2,
+										totalRequests: urlRequestsCount)
+							}) })
+		}
+
+		func transition(to state :HTTPEndpointRequest.State) {
 			// Check state
 			if (state == .active) && (self.httpEndpointRequest.state == .queued) {
 				// Transition to active
 				self.httpEndpointRequest.transition(to: .active)
 			} else if state == .finished {
 				// One more finished
-				self.finishedURLRequestsCount += 1
-
-				// Check if finished finished
-				if self.finishedURLRequestsCount == self.urlRequests.count {
+				if self.finishedPerformInfosCount.add(1).value == self.totalPerformInfosCount {
 					// Finished finished
 					self.httpEndpointRequest.transition(to: .finished)
 				}
@@ -191,23 +204,60 @@ public class HTTPEndpointClient {
 
 	class HTTPEndpointRequestPerformInfo {
 
+		// MARK: Types
+		typealias CompletionProc = (_ response :HTTPURLResponse?, _ data :Data?, _ error :Error?) -> Void
+
 		// MARK: Properties
-						let	httpEndpointRequestInfo :HTTPEndpointRequestInfo
 						let	urlRequest :URLRequest
 
+						var	identifier :String { self.httpEndpointRequestInfo.identifier }
+						var	priority :Priority { self.httpEndpointRequestInfo.priority }
 		private(set)	var	state :HTTPEndpointRequest.State = .queued
 
 						var	isCancelled :Bool { self.httpEndpointRequestInfo.httpEndpointRequest.isCancelled }
 
+		private			let	httpEndpointRequestInfo :HTTPEndpointRequestInfo
+		private			let	completionProc :CompletionProc
+
 		// MARK: Lifecycle methods
-		init(httpEndpointRequestInfo :HTTPEndpointRequestInfo, urlRequest :URLRequest) {
+		init(httpEndpointRequestInfo :HTTPEndpointRequestInfo, urlRequest :URLRequest,
+				completionProc :@escaping CompletionProc) {
 			// Store
-			self.httpEndpointRequestInfo = httpEndpointRequestInfo
 			self.urlRequest = urlRequest
+
+			self.httpEndpointRequestInfo = httpEndpointRequestInfo
+			self.completionProc = completionProc
 		}
 
 		// MARK: Instance methods
-		func transition(to state :HTTPEndpointRequest.State) { self.state = state }
+		func transition(to state :HTTPEndpointRequest.State) {
+			// Update state
+			self.state = state
+
+			// Inform HTTPEndpointRequestInfo
+			self.httpEndpointRequestInfo.transition(to: state)
+		}
+
+		func cancel() { self.httpEndpointRequestInfo.httpEndpointRequest.cancel() }
+
+		func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+			// Process results
+			if let statusCode = response?.statusCode,
+					let httpEndpointStatus = HTTPEndpointStatus(rawValue: statusCode) {
+				// Have a response
+				if httpEndpointStatus == .ok {
+					// Success
+					self.completionProc(response, data, nil)
+				} else {
+					// HTTP Request failed
+					self.completionProc(response, nil,
+							HTTPEndpointRequestError.requestFailed(httpEndpointStatus: httpEndpointStatus))
+				}
+			} else {
+				// Error
+				self.completionProc(response, nil, error)
+			}
+		}
 	}
 
 	// MARK: Properties
@@ -257,14 +307,12 @@ public class HTTPEndpointClient {
 			priority :Priority = .normal) {
 		// Setup
 		let	httpEndpointRequestInfo =
-					HTTPEndpointRequestInfo(httpEndpointRequest: httpEndpointRequest, serverPrefix: self.serverPrefix,
-							multiValueQueryParameterHandling: self.multiValueQueryParameterHandling,
-							maximumURLLength: self.maximumURLLength, identifier: identifier, priority: priority)
-		httpEndpointRequestInfo.urlRequests.forEach() {
-			// Add to queued
-			self.queuedHTTPEndpointRequestPerformInfos.append(
-					HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: httpEndpointRequestInfo, urlRequest: $0))
-		}
+					HTTPEndpointRequestInfo(httpEndpointRequest: httpEndpointRequest, identifier: identifier,
+							priority: priority)
+		self.queuedHTTPEndpointRequestPerformInfos +=
+				httpEndpointRequestInfo.httpEndpointRequestPerformInfos(serverPrefix: self.serverPrefix,
+						multiValueQueryParameterHandling: self.multiValueQueryParameterHandling,
+						maximumURLLength: self.maximumURLLength)
 
 		// Update active
 		updateHTTPEndpointRequestPerformInfos()
@@ -272,7 +320,7 @@ public class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ dataHTTPEndpointRequest :DataHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping (_ data :Data?, _ error :Error?) -> Void) {
+			priority :Priority = .normal, completionProc :@escaping DataHTTPEndpointRequest.CompletionProc) {
 		// Setup
 		dataHTTPEndpointRequest.completionProc = completionProc
 
@@ -282,7 +330,7 @@ public class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ fileHTTPEndpointRequest :FileHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping (_ error :Error?) -> Void) {
+			priority :Priority = .normal, completionProc :@escaping FileHTTPEndpointRequest.CompletionProc) {
 		// Setup
 		fileHTTPEndpointRequest.completionProc = completionProc
 
@@ -292,8 +340,7 @@ public class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ headHTTPEndpointRequest :HeadHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal,
-			completionProc :@escaping (_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void) {
+			priority :Priority = .normal, completionProc :@escaping HeadHTTPEndpointRequest.CompletionProc) {
 		// Setup
 		headHTTPEndpointRequest.completionProc = completionProc
 
@@ -303,7 +350,8 @@ public class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue<T>(_ jsonHTTPEndpointRequest :JSONHTTPEndpointRequest<T>, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping(_ info :T?, _ error :Error?) -> Void) {
+			priority :Priority = .normal,
+			completionProc :@escaping JSONHTTPEndpointRequest<T>.SingleResponseCompletionProc) {
 		// Setup
 		jsonHTTPEndpointRequest.completionProc = completionProc
 
@@ -312,8 +360,21 @@ public class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func queue<T>(_ jsonHTTPEndpointRequest :JSONHTTPEndpointRequest<T>, identifier :String = "",
+			priority :Priority = .normal,
+			partialResultsProc :@escaping JSONHTTPEndpointRequest<T>.MultiResponsePartialResultsProc,
+			completionProc :@escaping JSONHTTPEndpointRequest<T>.MultiResponseCompletionProc) {
+		// Setup
+		jsonHTTPEndpointRequest.multiResponsePartialResultsProc = partialResultsProc
+		jsonHTTPEndpointRequest.multiResponseCompletionProc = completionProc
+
+		// Perform
+		queue(jsonHTTPEndpointRequest, identifier: identifier, priority: priority)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ stringHTTPEndpointRequest :StringHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping (_ string :String?, _ error :Error?) -> Void) {
+			priority :Priority = .normal, completionProc :@escaping StringHTTPEndpointRequest.CompletionProc) {
 		// Setup
 		stringHTTPEndpointRequest.completionProc = completionProc
 
@@ -323,7 +384,7 @@ public class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ successHTTPEndpointRequest :SuccessHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping (_ error :Error?) -> Void) {
+			priority :Priority = .normal, completionProc :@escaping SuccessHTTPEndpointRequest.CompletionProc) {
 		// Setup
 		successHTTPEndpointRequest.completionProc = completionProc
 
@@ -332,23 +393,23 @@ public class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func cancel(identifier :String) {
+	public func cancel(identifier :String = "") {
 		// One at a time please...
 		self.updateActiveHTTPEndpointRequestPerformInfosLock.perform() {
 			// Iterate all
 			self.activeHTTPEndpointRequestPerformInfos.forEach() {
 				// Check identifier
-				if $0.httpEndpointRequestInfo.identifier == identifier {
+				if $0.identifier == identifier {
 					// Identifier matches, cancel
-					$0.httpEndpointRequestInfo.httpEndpointRequest.cancel()
+					$0.cancel()
 				}
 			}
 			self.queuedHTTPEndpointRequestPerformInfos.removeAll() {
 				// Check identifier
-				guard $0.httpEndpointRequestInfo.identifier == identifier else { return false }
+				guard $0.identifier == identifier else { return false }
 
 				// Identifier matches, cancel
-				$0.httpEndpointRequestInfo.httpEndpointRequest.cancel()
+				$0.cancel()
 
 				return true
 			}
@@ -367,8 +428,7 @@ public class HTTPEndpointClient {
 			guard self.activeHTTPEndpointRequestPerformInfos.count < self.maximumConcurrentURLRequests else { return }
 
 			// Sort queued
-			self.queuedHTTPEndpointRequestPerformInfos.sort()
-				{ $0.httpEndpointRequestInfo.priority.rawValue < $1.httpEndpointRequestInfo.priority.rawValue }
+			self.queuedHTTPEndpointRequestPerformInfos.sort() { $0.priority.rawValue < $1.priority.rawValue }
 
 			// Activate up to the maximum
 			while (self.queuedHTTPEndpointRequestPerformInfos.count > 0) &&
@@ -377,12 +437,10 @@ public class HTTPEndpointClient {
 				let	httpEndpointRequestPerformInfo = self.queuedHTTPEndpointRequestPerformInfos.removeFirst()
 				guard !httpEndpointRequestPerformInfo.isCancelled else { continue }
 
-				let	httpEndpointRequestInfo = httpEndpointRequestPerformInfo.httpEndpointRequestInfo
 				let	urlRequest = httpEndpointRequestPerformInfo.urlRequest
 
 				// Activate
 				httpEndpointRequestPerformInfo.transition(to: .active)
-				httpEndpointRequestInfo.transition(urlRequest: urlRequest, to: .active)
 				self.activeHTTPEndpointRequestPerformInfos.append(httpEndpointRequestPerformInfo)
 
 				// Perform in background
@@ -410,13 +468,12 @@ public class HTTPEndpointClient {
 
 						// Transition to finished
 						httpEndpointRequestPerformInfo.transition(to: .finished)
-						httpEndpointRequestInfo.transition(urlRequest: urlRequest, to: .finished)
 
 						// Check if cancelled
 						if !httpEndpointRequestPerformInfo.isCancelled {
 							// Process results
-							httpEndpointRequestPerformInfo.httpEndpointRequestInfo.httpEndpointRequest.processResults(
-									response: $1 as? HTTPURLResponse, data: $0, error: $2)
+							httpEndpointRequestPerformInfo.processResults(response: $1 as? HTTPURLResponse, data: $0,
+									error: $2)
 						}
 
 						// Update

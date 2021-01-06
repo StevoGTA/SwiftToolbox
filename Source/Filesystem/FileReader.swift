@@ -17,7 +17,7 @@ class FileReader {
 
 	// Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func contents(of file :File) throws -> Data { try Data(contentsOf: file.url) }
+	static func contents(of file :File) throws -> Data { try Data(contentsOf: file.url, options: [.mappedIfSafe]) }
 
 	//------------------------------------------------------------------------------------------------------------------
 	static func jsonContents<T>(of file :File) throws -> T? {

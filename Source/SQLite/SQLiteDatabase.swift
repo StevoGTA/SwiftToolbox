@@ -69,8 +69,10 @@ public class SQLiteDatabase {
 
 		// Open
 		var	database :OpaquePointer? = nil
-		if sqlite3_open(file.path, &database) != SQLITE_OK {
+		let	result = sqlite3_open(file.path, &database)
+		if result != SQLITE_OK {
 			// Failed to open
+			NSLog("SQLiteDatabase failed to open with \(result) (\"\(String(cString: sqlite3_errstr(result)))\")")
 			throw SQLiteDatabaseError.failedToOpen
 		}
 

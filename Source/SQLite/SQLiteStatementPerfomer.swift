@@ -224,10 +224,7 @@ class SQLiteStatementPerfomer {
 			sqliteStatements.append(SQLiteStatement(statement: "COMMIT"))
 
 			// Perform
-			self.lock.perform() {
-				// Perform all statements
-				sqliteStatements.forEach() { _ = try! $0.perform(with: self.database) }
-			}
+			self.lock.perform() { sqliteStatements.forEach() { _ = try! $0.perform(with: self.database) } }
 		} else {
 			// No longer in transaction
 			self.transactionsMapLock.write() { self.transactionsMap[Thread.current] = nil }

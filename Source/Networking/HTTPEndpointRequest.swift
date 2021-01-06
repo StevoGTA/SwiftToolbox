@@ -11,6 +11,7 @@ import Foundation
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointRequestError
 enum HTTPEndpointRequestError : Error {
+	case requestFailed(httpEndpointStatus :HTTPEndpointStatus)
 	case unableToProcessResponseData
 }
 
@@ -20,7 +21,10 @@ extension HTTPEndpointRequestError : LocalizedError {
 	public	var	errorDescription :String? {
 						// What are we
 						switch self {
-							case .unableToProcessResponseData:	return "Unable to process response data"
+							case .requestFailed(let httpEndpointStatus):
+								return "Request failed with status \(httpEndpointStatus)"
+							case .unableToProcessResponseData:
+									return "Unable to process response data"
 						}
 					}
 }
@@ -137,26 +141,37 @@ public class HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func transition(to state :State) { self.state = state }
+}
 
-	// MARK: Internal Methods
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - HTTPEndpointRequestProcessResults
+protocol HTTPEndpointRequestProcessResults : HTTPEndpointRequest {
+
+	// MARK: Methods
 	//------------------------------------------------------------------------------------------------------------------
-	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {}
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - DataHTTPEndpointRequest
 public class DataHTTPEndpointRequest : HTTPEndpointRequest {
 
-	// MARK: Properties
-	public var	completionProc :(_ data :Data?, _ error :Error?) -> Void = { _,_ in }
+	// MARK: Types
+	public	typealias CompletionProc = (_ response :HTTPURLResponse?, _ data :Data?, _ error :Error?) -> Void
 
-	// MARK: HTTPEndpointRequest methods
+	// MARK: Properties
+	public	var	completionProc :CompletionProc = { _,_,_ in }
+}
+
+extension DataHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
+
+	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Call proc
-			self.completionProc(data, error)
+			self.completionProc(response, data, error)
 		}
 	}
 }
@@ -165,8 +180,11 @@ public class DataHTTPEndpointRequest : HTTPEndpointRequest {
 // MARK: - FileHTTPEndpointRequest
 public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
+	// MARK: Types
+	public	typealias CompletionProc = (_ response :HTTPURLResponse?, _ error :Error?) -> Void
+
 	// MARK: Properties
-	public var	completionProc :(_ error :Error?) -> Void = { _ in }
+	public	var	completionProc :CompletionProc = { _,_ in }
 
 	private	let	destinationURL :URL
 
@@ -226,10 +244,13 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 		// Do super
 		super.init(method: method, url: url, timeoutInterval: timeoutInterval)
 	}
+}
 
-	// MARK: HTTPEndpointRequest methods
+extension FileHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
+
+	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Handle results
@@ -239,14 +260,14 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 					try data!.write(to: self.destinationURL)
 
 					// Call completion
-					self.completionProc(nil)
+					self.completionProc(response, nil)
 				} catch {
 					// Error
-					self.completionProc(error)
+					self.completionProc(response, error)
 				}
 			} else {
 				// Error
-				self.completionProc(error)
+				self.completionProc(response, error)
 			}
 		}
 	}
@@ -256,16 +277,23 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 // MARK: - HeadHTTPEndpointRequest
 public class HeadHTTPEndpointRequest : HTTPEndpointRequest {
 
-	// MARK: Properties
-	public var	completionProc :(_ headers :[AnyHashable : Any]?, _ error :Error?) -> Void = { _,_ in }
+	// MARK: Types
+	public	typealias	CompletionProc =
+							(_ response :HTTPURLResponse?, _ headers :[AnyHashable : Any]?, _ error :Error?) -> Void
 
-	// MARK: HTTPEndpointRequest methods
+	// MARK: Properties
+	public	var	completionProc :CompletionProc = { _,_,_ in }
+}
+
+extension HeadHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
+
+	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Call proc
-			self.completionProc(response?.allHeaderFields, error)
+			self.completionProc(response, response?.allHeaderFields, error)
 		}
 	}
 }
@@ -274,15 +302,29 @@ public class HeadHTTPEndpointRequest : HTTPEndpointRequest {
 // MARK: - JSONHTTPEndpointRequest
 public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 
-	// MARK: Properties
-	public var	completionProc :(_ info :T?, _ error :Error?) -> Void = { _,_ in }
+	// MARK: Types
+	public typealias SingleResponseCompletionProc = (_ response :HTTPURLResponse?, _ info :T?, _ error :Error?) -> Void
+	public typealias MultiResponsePartialResultsProc =
+						(_ response :HTTPURLResponse?, _ info :T?, _ error :Error?) -> Void
+	public typealias MultiResponseCompletionProc = (_ errors :[Error]) -> Void
 
-	// MARK: HTTPEndpointRequest methods
+	// MARK: Properties
+	public	var	completionProc :SingleResponseCompletionProc?
+	public	var	multiResponsePartialResultsProc :MultiResponsePartialResultsProc?
+	public	var	multiResponseCompletionProc :MultiResponseCompletionProc?
+
+	private	var	completedRequestsCount = LockingNumeric<Int>()
+	private	var	errors = [Error]()
+}
+
+extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
+
+	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
 		// Handle results
 		var	info :T? = nil
-		var	returnError :Error? = error
+		var	responseError :Error?
 		if data != nil {
 			// Catch errors
 			do {
@@ -290,14 +332,36 @@ public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 				info = try JSONSerialization.jsonObject(with: data!, options: []) as? T
 			} catch {
 				// Error
-				returnError = error
+				responseError = error
+				self.errors.append(error)
 			}
+		} else {
+			// Error
+			responseError = error
+			self.errors.append(error!)
 		}
 
 		// Check cancelled
 		if !self.isCancelled {
 			// Call proc
-			self.completionProc(info, returnError)
+			if totalRequests == 1 {
+				// Single request (but could have been multiple
+				if self.completionProc != nil {
+					// Single response expected
+					self.completionProc!(response, info, responseError)
+				} else {
+					// Multi-responses possible
+					self.multiResponsePartialResultsProc!(response, info, responseError)
+					self.multiResponseCompletionProc!(self.errors)
+				}
+			} else {
+				// Multiple requests
+				self.multiResponsePartialResultsProc!(response, info, responseError)
+				if completedRequestsCount.add(1).value == totalRequests {
+					// All done
+					self.multiResponseCompletionProc!(self.errors)
+				}
+			}
 		}
 	}
 }
@@ -306,12 +370,18 @@ public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 // MARK: - StringHTTPEndpointRequest
 public class StringHTTPEndpointRequest : HTTPEndpointRequest {
 
-	// MARK: Properties
-	public var	completionProc :(_ string :String?, _ error :Error?) -> Void = { _,_ in }
+	// MARK: Types
+	public	typealias	CompletionProc = (_ response :HTTPURLResponse?, _ string :String?, _ error :Error?) -> Void
 
-	// MARK: HTTPEndpointRequest methods
+	// MARK: Properties
+	public	var	completionProc :CompletionProc = { _,_,_ in }
+}
+
+extension StringHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
+
+	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
 		// Handle results
 		var	string :String? = nil
 		var	returnError :Error? = error
@@ -328,7 +398,7 @@ public class StringHTTPEndpointRequest : HTTPEndpointRequest {
 		// Check cancelled
 		if !self.isCancelled {
 			// Call proc
-			self.completionProc(string, returnError)
+			self.completionProc(response, string, returnError)
 		}
 	}
 }
@@ -337,16 +407,19 @@ public class StringHTTPEndpointRequest : HTTPEndpointRequest {
 // MARK: - SuccessHTTPEndpointRequest
 public class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
 
+	// MARK: Types
+	public	typealias	CompletionProc = (_ response :HTTPURLResponse?, _ error :Error?) -> Void
+
 	// MARK: Properties
-	public var	completionProc :(_ error :Error?) -> Void = { _ in }
+	public var	completionProc :CompletionProc = { _,_ in }
 
 	// MARK: HTTPEndpointRequest methods
 	//------------------------------------------------------------------------------------------------------------------
-	override func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Call proc
-			self.completionProc(error)
+			self.completionProc(response, error)
 		}
 	}
 }

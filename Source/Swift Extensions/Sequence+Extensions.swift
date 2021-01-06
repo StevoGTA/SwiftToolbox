@@ -10,11 +10,11 @@ import Foundation
 
 // MARK: Types
 //----------------------------------------------------------------------------------------------------------------------
-fileprivate	struct MapItem<T> {
+fileprivate struct MapItem<T, U> {
 
 	// MARK: Properties
-	let	key :String
-	let	element :T
+	let	key :T
+	let	element :U
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -23,15 +23,15 @@ extension Sequence {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-    func sorted(stringKeyProc :(Self.Element) throws -> String,
-			keyCompareProc: (String, String) -> Bool = { $0 < $1 }) rethrows -> [Self.Element] {
+    func sorted<T : Comparable>(keyProc :(Self.Element) throws -> T, keyCompareProc: (T, T) -> Bool = { $0 < $1 })
+    		rethrows -> [Self.Element] {
 		// Must have at least 2 elements
 		guard self.underestimatedCount > 1 else { return Array(self) }
 
 		// Create map
-		var	map :[MapItem<Element>] =
+		var	map :[MapItem<T, Element>] =
 					try autoreleasepool()
-							{ try self.map({ MapItem<Element>(key: try stringKeyProc($0), element: $0) }) }
+							{ try self.map({ MapItem<T, Element>(key: try keyProc($0), element: $0) }) }
 
 		// Sort keys
 		autoreleasepool() { map.sort(by: { keyCompareProc($0.key, $1.key) }) }

@@ -219,7 +219,7 @@ class FilesystemDataCache : DataCache {
 					while totalSize > sizeLimit {
 						// Remove the first
 						let	itemInfo = itemInfosSorted.removeFirst()
-						try itemInfo.file.remove()
+						try FileManager.default.remove(itemInfo.file)
 						totalSize -= itemInfo.size
 						self.map[itemInfo.file.name] = nil
 					}

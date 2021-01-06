@@ -228,3 +228,24 @@ extension String {
 				}
 			}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - String HTTPRequest/HTTPResponse extension
+public extension String {
+
+	// MARK: Properties
+	var	httpRequestRange :(start :Int64, length :Int64)? {
+				// Examples:
+				//	bytes=0-499
+				let	components = self.components(separatedBy: "=")
+				guard components.count == 2 else { return nil }
+				guard components[0] == "bytes" else { return nil }
+
+				let parts = components[1].components(separatedBy: "-")
+				guard parts.count == 2 else { return nil }
+				guard let start = Int64(parts[0]) else { return nil }
+				guard let end = Int64(parts[1]) else { return nil }
+
+				return (start, end - start + 1)
+			}
+}

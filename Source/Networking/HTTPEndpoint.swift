@@ -19,6 +19,52 @@ public enum HTTPEndpointMethod {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// MARK: HTTPEndpointStatusError
+enum HTTPEndpointStatusError : Error {
+	// MARK: Values
+	case badRequest
+	case unauthorized
+	case forbidden
+	case notFound
+	case conflict
+
+	case internalServerError
+
+	// MARK: Class methods
+	static func `for`(_ status :HTTPEndpointStatus) -> Self {
+		// Check status
+		switch status {
+			case .badRequest:			return .badRequest
+			case .unauthorized:			return .unauthorized
+			case .forbidden:			return .forbidden
+			case .notFound:				return .notFound
+			case .conflict:				return .conflict
+
+			case .internalServerError:	return .internalServerError
+
+			case .ok:					fatalError("Not an error")
+		}
+	}
+}
+
+extension HTTPEndpointStatusError : LocalizedError {
+
+	// MARK: Properties
+	public	var	errorDescription :String? {
+						// What are we
+						switch self {
+							case .badRequest:			return "Bad Requeest"
+							case .unauthorized:			return "Unauthorized"
+							case .forbidden:				return "Forbidden"
+							case .notFound:				return "Not Found"
+							case .conflict:				return "Conflict"
+
+							case .internalServerError:	return "Internal Server Error"
+						}
+					}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointStatus
 public enum HTTPEndpointStatus : Int {
 	// Values
