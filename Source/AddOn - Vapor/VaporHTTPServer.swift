@@ -1,5 +1,5 @@
 //
-//  HTTPServerManager.swift
+//  VaporHTTPServer.swift
 //  Swift Toolbox
 //
 //  Created by Stevo on 12/3/19.
@@ -157,14 +157,14 @@ public class VaporHTTPServer : HTTPServer {
 								maxBodySize: maxBodySize, on: group).wait()
 			} catch {
 				// Error
-				NSLog("HTTPServerManager encountered error when starting server: \(error)")
+				NSLog("VaporHTTPServer encountered error when starting server: \(error)")
 			}
 
 			do {
 				try server?.onClose.wait()
 			} catch {
 				// Error
-				NSLog("HTTPServerManager encountered error when closing server: \(error)")
+				NSLog("VaporHTTPServer encountered error when closing server: \(error)")
 			}
 		}
 	}

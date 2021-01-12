@@ -22,10 +22,10 @@ public class Folder {
 	typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
 
 	// MARK: Properties
-	let	url :URL
+	public	var	name :String { self.url.lastPathComponent }
+	public	var	path :String { self.url.path }
 
-	var	name :String { self.url.lastPathComponent }
-	var	path :String { self.url.path }
+			let	url :URL
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -33,15 +33,15 @@ public class Folder {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(_ url :URL) {
+	public init(_ url :URL) {
 		// Store
 		self.url = url
 	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func folder(with subPath :String) -> Folder { Folder(self.url.appendingPathComponent(subPath)) }
+	public func folder(with subPath :String) -> Folder { Folder(self.url.appendingPathComponent(subPath)) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func file(with subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
+	public func file(with subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
 }

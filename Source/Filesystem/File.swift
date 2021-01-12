@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: File
-class File {
+public class File {
 
 	// MARK: Types
 	typealias SubPathProc = (_ file :File, _ subPath :String) -> Void

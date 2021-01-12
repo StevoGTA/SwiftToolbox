@@ -60,6 +60,7 @@ public class LockingNumeric<T : Numeric> {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
 	public func add(_ value :T) -> Self {
 		// Add
 		self.lock.write() { self.valueInternal += value }
@@ -68,6 +69,7 @@ public class LockingNumeric<T : Numeric> {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
 	public func subtract(_ value :T) -> Self {
 		// Subtract
 		self.lock.write() { self.valueInternal -= value }

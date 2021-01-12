@@ -28,19 +28,20 @@ extension FileManager {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func exists(_ folder :Folder) -> Bool { fileExists(atPath: folder.path) }
+	public func exists(_ folder :Folder) -> Bool { fileExists(atPath: folder.path) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func exists(_ file :File) -> Bool { fileExists(atPath: file.path) }
+	public func exists(_ file :File) -> Bool { fileExists(atPath: file.path) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func folder(for directory :SearchPathDirectory, in domain :SearchPathDomainMask = .userDomainMask) -> Folder {
+	public func folder(for directory :SearchPathDirectory, in domain :SearchPathDomainMask = .userDomainMask) ->
+			Folder {
 		// Return folder
 		return Folder(urls(for: directory, in: domain).first!)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func create(_ folder :Folder, withIntermediateDirectories :Bool = true,
+	public func create(_ folder :Folder, withIntermediateDirectories :Bool = true,
 			attributes: [FileAttributeKey : Any]? = nil) throws {
 		// Check if already exists
 		if !exists(folder) {

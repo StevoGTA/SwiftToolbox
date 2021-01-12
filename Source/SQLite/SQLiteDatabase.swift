@@ -59,14 +59,7 @@ public class SQLiteDatabase {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(in folder :Folder, with name :String = "database", options :Options = [.walMode]) throws {
-		// Setup
-		let	urlBase = folder.url.appendingPathComponent(name)
-		let	file =
-					FileManager.default.exists(File(urlBase.appendingPathExtension("sqlite3"))) ?
-							File(urlBase.appendingPathExtension("sqlite3")) :
-							File(urlBase.appendingPathExtension("sqlite"))
-
+	public init (with file :File, options :Options = [.walMode]) throws {
 		// Open
 		var	database :OpaquePointer? = nil
 		let	result = sqlite3_open(file.path, &database)
@@ -85,6 +78,18 @@ public class SQLiteDatabase {
 			// Activate WAL mode
 			sqlite3_exec(database, "PRAGMA journal_mode = WAL;", nil, nil, nil);
 		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public convenience init(in folder :Folder, with name :String = "database", options :Options = [.walMode]) throws {
+		// Setup
+		let	urlBase = folder.url.appendingPathComponent(name)
+		let	file =
+					FileManager.default.exists(File(urlBase.appendingPathExtension("sqlite3"))) ?
+							File(urlBase.appendingPathExtension("sqlite3")) :
+							File(urlBase.appendingPathExtension("sqlite"))
+
+		try self.init(with: file, options: options)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
