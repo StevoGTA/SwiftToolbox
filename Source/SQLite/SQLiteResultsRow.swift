@@ -37,7 +37,7 @@ public class SQLiteResultsRow {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func integer<T : BinaryInteger>(for tableColumn :SQLiteTableColumn) -> T? {
+	public func integer(for tableColumn :SQLiteTableColumn) -> Int64? {
 		// Preflight
 		let	name = tableColumn.name
 		guard tableColumn.kind.isInteger else
@@ -46,7 +46,7 @@ public class SQLiteResultsRow {
 			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
 
 		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
-				T(sqlite3_column_int64(self.statement, index)) : nil
+				sqlite3_column_int64(self.statement, index) : nil
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

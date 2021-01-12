@@ -22,43 +22,13 @@ fileprivate extension SQLiteTableColumn {
 						// Integer
 						string += "INTEGER"
 
-					case .integer1:
-						// Integer 1
-						string += "INTEGER"
-						string += "(1)"
-
-					case .integer2:
-						// Integer 2
-						string += "INTEGER"
-						string += "(2)"
-
-					case .integer3:
-						// Integer 3
-						string += "INTEGER"
-						string += "(3)"
-
-					case .integer4:
-						// Integer 4
-						string += "INTEGER"
-						string += "(4)"
-
-					case .integer8:
-						// Integer 8
-						string += "INTEGER"
-						string += "(8)"
-
 					case .real:
 						// Real
 						string += "REAL"
 
-					case .text:
+					case .text, .dateISO8601FractionalSecondsAutoSet, .dateISO8601FractionalSecondsAutoUpdate:
 						// Text
 						string += "TEXT"
-
-					case .textWith(let size):
-						// Text
-						string += "TEXT"
-						string += "(\(size))"
 
 					case .blob:
 						// Blob
@@ -78,7 +48,7 @@ fileprivate extension SQLiteTableColumn {
 
 				if self.defaultValue != nil {
 					// Default
-					string += " DEFAULT \(self.defaultValue!)"
+					string += " DEFAULT (\(self.defaultValue!))"
 				}
 
 				return string
@@ -154,13 +124,11 @@ public struct SQLiteTable {
 						return columnInfo
 					}
 
-		// Compose create statement
+		// Create
 		let	statement =
 					"CREATE TABLE" + (ifNotExists ? " IF NOT EXISTS" : "") + " `\(self.name)`" +
 							" (" + String(combining: columnInfos) + ")" +
 							(self.options.contains(.withoutRowID) ? " WITHOUT ROWID" : "")
-
-		// Create
 		self.statementPerformer.perform(statement: statement)
 	}
 
@@ -183,6 +151,12 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func add(_ trigger :SQLiteTrigger) {
+		// Perform
+		self.statementPerformer.perform(statement: trigger.string(for: self.name))
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func drop() {
 		// Perform
 		self.statementPerformer.perform(statement: "DROP TABLE `\(self.name)`")
@@ -197,19 +171,19 @@ public struct SQLiteTable {
 		let	statement = "SELECT COUNT(*) FROM `\(self.name)`" + (sqliteWhere?.string ?? "")
 
 		// Perform
-		var	count :UInt = 0
+		var	count :Int64 = 0
 		self.statementPerformer.perform(statement: statement, values: sqliteWhere?.values) {
 			// Query count
 			count = $0.integer(for: type(of: self).countAllTableColumn)!
 		}
 
-		return count
+		return UInt(count)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func rowID(for sqliteWhere :SQLiteWhere) throws -> Int? {
+	public func rowID(for sqliteWhere :SQLiteWhere) throws -> Int64? {
 		// Query rowID
-		var	rowID :Int? = nil
+		var	rowID :Int64? = nil
 		try select(tableColumns: [.rowID], where: sqliteWhere) { rowID = $0.integer(for: .rowID)! }
 
 		return rowID

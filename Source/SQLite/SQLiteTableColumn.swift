@@ -13,14 +13,8 @@ public struct SQLiteTableColumn {
 	// MARK: Kind
 	public	enum Kind {
 				// Values
-				// INTEGER values are whole numbers (either positive or negative). An integer can have variable sizes
-				//	such as 1, 2, 3, 4, or 8 bytes.
+				// INTEGER values are whole numbers (either positive or negative).
 				case integer
-				case integer1
-				case integer2
-				case integer3
-				case integer4
-				case integer8
 
 				// REAL values are real numbers with decimal values that use 8-byte floats.
 				case real
@@ -28,22 +22,21 @@ public struct SQLiteTableColumn {
 				// TEXT is used to store character data. The maximum length of TEXT is unlimited. SQLite supports
 				//	various character encodings.
 				case text
-				case textWith(size :Int)
 
 				// BLOB stands for a binary large object that can be used to store any kind of data. The maximum size
 				//	of BLOBs is unlimited
 				case blob
+
+				// Dates (not built-in bytes, but we handle)
+				//	See https://sqlite.org/lang_datefunc.html
+				case dateISO8601FractionalSecondsAutoSet	// YYYY-MM-DDTHH:MM:SS.SSS (will auto set on insert/replace)
+				case dateISO8601FractionalSecondsAutoUpdate	// YYYY-MM-DDTHH:MM:SS.SSS (will auto update on insert/replace)
 
 				// Properties
 				var	isInteger :Bool {
 							// Switch self
 							switch self {
 								case .integer:	return true
-								case .integer1:	return true
-								case .integer2:	return true
-								case .integer3:	return true
-								case .integer4:	return true
-								case .integer8:	return true
 								default:		return false
 							}
 						}
@@ -57,9 +50,8 @@ public struct SQLiteTableColumn {
 				var	isText :Bool {
 							// Switch self
 							switch self {
-								case .text:			return true
-								case .textWith(_):	return true
-								default:			return false
+								case .text:	return true
+								default:	return false
 							}
 						}
 				var	isBlob :Bool {
@@ -87,11 +79,27 @@ public struct SQLiteTableColumn {
 
 	// MARK: Properties
 	static	let	rowID = SQLiteTableColumn("rowid", .integer, [])
+	static	let	all = SQLiteTableColumn("*", .integer, [])
 
 			let	name :String
 			let	kind :Kind
 			let	options :[Options]
 			let	defaultValue :Any?
+
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func dateISO8601FractionalSecondsAutoSet(_ name :String) -> SQLiteTableColumn {
+		// Return info
+		return SQLiteTableColumn(name, .dateISO8601FractionalSecondsAutoSet, [.notNull],
+				"strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime')")
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	static func dateISO8601FractionalSecondsAutoUpdate(_ name :String) -> SQLiteTableColumn {
+		// Return info
+		return SQLiteTableColumn(name, .dateISO8601FractionalSecondsAutoUpdate, [.notNull],
+				"strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime')")
+	}
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
