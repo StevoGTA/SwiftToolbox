@@ -166,7 +166,7 @@ public struct SQLiteTable {
 	public func hasRow(where sqliteWhere :SQLiteWhere) -> Bool { count(where: sqliteWhere) > 0 }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func count(where sqliteWhere :SQLiteWhere? = nil) -> UInt {
+	public func count(where sqliteWhere :SQLiteWhere? = nil) -> Int {
 		// Compose statement
 		let	statement = "SELECT COUNT(*) FROM `\(self.name)`" + (sqliteWhere?.string ?? "")
 
@@ -177,7 +177,7 @@ public struct SQLiteTable {
 			count = $0.integer(for: type(of: self).countAllTableColumn)!
 		}
 
-		return UInt(count)
+		return Int(count)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
