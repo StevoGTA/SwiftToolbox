@@ -48,7 +48,9 @@ public class LockingArray<T> {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func removeAll() { self.lock.write({ self.array.removeAll() }) }
+	@discardableResult
+	public func removeAll() -> [T]
+		{ self.lock.write({ let values = self.array; self.array.removeAll(); return values }) }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
