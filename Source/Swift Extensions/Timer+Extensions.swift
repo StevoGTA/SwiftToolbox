@@ -39,10 +39,22 @@ public extension Timer {
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func scheduledTimer(timeInterval :TimeInterval, runLoop :RunLoop = RunLoop.current, proc :@escaping Proc) ->
-			Timer {
+	static func scheduledTimer(timeInterval :TimeInterval, repeats :Bool = false, runLoop :RunLoop = RunLoop.current,
+			proc :@escaping Proc) -> Timer {
 		// Setup
-		let	timer = Timer(timeInterval: timeInterval, proc: proc)
+		let	timer :Timer
+		if #available(OSX 10.12, *) {
+			// Use framework version
+			timer = Timer(timeInterval: timeInterval, repeats: repeats, block: proc)
+		} else {
+			// Setup
+			let	timerProcCaller = TimerProcCaller(fireProc: proc)
+
+			// Init
+			timer =
+					Timer(timeInterval: timeInterval, target: timerProcCaller,
+							selector: #selector(timerFireMethod(timer:)), userInfo: nil, repeats: false)
+		}
 
 		// Schedule
 		runLoop.add(timer, forMode: .common)

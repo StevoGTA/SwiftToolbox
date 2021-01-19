@@ -10,9 +10,6 @@
 // MARK: SQLiteWhere
 public class SQLiteWhere {
 
-	// MARK: Types
-	typealias Group = (string :String, values :[Any]?)
-
 	// MARK: Properties
 	static	private			let	variablePlaceholder = "##VARIABLEPLACEHOLDER##"
 
@@ -94,6 +91,7 @@ public class SQLiteWhere {
 				// IS NOT NULL
 				self.string += " IS NOT NULL"
 			} else {
+				// Unsupported nil comparison
 				fatalError("SQLiteWhere could not prepare nil value comparison \(comparison)")
 			}
 		} else {
