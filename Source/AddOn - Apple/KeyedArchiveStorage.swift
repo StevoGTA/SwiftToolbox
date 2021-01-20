@@ -12,8 +12,6 @@
 	import AppKit
 #endif
 
-//import CoreFoundation
-
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: KeyedArchiveStorage
 class KeyedArchiveStorage {
