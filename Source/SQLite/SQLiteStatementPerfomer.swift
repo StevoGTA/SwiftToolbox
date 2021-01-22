@@ -163,7 +163,7 @@ class SQLiteStatementPerfomer {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(statement string :String, values :[Any]? = nil,
+	func addToTransactionOrPerform(statement string :String, values :[Any]? = nil,
 			lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)? = nil) {
 		// Setup
 		let	sqliteStatement =
