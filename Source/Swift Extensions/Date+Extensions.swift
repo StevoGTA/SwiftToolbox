@@ -110,7 +110,7 @@ extension Date {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init?(fromRFC3339Extended string :String?) {
+	public init?(fromRFC3339Extended string :String?) {
 		// Preflight
 		guard string != nil else { return nil }
 
