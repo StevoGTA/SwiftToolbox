@@ -211,16 +211,9 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func insertRow(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
-		// Setup
-		let	tableColumns = info.map() { $0.tableColumn }
-		let	values = info.map() { $0.value }
-		let	statement =
-					"INSERT INTO `\(self.name)` (" + columnNamesString(for: tableColumns) + ") VALUES (" +
-							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
-
 		// Perform
 		var	lastInsertRowID :Int64 = 0
-		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values) { lastInsertRowID = $0 }
+		insertRow(info) { lastInsertRowID = $0 }
 
 		return lastInsertRowID
 	}
@@ -236,22 +229,16 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
-		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
+		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values,
+				lastInsertRowIDProc: lastInsertRowIDProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func insertOrReplaceRow(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
-		// Setup
-		let	tableColumns = info.map() { $0.tableColumn }
-		let	values = info.map() { $0.value }
-		let	statement =
-					"INSERT OR REPLACE INTO `\(self.name)` (" + columnNamesString(for: tableColumns) + ") VALUES (" +
-							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
-
 		// Perform
 		var	lastInsertRowID :Int64 = 0
-		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values) { lastInsertRowID = $0 }
+		insertOrReplaceRow(info) { lastInsertRowID = $0 }
 
 		return lastInsertRowID
 	}
@@ -267,7 +254,8 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
-		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
+		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values,
+				lastInsertRowIDProc: lastInsertRowIDProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
