@@ -78,7 +78,7 @@ public struct SQLiteTable {
 
 			private			let	options :Options
 			private			let	references :[SQLiteTableColumn.Reference]
-			private			let	statementPerformer :SQLiteStatementPerfomer
+			private			let	statementPerformer :SQLiteStatementPerformer
 
 			private			var	tableColumns :[SQLiteTableColumn]
 			private			var	tableColumnsMap = [/* property name */ String : SQLiteTableColumn]()
@@ -86,7 +86,7 @@ public struct SQLiteTable {
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(name :String, options :Options, tableColumns :[SQLiteTableColumn],
-			references :[SQLiteTableColumn.Reference] = [], statementPerformer :SQLiteStatementPerfomer) {
+			references :[SQLiteTableColumn.Reference] = [], statementPerformer :SQLiteStatementPerformer) {
 		// Store
 		self.name = name
 		self.options = options
@@ -106,7 +106,7 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	public func create(ifNotExists :Bool = true) {
 		// Setup
-		var	tableColumnReferenceMap = [/* column name */ String : SQLiteTableColumn.Reference]()
+		var	tableColumnReferenceMap = [String : SQLiteTableColumn.Reference]()
 		self.references.forEach() { tableColumnReferenceMap[$0.tableColumn.name] = $0 }
 
 		let	columnInfos :[String] =

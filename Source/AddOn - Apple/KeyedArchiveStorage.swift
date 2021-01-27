@@ -135,8 +135,6 @@ class KeyedArchiveStorage {
 		}
 		
 		// Start timer
-		storageTimer =
-				Timer.scheduledTimer(withTimeInterval: storageDelay,
-						fireProc: { [weak self] timer in try? self?.save() }, repeats: false)
+		storageTimer = Timer.scheduledTimer(timeInterval: storageDelay) { [weak self] timer in try? self?.save() }
 	}
 }

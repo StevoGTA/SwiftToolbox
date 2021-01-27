@@ -25,6 +25,7 @@ class NetServiceSubscriber : NSObject, NetServiceBrowserDelegate, NetServiceDele
 
 	static			let	nameAll = "*"
 
+					var	isSearching = false
 					var	logActions = false
 
 					var	serviceAvailableProc
@@ -39,7 +40,6 @@ class NetServiceSubscriber : NSObject, NetServiceBrowserDelegate, NetServiceDele
 
 			private	let	netServiceBrowser = NetServiceBrowser()
 
-			private	var	isSearching = false
 			private	var	servicesBeingResolved = Set<NetService>()
 
 #if os(iOS) || os(watchOS) || os(tvOS)
