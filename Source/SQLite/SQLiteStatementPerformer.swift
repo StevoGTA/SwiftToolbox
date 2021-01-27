@@ -1,5 +1,5 @@
 //
-//  SQLiteStatementPerfomer.swift
+//  SQLiteStatementPerformer.swift
 //  Swift Toolbox
 //
 //  Created by Stevo on 10/23/19.
@@ -39,7 +39,7 @@ fileprivate struct SQLiteStatement {
 		guard sqlite3_prepare_v2(database, string, -1, &statement, nil) == SQLITE_OK else {
 			// Error
 			let	errorMessage = String(cString: sqlite3_errmsg(database))
-			fatalError("SQLiteStatementPerfomer could not prepare query with \"\(string)\", with error \"\(errorMessage)\"")
+			fatalError("SQLiteStatement could not prepare query with \"\(string)\", with error \"\(errorMessage)\"")
 		}
 
 		// Check for values
@@ -73,7 +73,7 @@ fileprivate struct SQLiteStatement {
 		guard sqlite3_prepare_v2(database, self.string, -1, &statement, nil) == SQLITE_OK else {
 			// Error
 			let	errorMessage = String(cString: sqlite3_errmsg(database))
-			fatalError("SQLiteStatementPerfomer could not prepare query with \"\(self.string)\", with error \"\(errorMessage)\"")
+			fatalError("SQLiteStatement could not prepare query with \"\(self.string)\", with error \"\(errorMessage)\"")
 		}
 
 		// Check for values
@@ -86,7 +86,7 @@ fileprivate struct SQLiteStatement {
 		guard sqlite3_step(statement) == SQLITE_DONE else {
 			// Error
 			let	errorMessage = String(cString: sqlite3_errmsg(database))
-			fatalError("SQLiteStatementPerfomer could not perform query with \"\(self.string)\", with error \"\(errorMessage)\"")
+			fatalError("SQLiteStatement could not perform query with \"\(self.string)\", with error \"\(errorMessage)\"")
 		}
 
 		// Check for last insert row ID proc
@@ -136,8 +136,8 @@ fileprivate struct SQLiteStatement {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - SQLiteStatementPerfomer
-class SQLiteStatementPerfomer {
+// MARK: - SQLiteStatementPerformer
+class SQLiteStatementPerformer {
 
 	// MARK: Enums
 	enum TransactionResult {
@@ -200,7 +200,7 @@ class SQLiteStatementPerfomer {
 		// Internals check
 		guard self.transactionsMapLock.read({ self.transactionsMap[Thread.current] }) == nil else {
 			// Error
-			fatalError("SQLiteStatementPerfomer performAsTransaction() called while already in transaction")
+			fatalError("SQLiteStatementPerformer performAsTransaction() called while already in transaction")
 		}
 
 		// Start transaction

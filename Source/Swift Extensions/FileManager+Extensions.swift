@@ -123,12 +123,12 @@ extension FileManager {
 	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) {
+			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) throws {
 		// Setup
 		let	keysUse = (keys ?? []) + [.isRegularFileKey]
 
 		// Enumerate
-		enumerateFoldersFilesDeep(levels: 0, folder: folder, includingPropertiesForKeys: keysUse, options: options,
+		try enumerateFoldersFilesDeep(levels: 0, folder: folder, includingPropertiesForKeys: keysUse, options: options,
 				isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
 	}
 
@@ -142,9 +142,9 @@ extension FileManager {
 	//------------------------------------------------------------------------------------------------------------------
 	private func enumerateFoldersFilesDeep(levels :Int, folder :Folder,
 			includingPropertiesForKeys keys: [URLResourceKey], options: EnumerationOptions,
-			isCancelledProc :IsCancelledProc, folderProc :Folder.SubPathDeepProc, fileProc :File.SubPathProc) {
+			isCancelledProc :IsCancelledProc, folderProc :Folder.SubPathDeepProc, fileProc :File.SubPathProc) throws {
 		// Setup
-		var	urls = try! contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keys, options: [])
+		var	urls = try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keys, options: [])
 		if options.contains(.sorted) { urls.sort(by: { $0.path < $1.path }) }
 
 		// Iterate URLs and process files
@@ -172,7 +172,7 @@ extension FileManager {
 			if autoreleasepool(
 					invoking: { folderProc(Folder(url), url.path.lastPathComponentsSubPath(levels + 1)) }) == .process {
 				// Process folder
-				enumerateFoldersFilesDeep(levels: levels + 1, folder: Folder(url), includingPropertiesForKeys: keys,
+				try enumerateFoldersFilesDeep(levels: levels + 1, folder: Folder(url), includingPropertiesForKeys: keys,
 						options: options, isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
 			}
 		}

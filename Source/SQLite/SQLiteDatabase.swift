@@ -47,7 +47,7 @@ public class SQLiteDatabase {
 
 	// MARK: Properties
 	private	let	database :OpaquePointer
-	private	let	statementPerformer :SQLiteStatementPerfomer
+	private	let	statementPerformer :SQLiteStatementPerformer
 
 	// Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ public class SQLiteDatabase {
 
 		// Setup
 		self.database = database!
-		self.statementPerformer = SQLiteStatementPerfomer(database: database!)
+		self.statementPerformer = SQLiteStatementPerformer(database: database!)
 
 		// Check options
 		if options.contains(.walMode) {
