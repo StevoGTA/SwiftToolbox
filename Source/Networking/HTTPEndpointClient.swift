@@ -14,9 +14,8 @@ extension HTTPEndpointRequest {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	fileprivate func urlRequests(with serverPrefix :String,
-			multiValueQueryParameterHandling :HTTPEndpointClient.MultiValueQueryParameterHandling,
-			maximumURLLength :Int) -> [URLRequest] {
+	fileprivate func urlRequests(with serverPrefix :String, options :HTTPEndpointClient.Options, maximumURLLength :Int)
+			-> [URLRequest] {
 		// Setup
 		let	urlRequestProc :(_ url :URL) -> URLRequest = {
 					// Setup URLRequest
@@ -63,7 +62,7 @@ extension HTTPEndpointRequest {
 					{ multiValueQueryString = multiValueQueryString.isEmpty ? $0 : multiValueQueryString + "&" + $0 }
 			let	generateURLRequestProc :() -> Void = {
 						// Append URL Request
-						let	string =
+						var	string =
 									urlRequestRoot +
 											(!multiValueQueryString.isEmpty ?
 													(queryString.isEmpty ? "?" : "&") +
@@ -71,6 +70,12 @@ extension HTTPEndpointRequest {
 																	.addingPercentEncoding(
 																			withAllowedCharacters: .urlQueryAllowed)! :
 													"")
+						if options.contains(.percentEncodePlusCharacter) {
+							// Percent encode "+"
+							string = string.replacingOccurrences(of: "+", with: "%2B")
+						}
+
+						// Add URL
 						urlRequests.append(urlRequestProc(URL(string: string)!))
 
 						// Reset
@@ -89,35 +94,33 @@ extension HTTPEndpointRequest {
 
 			if let (key, values) = self.multiValueQueryComponent {
 				// Check type
-				switch multiValueQueryParameterHandling {
-					case .repeatKey:
-						// Repeat key
-						values.forEach() { processQueryComponentProc("\(key)=\($0)") }
-
-					case .useComma:
-						// Use comma
-						var	queryComponent = ""
-						values.forEach() {
-							// Compose string with next value
-							let	queryComponentTry = (!queryComponent.isEmpty ? "," : "\(key)=") + "\($0)"
-							if canAppendQueryComponentProc(queryComponentTry) {
-								// We good
-								queryComponent = queryComponentTry
-							} else {
-								// Generate URL Request
-								appendQueryComponentProc(queryComponent)
-								generateURLRequestProc()
-
-								// Reset
-								queryComponent = ""
-							}
-						}
-
-						// Check if have any remaining
-						if !queryComponent.isEmpty {
-							// Append
+				if options.contains(.multiValueQueryUseComma) {
+					// Use comma
+					var	queryComponent = ""
+					values.forEach() {
+						// Compose string with next value
+						let	queryComponentTry = (!queryComponent.isEmpty ? "," : "\(key)=") + "\($0)"
+						if canAppendQueryComponentProc(queryComponentTry) {
+							// We good
+							queryComponent = queryComponentTry
+						} else {
+							// Generate URL Request
 							appendQueryComponentProc(queryComponent)
+							generateURLRequestProc()
+
+							// Reset
+							queryComponent = ""
 						}
+					}
+
+					// Check if have any remaining
+					if !queryComponent.isEmpty {
+						// Append
+						appendQueryComponentProc(queryComponent)
+					}
+				} else {
+					// Repeat key
+					values.forEach() { processQueryComponentProc("\(key)=\($0)") }
 				}
 			}
 
@@ -137,14 +140,21 @@ extension HTTPEndpointRequest {
 open class HTTPEndpointClient {
 
 	// MARK: Types
+	public	struct Options : OptionSet {
+
+				// MARK: Properties
+				static	public	let	multiValueQueryUseComma = Options(rawValue: 1 << 0)
+				static	public	let	percentEncodePlusCharacter = Options(rawValue: 1 << 1)
+
+						public	let	rawValue :Int
+
+				// MARK: Lifecycle methods
+				public init(rawValue :Int) { self.rawValue = rawValue }
+			}
+
 	public enum Priority : Int {
 		case normal
 		case background
-	}
-
-	public enum MultiValueQueryParameterHandling {
-		case repeatKey
-		case useComma
 	}
 
 	class HTTPEndpointRequestInfo {
@@ -158,6 +168,7 @@ open class HTTPEndpointClient {
 		private	var	finishedPerformInfosCount = LockingNumeric<Int>()
 
 		// MARK: Lifecycle methods
+		//--------------------------------------------------------------------------------------------------------------
 		init(httpEndpointRequest :HTTPEndpointRequest, identifier :String, priority :Priority) {
 			// Store
 			self.httpEndpointRequest = httpEndpointRequest
@@ -166,14 +177,13 @@ open class HTTPEndpointClient {
 		}
 
 		// MARK: Instance methods
-		func httpEndpointRequestPerformInfos(serverPrefix :String,
-					multiValueQueryParameterHandling :HTTPEndpointClient.MultiValueQueryParameterHandling,
-					maximumURLLength :Int) -> [HTTPEndpointRequestPerformInfo] {
+		//--------------------------------------------------------------------------------------------------------------
+		func httpEndpointRequestPerformInfos(serverPrefix :String, options :Options, maximumURLLength :Int) ->
+				[HTTPEndpointRequestPerformInfo] {
 			// Setup
 			let	httpEndpointRequest = self.httpEndpointRequest as! HTTPEndpointRequestProcessResults
 			let	urlRequests =
-						httpEndpointRequest.urlRequests(with: serverPrefix,
-								multiValueQueryParameterHandling: multiValueQueryParameterHandling,
+						httpEndpointRequest.urlRequests(with: serverPrefix, options: options,
 								maximumURLLength: maximumURLLength)
 			let	urlRequestsCount = urlRequests.count
 			self.totalPerformInfosCount = urlRequestsCount
@@ -187,6 +197,7 @@ open class HTTPEndpointClient {
 							}) })
 		}
 
+		//--------------------------------------------------------------------------------------------------------------
 		func transition(to state :HTTPEndpointRequest.State) {
 			// Check state
 			if (state == .active) && (self.httpEndpointRequest.state == .queued) {
@@ -220,6 +231,7 @@ open class HTTPEndpointClient {
 		private			let	completionProc :CompletionProc
 
 		// MARK: Lifecycle methods
+		//--------------------------------------------------------------------------------------------------------------
 		init(httpEndpointRequestInfo :HTTPEndpointRequestInfo, urlRequest :URLRequest,
 				completionProc :@escaping CompletionProc) {
 			// Store
@@ -230,6 +242,7 @@ open class HTTPEndpointClient {
 		}
 
 		// MARK: Instance methods
+		//--------------------------------------------------------------------------------------------------------------
 		func transition(to state :HTTPEndpointRequest.State) {
 			// Update state
 			self.state = state
@@ -238,8 +251,10 @@ open class HTTPEndpointClient {
 			self.httpEndpointRequestInfo.transition(to: state)
 		}
 
+		//--------------------------------------------------------------------------------------------------------------
 		func cancel() { self.httpEndpointRequestInfo.httpEndpointRequest.cancel() }
 
+		//--------------------------------------------------------------------------------------------------------------
 		func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 			// Process results
 			if let statusCode = response?.statusCode,
@@ -264,7 +279,7 @@ open class HTTPEndpointClient {
 			var	logTransactions = false
 
 	private	let	serverPrefix :String
-	private	let	multiValueQueryParameterHandling :MultiValueQueryParameterHandling
+	private	let	options :Options
 	private	let	maximumURLLength :Int
 	private	let	urlSession :URLSession
 	private	let	maximumConcurrentURLRequests :Int
@@ -276,12 +291,11 @@ open class HTTPEndpointClient {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(serverPrefix :String, multiValueQueryParameterHandling :MultiValueQueryParameterHandling = .repeatKey,
-			maximumURLLength :Int = 1024, urlSession :URLSession = URLSession.shared,
-			maximumConcurrentURLRequests :Int? = nil) {
+	public init(serverPrefix :String, options :Options = [], maximumURLLength :Int = 1024,
+			urlSession :URLSession = URLSession.shared, maximumConcurrentURLRequests :Int? = nil) {
 		// Store
 		self.serverPrefix = serverPrefix
-		self.multiValueQueryParameterHandling = multiValueQueryParameterHandling
+		self.options = options
 		self.maximumURLLength = maximumURLLength
 		self.urlSession = urlSession
 		self.maximumConcurrentURLRequests =
@@ -289,13 +303,11 @@ open class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public init(scheme :String, hostName :String, port :Int? = nil,
-			multiValueQueryParameterHandling :MultiValueQueryParameterHandling = .repeatKey,
-			maximumURLLength :Int = 1024, urlSession :URLSession = URLSession.shared,
-			maximumConcurrentURLRequests :Int? = nil) {
+	public init(scheme :String, hostName :String, port :Int? = nil, options :Options = [], maximumURLLength :Int = 1024,
+			urlSession :URLSession = URLSession.shared, maximumConcurrentURLRequests :Int? = nil) {
 		// Store
 		self.serverPrefix = (port != nil) ? "\(scheme)://\(hostName):\(port!)" : "\(scheme)://\(hostName)"
-		self.multiValueQueryParameterHandling = multiValueQueryParameterHandling
+		self.options = options
 		self.maximumURLLength = maximumURLLength
 		self.urlSession = urlSession
 		self.maximumConcurrentURLRequests =
@@ -312,8 +324,7 @@ open class HTTPEndpointClient {
 							priority: priority)
 		self.queuedHTTPEndpointRequestPerformInfos +=
 				httpEndpointRequestInfo.httpEndpointRequestPerformInfos(serverPrefix: self.serverPrefix,
-						multiValueQueryParameterHandling: self.multiValueQueryParameterHandling,
-						maximumURLLength: self.maximumURLLength)
+						options: self.options, maximumURLLength: self.maximumURLLength)
 
 		// Update active
 		updateHTTPEndpointRequestPerformInfos()
