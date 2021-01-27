@@ -81,7 +81,7 @@ public struct SQLiteTable {
 			private			let	statementPerformer :SQLiteStatementPerformer
 
 			private			var	tableColumns :[SQLiteTableColumn]
-			private			var	tableColumnsMap = [/* property name */ String : SQLiteTableColumn]()
+			private			var	tableColumnsMap = [String : SQLiteTableColumn]()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -129,13 +129,13 @@ public struct SQLiteTable {
 					"CREATE TABLE" + (ifNotExists ? " IF NOT EXISTS" : "") + " `\(self.name)`" +
 							" (" + String(combining: columnInfos) + ")" +
 							(self.options.contains(.withoutRowID) ? " WITHOUT ROWID" : "")
-		self.statementPerformer.perform(statement: statement)
+		self.statementPerformer.addToTransactionOrPerform(statement: statement)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public mutating func rename(to name :String) {
 		// Perform
-		self.statementPerformer.perform(statement: "ALTER TABLE `\(self.name)` RENAME TO \(name)")
+		self.statementPerformer.addToTransactionOrPerform(statement: "ALTER TABLE `\(self.name)` RENAME TO \(name)")
 
 		// Update
 		self.name = name
@@ -144,7 +144,8 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	public mutating func add(_ tableColumn :SQLiteTableColumn) {
 		// Perform
-		self.statementPerformer.perform(statement: "ALTER TABLE `\(self.name)` ADD COLUMN \(tableColumn.createString)")
+		self.statementPerformer.addToTransactionOrPerform(
+				statement: "ALTER TABLE `\(self.name)` ADD COLUMN \(tableColumn.createString)")
 
 		// Update
 		self.tableColumns.append(tableColumn)
@@ -153,13 +154,13 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	public func add(_ trigger :SQLiteTrigger) {
 		// Perform
-		self.statementPerformer.perform(statement: trigger.string(for: self.name))
+		self.statementPerformer.addToTransactionOrPerform(statement: trigger.string(for: self.name))
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func drop() {
 		// Perform
-		self.statementPerformer.perform(statement: "DROP TABLE `\(self.name)`")
+		self.statementPerformer.addToTransactionOrPerform(statement: "DROP TABLE `\(self.name)`")
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -210,16 +211,9 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func insertRow(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
-		// Setup
-		let	tableColumns = info.map() { $0.tableColumn }
-		let	values = info.map() { $0.value }
-		let	statement =
-					"INSERT INTO `\(self.name)` (" + columnNamesString(for: tableColumns) + ") VALUES (" +
-							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
-
 		// Perform
 		var	lastInsertRowID :Int64 = 0
-		self.statementPerformer.perform(statement: statement, values: values) { lastInsertRowID = $0 }
+		insertRow(info) { lastInsertRowID = $0 }
 
 		return lastInsertRowID
 	}
@@ -235,22 +229,16 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
-		self.statementPerformer.perform(statement: statement, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
+		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values,
+				lastInsertRowIDProc: lastInsertRowIDProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func insertOrReplaceRow(_ info :[(tableColumn :SQLiteTableColumn, value :Any)]) -> Int64 {
-		// Setup
-		let	tableColumns = info.map() { $0.tableColumn }
-		let	values = info.map() { $0.value }
-		let	statement =
-					"INSERT OR REPLACE INTO `\(self.name)` (" + columnNamesString(for: tableColumns) + ") VALUES (" +
-							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
-
 		// Perform
 		var	lastInsertRowID :Int64 = 0
-		self.statementPerformer.perform(statement: statement, values: values) { lastInsertRowID = $0 }
+		insertOrReplaceRow(info) { lastInsertRowID = $0 }
 
 		return lastInsertRowID
 	}
@@ -266,7 +254,8 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: info.count), with: ",") + ")"
 
 		// Perform
-		self.statementPerformer.perform(statement: statement, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
+		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values,
+				lastInsertRowIDProc: lastInsertRowIDProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -279,7 +268,7 @@ public struct SQLiteTable {
 								+ String(combining: Array(repeating: "(?)", count: $0.count), with: ",")
 
 			// Perform
-			self.statementPerformer.perform(statement: statement, values: $0)
+			self.statementPerformer.addToTransactionOrPerform(statement: statement, values: $0)
 		}
 	}
 
@@ -292,7 +281,7 @@ public struct SQLiteTable {
 		let	values = info.map({ $0.value }) + (sqliteWhere.values ?? [])
 
 		// Perform
-		self.statementPerformer.perform(statement: statement, values: values)
+		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -305,7 +294,7 @@ public struct SQLiteTable {
 								String(combining: Array(repeating: "?", count: $0.count), with: ",") + ")"
 
 			// Perform
-			self.statementPerformer.perform(statement: statement, values: $0)
+			self.statementPerformer.addToTransactionOrPerform(statement: statement, values: $0)
 		}
 	}
 

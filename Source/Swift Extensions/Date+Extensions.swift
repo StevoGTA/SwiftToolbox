@@ -67,9 +67,9 @@ extension Date {
 								return Calendar.current.date(byAdding: dateComponents, to: self.beginningOfDay)!
 							}
 
-					var	iso8601 :String { Date.iso8601DateFormatter.string(from: self) }
-					var	rfc3339 :String { Date.rfc3339DateFormatter.string(from: self) }
-					var	rfc3339Extended :String { Date.rfc3339ExtendedDateFormatter.string(from: self) }
+			public	var	iso8601 :String { Date.iso8601DateFormatter.string(from: self) }
+			public	var	rfc3339 :String { Date.rfc3339DateFormatter.string(from: self) }
+			public	var	rfc3339Extended :String { Date.rfc3339ExtendedDateFormatter.string(from: self) }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -110,7 +110,7 @@ extension Date {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init?(fromRFC3339Extended string :String?) {
+	public init?(fromRFC3339Extended string :String?) {
 		// Preflight
 		guard string != nil else { return nil }
 

@@ -134,7 +134,7 @@ extension HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointClient
-public class HTTPEndpointClient {
+open class HTTPEndpointClient {
 
 	// MARK: Types
 	public enum Priority : Int {
@@ -289,16 +289,17 @@ public class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	convenience public init(scheme :String, hostName :String, port :Int? = nil,
+	public init(scheme :String, hostName :String, port :Int? = nil,
 			multiValueQueryParameterHandling :MultiValueQueryParameterHandling = .repeatKey,
 			maximumURLLength :Int = 1024, urlSession :URLSession = URLSession.shared,
 			maximumConcurrentURLRequests :Int? = nil) {
-		// Setup
-		let	serverPrefix = (port != nil) ? "\(scheme)://\(hostName):\(port!)" : "\(scheme)://\(hostName)"
-
-		self.init(serverPrefix: serverPrefix, multiValueQueryParameterHandling: multiValueQueryParameterHandling,
-				maximumURLLength: maximumURLLength, urlSession: urlSession,
-				maximumConcurrentURLRequests: maximumConcurrentURLRequests)
+		// Store
+		self.serverPrefix = (port != nil) ? "\(scheme)://\(hostName):\(port!)" : "\(scheme)://\(hostName)"
+		self.multiValueQueryParameterHandling = multiValueQueryParameterHandling
+		self.maximumURLLength = maximumURLLength
+		self.urlSession = urlSession
+		self.maximumConcurrentURLRequests =
+				maximumConcurrentURLRequests ?? urlSession.configuration.httpMaximumConnectionsPerHost
 	}
 
 	// MARK: Instance methods
