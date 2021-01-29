@@ -24,42 +24,18 @@ fileprivate struct SQLiteStatement {
 	// MARK: Properties
 	private	let	string :String
 	private	let	values :[Any]?
-
 	private	let	lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)?
-
-	// MARK: Class methods
-	//------------------------------------------------------------------------------------------------------------------
-	static func perform(statement string :String, values :[Any]? = nil, with database :OpaquePointer,
-			processValuesProc :SQLiteResultsRow.ProcessValuesProc) throws {
-		// Setup
-		var	statement :OpaquePointer? = nil
-		defer { sqlite3_finalize(statement) }
-
-		// Prepare
-		guard sqlite3_prepare_v2(database, string, -1, &statement, nil) == SQLITE_OK else {
-			// Error
-			let	errorMessage = String(cString: sqlite3_errmsg(database))
-			fatalError("SQLiteStatement could not prepare query with \"\(string)\", with error \"\(errorMessage)\"")
-		}
-
-		// Check for values
-		if values != nil {
-			// Bind values
-			self.bind(values: values!, to: statement!, with: database)
-		}
-
-		// Iterate results
-		let	resultsRow = SQLiteResultsRow(statement: statement!)
-		while sqlite3_step(statement) == SQLITE_ROW { try processValuesProc(resultsRow) }
-	}
+	private	let	processValuesProc :SQLiteResultsRow.ProcessValuesProc?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(statement :String, values :[Any]? = nil, lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)? = nil) {
+	init(statement :String, values :[Any]? = nil, lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)? = nil,
+			processValuesProc :SQLiteResultsRow.ProcessValuesProc? = nil) {
 		// Store
 		self.string = statement
 		self.values = values
 		self.lastInsertRowIDProc = lastInsertRowIDProc
+		self.processValuesProc = processValuesProc
 	}
 
 	// MARK: Instance Methods
@@ -76,31 +52,8 @@ fileprivate struct SQLiteStatement {
 			fatalError("SQLiteStatement could not prepare query with \"\(self.string)\", with error \"\(errorMessage)\"")
 		}
 
-		// Check for values
-		if self.values != nil {
-			// Bind values
-			type(of: self).bind(values: self.values!, to: statement!, with: database)
-		}
-
-		// Perform
-		guard sqlite3_step(statement) == SQLITE_DONE else {
-			// Error
-			let	errorMessage = String(cString: sqlite3_errmsg(database))
-			fatalError("SQLiteStatement could not perform query with \"\(self.string)\", with error \"\(errorMessage)\"")
-		}
-
-		// Check for last insert row ID proc
-		if self.lastInsertRowIDProc != nil {
-			// Call proc
-			self.lastInsertRowIDProc!(sqlite3_last_insert_rowid(database))
-		}
-	}
-
-	// MARK: Private methods
-	//------------------------------------------------------------------------------------------------------------------
-	static private func bind(values :[Any], to statement :OpaquePointer, with database :OpaquePointer) {
 		// Bind values
-		values.enumerated().forEach() {
+		self.values?.enumerated().forEach() {
 			// Check value type
 			if let int = $0.element as? Int {
 				// Integer
@@ -119,17 +72,37 @@ fileprivate struct SQLiteStatement {
 				sqlite3_bind_double(statement, Int32($0.offset + 1), double)
 			} else if let text = $0.element as? String {
 				// Text
-				sqlite3_bind_text(statement, Int32($0.offset + 1), text, -1, self.SQLITE_TRANSIENT)
+				sqlite3_bind_text(statement, Int32($0.offset + 1), text, -1, type(of: self).SQLITE_TRANSIENT)
 			} else if let data = $0.element as? Data {
 				// Blob
 				sqlite3_bind_blob(statement, Int32($0.offset + 1), (data as NSData).bytes, Int32(data.count),
-						self.SQLITE_STATIC)
+						type(of: self).SQLITE_STATIC)
 			} else if $0.element is LastInsertRowID {
 				// Last insert row ID
 				sqlite3_bind_int64(statement, Int32($0.offset + 1), sqlite3_last_insert_rowid(database))
 			} else {
 				// null
 				sqlite3_bind_null(statement, Int32($0.offset + 1))
+			}
+		}
+
+		// Perform
+		if let processValuesProc = self.processValuesProc {
+			// Perform as query
+			let	resultsRow = SQLiteResultsRow(statement: statement!)
+			while sqlite3_step(statement) == SQLITE_ROW { try processValuesProc(resultsRow) }
+		} else {
+			// Perform as setp
+			guard sqlite3_step(statement) == SQLITE_DONE else {
+				// Error
+				let	errorMessage = String(cString: sqlite3_errmsg(database))
+				fatalError("SQLiteStatement could not perform query with \"\(self.string)\", with error \"\(errorMessage)\"")
+			}
+
+			// Check for last insert row ID proc
+			if self.lastInsertRowIDProc != nil {
+				// Call proc
+				self.lastInsertRowIDProc!(sqlite3_last_insert_rowid(database))
 			}
 		}
 	}
@@ -189,9 +162,12 @@ class SQLiteStatementPerformer {
 			processValuesProc :SQLiteResultsRow.ProcessValuesProc) rethrows {
 		// Setup
 		try self.lock.perform() {
-			// Perform
-			try SQLiteStatement.perform(statement: string, values: values, with: self.database,
-					processValuesProc: processValuesProc)
+			// Convert parameter
+			try withoutActuallyEscaping(processValuesProc) { escapableProcessValuesProc in
+				// Perform
+				try SQLiteStatement(statement: string, values: values, processValuesProc: escapableProcessValuesProc)
+					.perform(with: self.database)
+			}
 		}
 	}
 

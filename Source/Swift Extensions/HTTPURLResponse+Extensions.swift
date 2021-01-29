@@ -20,7 +20,7 @@ extension HTTPURLResponse {
 				//	Content-Range: <unit> */<size>
 				// Examples:
 				//	Content-Range: bytes 200-1000/67589
-				guard let string = self.allHeaderFields["Content-Range"] as? String else { return nil }
+				guard let string = self.value(forHeaderField: "Content-Range") else { return nil }
 
 				let	components = string.components(separatedBy: " ")
 				guard components.count == 2 else { return nil }
@@ -68,4 +68,13 @@ extension HTTPURLResponse {
 
 	//------------------------------------------------------------------------------------------------------------------
 	static func contentTypeHeader(for contentType :String) -> (String, String) { ("Content-Type", contentType) }
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func value(forHeaderField field :String) -> String? {
+		// Setup
+		let	fieldUse = field.lowercased()
+
+		return self.allHeaderFields.first(where: { ($0.key as! String).lowercased() == fieldUse })?.value as? String
+	}
 }

@@ -29,6 +29,7 @@ enum HTTPEndpointStatusError : Error {
 	case conflict
 
 	case internalServerError
+	case badGateway
 
 	// MARK: Class methods
 	static func `for`(_ status :HTTPEndpointStatus) -> Self {
@@ -41,6 +42,7 @@ enum HTTPEndpointStatusError : Error {
 			case .conflict:				return .conflict
 
 			case .internalServerError:	return .internalServerError
+			case .badGateway:			return .badGateway
 
 			case .ok:					fatalError("Not an error")
 		}
@@ -53,13 +55,14 @@ extension HTTPEndpointStatusError : LocalizedError {
 	public	var	errorDescription :String? {
 						// What are we
 						switch self {
-							case .badRequest:			return "Bad Requeest"
-							case .unauthorized:			return "Unauthorized"
-							case .forbidden:				return "Forbidden"
-							case .notFound:				return "Not Found"
-							case .conflict:				return "Conflict"
+							case .badRequest:			return "Bad Request (400)"
+							case .unauthorized:			return "Unauthorized (401)"
+							case .forbidden:			return "Forbidden (403)"
+							case .notFound:				return "Not Found (404)"
+							case .conflict:				return "Conflict (409)"
 
-							case .internalServerError:	return "Internal Server Error"
+							case .internalServerError:	return "Internal Server Error (500)"
+							case .badGateway:			return "Bad Gateway (502)"
 						}
 					}
 }
@@ -77,6 +80,7 @@ public enum HTTPEndpointStatus : Int {
 	case conflict = 409
 
 	case internalServerError = 500
+	case badGateway = 502
 
 	// Properties
 	var	isSuccess :Bool { return self == .ok }

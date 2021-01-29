@@ -50,6 +50,7 @@ extension HTTPEndpointStatus {
 					case .conflict:				return .conflict
 
 					case .internalServerError:	return .internalServerError
+					case .badGateway:			return .badGateway
 				}
 			}
 }

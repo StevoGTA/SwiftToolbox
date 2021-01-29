@@ -11,7 +11,6 @@ import Foundation
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointRequestError
 enum HTTPEndpointRequestError : Error {
-	case requestFailed(httpEndpointStatus :HTTPEndpointStatus)
 	case unableToProcessResponseData
 }
 
@@ -21,8 +20,6 @@ extension HTTPEndpointRequestError : LocalizedError {
 	public	var	errorDescription :String? {
 						// What are we
 						switch self {
-							case .requestFailed(let httpEndpointStatus):
-								return "Request failed with status \(httpEndpointStatus)"
 							case .unableToProcessResponseData:
 									return "Unable to process response data"
 						}
@@ -149,6 +146,15 @@ protocol HTTPEndpointRequestProcessResults : HTTPEndpointRequest {
 
 	// MARK: Methods
 	//------------------------------------------------------------------------------------------------------------------
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?)
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - HTTPEndpointRequestProcessMultiResults
+protocol HTTPEndpointRequestProcessMultiResults : HTTPEndpointRequest {
+
+	// MARK: Methods
+	//------------------------------------------------------------------------------------------------------------------
 	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int)
 }
 
@@ -167,7 +173,7 @@ extension DataHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 
 	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Call proc
@@ -250,7 +256,7 @@ extension FileHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 
 	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Handle results
@@ -278,22 +284,21 @@ extension FileHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 public class HeadHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Types
-	public	typealias	CompletionProc =
-							(_ response :HTTPURLResponse?, _ headers :[AnyHashable : Any]?, _ error :Error?) -> Void
+	public	typealias	CompletionProc = (_ response :HTTPURLResponse?, _ error :Error?) -> Void
 
 	// MARK: Properties
-	public	var	completionProc :CompletionProc = { _,_,_ in }
+	public	var	completionProc :CompletionProc = { _,_ in }
 }
 
 extension HeadHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 
 	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Call proc
-			self.completionProc(response, response?.allHeaderFields, error)
+			self.completionProc(response, error)
 		}
 	}
 }
@@ -317,9 +322,9 @@ public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 	private	var	errors = [Error]()
 }
 
-extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
+extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessMultiResults {
 
-	// MARK: HTTPEndpointRequestProcessResults methods
+	// MARK: HTTPEndpointRequestProcessMultiResults methods
 	//------------------------------------------------------------------------------------------------------------------
 	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
 		// Handle results
@@ -330,16 +335,22 @@ extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 			do {
 				// Try to compose info from data
 				info = try JSONSerialization.jsonObject(with: data!, options: []) as? T
+
+				// Check if got response data
+				if info == nil {
+					// Nope
+					responseError = HTTPEndpointRequestError.unableToProcessResponseData
+				}
 			} catch {
 				// Error
 				responseError = error
-				self.errors.append(error)
 			}
 		} else {
 			// Error
 			responseError = error
-			self.errors.append(error!)
 		}
+
+		if responseError != nil { self.errors.append(responseError!) }
 
 		// Check cancelled
 		if !self.isCancelled {
@@ -381,7 +392,7 @@ extension StringHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 
 	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
-	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Handle results
 		var	string :String? = nil
 		var	returnError :Error? = error
@@ -412,8 +423,11 @@ public class SuccessHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Properties
 	public var	completionProc :CompletionProc = { _,_ in }
+}
 
-	// MARK: HTTPEndpointRequest methods
+extension SuccessHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
+
+	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
 	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 		// Check cancelled

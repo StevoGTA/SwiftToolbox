@@ -29,13 +29,21 @@ public class LockingDictionary<T : Hashable, U> {
 	public func value(for key :T) -> U? { self.lock.read() { self.map[key] } }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func set(_ value :U?, for key :T) { self.lock.write() { self.map[key] = value } }
+	@discardableResult
+	public func set(_ value :U?, for key :T) -> Self { self.lock.write({ self.map[key] = value }); return self }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func merge(_ map :[T : U]) { self.lock.write() { self.map.merge(map, uniquingKeysWith: { $1 }) } }
+	@discardableResult
+	public func merge(_ map :[T : U]) -> Self {
+		// Perform with lock
+		self.lock.write({ self.map.merge(map, uniquingKeysWith: { $1 }) });
+
+		return self
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func update(for key :T, with proc :(_ previous :U?) -> U?) {
+	@discardableResult
+	public func update(for key :T, with proc :(_ previous :U?) -> U?) -> Self {
 		// Update value under lock
 		self.lock.write() {
 			// Retrieve current value
@@ -45,16 +53,42 @@ public class LockingDictionary<T : Hashable, U> {
 			// Call proc and set new value
 			self.map[key] = proc(value)
 		}
+
+		return self
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func remove(_ key :T) { self.lock.write() { self.map[key] = nil } }
+	@discardableResult
+	public func remove(_ key :T) -> U? {
+		// Perform under lock
+		self.lock.write() {
+			// Retrieve value
+			let value = self.map[key]
+
+			// Remove
+			self.map[key] = nil
+
+			return value
+		}
+	}
 	
 	//------------------------------------------------------------------------------------------------------------------
 	public func remove(_ keys :[T]) { self.lock.write() { keys.forEach() { self.map[$0] = nil } } }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func removeAll() { self.lock.write() { self.map.removeAll() } }
+	@discardableResult
+	public func removeAll() -> [T : U] {
+		// Perform
+		self.lock.write() {
+			// Get map
+			let map = self.map
+
+			// Remove all
+			self.map.removeAll()
+
+			return map
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

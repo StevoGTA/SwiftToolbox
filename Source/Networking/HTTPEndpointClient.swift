@@ -181,20 +181,34 @@ open class HTTPEndpointClient {
 		func httpEndpointRequestPerformInfos(serverPrefix :String, options :Options, maximumURLLength :Int) ->
 				[HTTPEndpointRequestPerformInfo] {
 			// Setup
-			let	httpEndpointRequest = self.httpEndpointRequest as! HTTPEndpointRequestProcessResults
 			let	urlRequests =
-						httpEndpointRequest.urlRequests(with: serverPrefix, options: options,
+						self.httpEndpointRequest.urlRequests(with: serverPrefix, options: options,
 								maximumURLLength: maximumURLLength)
-			let	urlRequestsCount = urlRequests.count
-			self.totalPerformInfosCount = urlRequestsCount
+			self.totalPerformInfosCount = urlRequests.count
 
-			return urlRequests
-					.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
-							completionProc: {
-								// Call process results
-								httpEndpointRequest.processResults(response: $0, data: $1, error: $2,
-										totalRequests: urlRequestsCount)
-							}) })
+			// Check HTTPEndpointRequest type
+			if let httpEndpointRequestProcessResults = self.httpEndpointRequest as? HTTPEndpointRequestProcessResults {
+				// Will only ever be a single URLRequest
+				return urlRequests
+						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
+								completionProc: {
+									// Call process results
+									httpEndpointRequestProcessResults.processResults(response: $0, data: $1, error: $2)
+								}) })
+			} else {
+				// Can end up being multiple URLRequests
+				let	httpEndpointRequestProcessMultiResults =
+							self.httpEndpointRequest as! HTTPEndpointRequestProcessMultiResults
+				let	urlRequestsCount = self.totalPerformInfosCount
+
+				return urlRequests
+						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
+								completionProc: {
+									// Call process results
+									httpEndpointRequestProcessMultiResults.processResults(response: $0, data: $1,
+											error: $2, totalRequests: urlRequestsCount)
+								}) })
+			}
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
@@ -265,8 +279,7 @@ open class HTTPEndpointClient {
 					self.completionProc(response, data, nil)
 				} else {
 					// HTTP Request failed
-					self.completionProc(response, nil,
-							HTTPEndpointRequestError.requestFailed(httpEndpointStatus: httpEndpointStatus))
+					self.completionProc(response, nil, HTTPEndpointStatusError.for(httpEndpointStatus))
 				}
 			} else {
 				// Error
@@ -276,7 +289,7 @@ open class HTTPEndpointClient {
 	}
 
 	// MARK: Properties
-			var	logTransactions = false
+	public	var	logTransactions = false
 
 	private	let	serverPrefix :String
 	private	let	options :Options
