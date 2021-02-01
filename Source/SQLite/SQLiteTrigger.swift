@@ -24,14 +24,14 @@ public struct SQLiteTrigger {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func string(for tableName :String) -> String {
+	func stringX(for table :SQLiteTable) -> String {
 		// Return string
 		return "CREATE TRIGGER \(self.updateTableColumn.name)Trigger" +
-				" AFTER UPDATE ON \(tableName)" +
+				" AFTER UPDATE ON `\(table.name)`" +
 				" FOR EACH ROW" +
-				" BEGIN UPDATE \(tableName)" +
-				" SET \(self.updateTableColumn.name)=\(self.updateTableColumn.defaultValue!)" +
-				" WHERE \(self.comparisonTableColumn.name)=NEW.\(self.comparisonTableColumn.name);" +
+				" BEGIN UPDATE `\(table.name)`" +
+				" SET `\(self.updateTableColumn.name)`=\(self.updateTableColumn.defaultValue!)" +
+				" WHERE `\(self.comparisonTableColumn.name)`=NEW.`\(self.comparisonTableColumn.name)`;" +
 				" END"
 	}
 }

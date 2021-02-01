@@ -19,7 +19,7 @@ public class SQLiteResultsRow {
 	// MARK: Properties
 	private	let	statement :OpaquePointer
 
-	private	var	columnNameInfoMap = [/* column name */ String : /* index */ Int32]()
+	private	var	columnNameMap = [/* column name */ String : /* index */ Int32]()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ public class SQLiteResultsRow {
 		for index in 0..<sqlite3_column_count(statement) {
 			// Add to map
 			let	columnName = String(cString: sqlite3_column_name(statement, index))
-			self.columnNameInfoMap[columnName] = index
+			self.columnNameMap[columnName] = index
 		}
 	}
 
@@ -42,7 +42,7 @@ public class SQLiteResultsRow {
 		let	name = tableColumn.name
 		guard tableColumn.kind.isInteger else
 			{ fatalError("SQLiteResultsRow column kind mismatch: \"\(name)\" is not the expected type of integer") }
-		guard let index = self.columnNameInfoMap[name] else
+		guard let index = self.columnNameMap[name] else
 			{ fatalError("SQLiteResultsRow column not found: \"\(name)\"") }
 
 		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
@@ -55,7 +55,7 @@ public class SQLiteResultsRow {
 		let	name = tableColumn.name
 		guard tableColumn.kind.isReal else
 			{ fatalError("SQLiteResultsRow column kind mismatch: \"\(name)\" is not the expected type of real") }
-		guard let index = self.columnNameInfoMap[tableColumn.name] else
+		guard let index = self.columnNameMap[tableColumn.name] else
 			{ fatalError("SQLiteResultsRow column not found: \"\(name)\"") }
 
 		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
@@ -68,7 +68,7 @@ public class SQLiteResultsRow {
 		let	name = tableColumn.name
 		guard tableColumn.kind.isText else
 			{ fatalError("SQLiteResultsRow column kind mismatch: \"\(name)\" is not the expected type of text") }
-		guard let index = self.columnNameInfoMap[tableColumn.name] else
+		guard let index = self.columnNameMap[tableColumn.name] else
 			{ fatalError("SQLiteResultsRow column not found: \"\(name)\"") }
 
 		// Get value
@@ -87,7 +87,7 @@ public class SQLiteResultsRow {
 		let	name = tableColumn.name
 		guard tableColumn.kind.isBlob else
 			{ fatalError("SQLiteResultsRow column kind mismatch: \"\(name)\" is not the expected type of blob") }
-		guard let index = self.columnNameInfoMap[tableColumn.name] else
+		guard let index = self.columnNameMap[tableColumn.name] else
 			{ fatalError("SQLiteResultsRow column not found: \"\(name)\"") }
 
 		// Get value

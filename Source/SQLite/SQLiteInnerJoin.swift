@@ -11,19 +11,19 @@
 public class SQLiteInnerJoin {
 
 	// MARK: Properties
-	private(set)	var	string :String
+	private(set)	var	string :String = ""
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(_ table :SQLiteTable, tableColumn :SQLiteTableColumn, to otherTable :SQLiteTable,
 			otherTableColumn :SQLiteTableColumn? = nil) {
 		// Setup
-		self.string = ""
-		_ = and(table, tableColumn: tableColumn, to: otherTable, otherTableColumn: otherTableColumn)
+		and(table, tableColumn: tableColumn, to: otherTable, otherTableColumn: otherTableColumn)
 	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
 	public func and(_ table :SQLiteTable, tableColumn :SQLiteTableColumn, to otherTable :SQLiteTable,
 			otherTableColumn :SQLiteTableColumn? = nil) -> Self {
 		// Append

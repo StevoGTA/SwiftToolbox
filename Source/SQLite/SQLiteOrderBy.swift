@@ -26,6 +26,6 @@ public class SQLiteOrderBy {
 		self.string =
 				" ORDER BY " +
 						((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
-						((order == .ascending) ? "ASC" : "DESC")
+						((order == .ascending) ? " ASC" : " DESC")
 	}
 }
