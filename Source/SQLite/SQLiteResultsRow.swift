@@ -41,9 +41,9 @@ public class SQLiteResultsRow {
 		// Preflight
 		let	name = tableColumn.name
 		guard tableColumn.kind.isInteger else
-			{ fatalError("SQLiteResultsRow column type mismatch: \"\(name)\" is not the expected type of integer") }
+			{ fatalError("SQLiteResultsRow column kind mismatch: \"\(name)\" is not the expected type of integer") }
 		guard let index = self.columnNameInfoMap[name] else
-			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
+			{ fatalError("SQLiteResultsRow column not found: \"\(name)\"") }
 
 		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
 				sqlite3_column_int64(self.statement, index) : nil
@@ -54,9 +54,9 @@ public class SQLiteResultsRow {
 		// Preflight
 		let	name = tableColumn.name
 		guard tableColumn.kind.isReal else
-			{ fatalError("SQLiteResultsRow column type mismatch: \"\(name)\" is not the expected type of real") }
+			{ fatalError("SQLiteResultsRow column kind mismatch: \"\(name)\" is not the expected type of real") }
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
-			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
+			{ fatalError("SQLiteResultsRow column not found: \"\(name)\"") }
 
 		return (sqlite3_column_type(self.statement, index) != SQLITE_NULL) ?
 				sqlite3_column_double(self.statement, index) : nil
@@ -67,9 +67,9 @@ public class SQLiteResultsRow {
 		// Preflight
 		let	name = tableColumn.name
 		guard tableColumn.kind.isText else
-			{ fatalError("SQLiteResultsRow column type mismatch: \"\(name)\" is not the expected type of text") }
+			{ fatalError("SQLiteResultsRow column kind mismatch: \"\(name)\" is not the expected type of text") }
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
-			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
+			{ fatalError("SQLiteResultsRow column not found: \"\(name)\"") }
 
 		// Get value
 		if let text = sqlite3_column_text(self.statement, index) {
@@ -86,9 +86,9 @@ public class SQLiteResultsRow {
 		// Preflight
 		let	name = tableColumn.name
 		guard tableColumn.kind.isBlob else
-			{ fatalError("SQLiteResultsRow column type mismatch: \"\(name)\" is not the expected type of blob") }
+			{ fatalError("SQLiteResultsRow column kind mismatch: \"\(name)\" is not the expected type of blob") }
 		guard let index = self.columnNameInfoMap[tableColumn.name] else
-			{ fatalError("SQLiteResultsRow column key not found: \"\(name)\"") }
+			{ fatalError("SQLiteResultsRow column not found: \"\(name)\"") }
 
 		// Get value
 		if let blob = sqlite3_column_blob(self.statement, index) {

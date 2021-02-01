@@ -50,8 +50,10 @@ public struct SQLiteTableColumn {
 				var	isText :Bool {
 							// Switch self
 							switch self {
-								case .text:	return true
-								default:	return false
+								case .text:										return true
+								case .dateISO8601FractionalSecondsAutoSet:		return true
+								case .dateISO8601FractionalSecondsAutoUpdate:	return true
+								default:										return false
 							}
 						}
 				var	isBlob :Bool {
