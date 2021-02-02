@@ -83,7 +83,7 @@ public class SQLiteWhere {
 	private func append(comparison :String, with value :Any) {
 		// Check value type
 		if case Optional<Any>.none = value {
-			// Value is nil
+			// Value is NULL
 			if comparison == "=" {
 				// IS NULL
 				self.string += " IS NULL"
@@ -91,8 +91,8 @@ public class SQLiteWhere {
 				// IS NOT NULL
 				self.string += " IS NOT NULL"
 			} else {
-				// Unsupported nil comparison
-				fatalError("SQLiteWhere could not prepare nil value comparison \(comparison)")
+				// Unsupported NULL comparison
+				fatalError("SQLiteWhere could not prepare NULL value comparison \(comparison)")
 			}
 		} else {
 			// Actual value
