@@ -24,7 +24,7 @@ public struct SQLiteTrigger {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func stringX(for table :SQLiteTable) -> String {
+	func string(for table :SQLiteTable) -> String {
 		// Return string
 		return "CREATE TRIGGER \(self.updateTableColumn.name)Trigger" +
 				" AFTER UPDATE ON `\(table.name)`" +

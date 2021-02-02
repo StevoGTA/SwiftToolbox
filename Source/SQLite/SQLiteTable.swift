@@ -154,7 +154,7 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	public func add(_ trigger :SQLiteTrigger) {
 		// Perform
-		self.statementPerformer.addToTransactionOrPerform(statement: trigger.string(for: self.name))
+		self.statementPerformer.addToTransactionOrPerform(statement: trigger.string(for: self))
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

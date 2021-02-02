@@ -22,10 +22,10 @@ public class Folder {
 	typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
 
 	// MARK: Properties
+	public	let	url :URL
+
 	public	var	name :String { self.url.lastPathComponent }
 	public	var	path :String { self.url.path }
-
-			let	url :URL
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -44,4 +44,10 @@ public class Folder {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func file(with subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func subPath(for folder :Folder) -> String { self.url.path.relativePath(for: folder.path) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func subPath(for file :File) -> String { self.url.path.relativePath(for: file.path) }
 }

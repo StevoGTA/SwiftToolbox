@@ -142,15 +142,15 @@ open class HTTPEndpointClient {
 	// MARK: Types
 	public	struct Options : OptionSet {
 
-				// MARK: Properties
-				static	public	let	multiValueQueryUseComma = Options(rawValue: 1 << 0)
-				static	public	let	percentEncodePlusCharacter = Options(rawValue: 1 << 1)
+		// MARK: Properties
+		static	public	let	multiValueQueryUseComma = Options(rawValue: 1 << 0)
+		static	public	let	percentEncodePlusCharacter = Options(rawValue: 1 << 1)
 
-						public	let	rawValue :Int
+				public	let	rawValue :Int
 
-				// MARK: Lifecycle methods
-				public init(rawValue :Int) { self.rawValue = rawValue }
-			}
+		// MARK: Lifecycle methods
+		public init(rawValue :Int) { self.rawValue = rawValue }
+	}
 
 	public enum Priority : Int {
 		case normal

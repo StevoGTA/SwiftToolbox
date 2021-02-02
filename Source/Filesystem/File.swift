@@ -16,15 +16,15 @@ public class File {
 	typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
 
 	// MARK: Properties
-	let	url :URL
+	public	let	url :URL
 
-	var	name :String { self.url.lastPathComponent }
-	var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
+			var	name :String { self.url.lastPathComponent }
+			var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
 
-	var	path :String { self.url.path }
-	var	size :Int64? { self.url.fileSize }
-	var	creationDate :Date { self.url.creationDate! }
-	var	modificationDate :Date { self.url.contentModificationDate! }
+			var	path :String { self.url.path }
+			var	size :Int64? { self.url.fileSize }
+			var	creationDate :Date { self.url.creationDate! }
+			var	modificationDate :Date { self.url.contentModificationDate! }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ public class File {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(_ url :URL) {
+	public init(_ url :URL) {
 		// Store
 		self.url = url
 	}
