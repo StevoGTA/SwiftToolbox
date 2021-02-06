@@ -374,6 +374,16 @@ open class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func queue(_ integerHTTPEndpointRequest :IntegerHTTPEndpointRequest, identifier :String = "",
+			priority :Priority = .normal, completionProc :@escaping IntegerHTTPEndpointRequest.CompletionProc) {
+		// Setup
+		integerHTTPEndpointRequest.completionProc = completionProc
+
+		// Perform
+		queue(integerHTTPEndpointRequest, identifier: identifier, priority: priority)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func queue<T>(_ jsonHTTPEndpointRequest :JSONHTTPEndpointRequest<T>, identifier :String = "",
 			priority :Priority = .normal,
 			completionProc :@escaping JSONHTTPEndpointRequest<T>.SingleResponseCompletionProc) {
