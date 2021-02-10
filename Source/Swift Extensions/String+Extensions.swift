@@ -15,6 +15,7 @@ extension String {
 	// MARK: Properties
 	static	let	`nil` :String? = nil
 
+			var	capitalizingFirstLetter :String { self.prefix(1).capitalized + self.dropFirst() }
 			var	asDouble :Double? { NumberFormatter().number(from: self)?.doubleValue }
 
 	// MARK: Lifecycle methods

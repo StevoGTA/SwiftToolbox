@@ -304,6 +304,46 @@ extension HeadHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// MARK: - IntegerHTTPEndpointRequest
+public class IntegerHTTPEndpointRequest : HTTPEndpointRequest {
+
+	// MARK: Types
+	public	typealias	CompletionProc = (_ response :HTTPURLResponse?, _ value :Int?, _ error :Error?) -> Void
+
+	// MARK: Properties
+	public	var	completionProc :CompletionProc = { _,_,_ in }
+}
+
+extension IntegerHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
+
+	// MARK: HTTPEndpointRequestProcessResults methods
+	//------------------------------------------------------------------------------------------------------------------
+	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+		// Handle results
+		var	value :Int? = nil
+		var	returnError :Error? = error
+		if data != nil {
+			// Try to compose string from response
+			if let string = String(data: data!, encoding: .utf8) {
+				// Try to convert to Int
+				value = Int(string)
+			}
+
+			if value == nil {
+				// Unable to transform results
+				returnError = HTTPEndpointRequestError.unableToProcessResponseData
+			}
+		}
+
+		// Check cancelled
+		if !self.isCancelled {
+			// Call proc
+			self.completionProc(response, value, returnError)
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // MARK: - JSONHTTPEndpointRequest
 public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 
