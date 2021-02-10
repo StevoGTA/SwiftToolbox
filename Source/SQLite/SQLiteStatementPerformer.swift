@@ -25,17 +25,17 @@ fileprivate struct SQLiteStatement {
 	private	let	string :String
 	private	let	values :[Any]?
 	private	let	lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)?
-	private	let	processValuesProc :SQLiteResultsRow.ProcessValuesProc?
+	private	let	resultsRowProc :SQLiteResultsRow.Proc?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(statement :String, values :[Any]? = nil, lastInsertRowIDProc :((_ lastInsertRowID :Int64) -> Void)? = nil,
-			processValuesProc :SQLiteResultsRow.ProcessValuesProc? = nil) {
+			resultsRowProc :SQLiteResultsRow.Proc? = nil) {
 		// Store
 		self.string = statement
 		self.values = values
 		self.lastInsertRowIDProc = lastInsertRowIDProc
-		self.processValuesProc = processValuesProc
+		self.resultsRowProc = resultsRowProc
 	}
 
 	// MARK: Instance Methods
@@ -87,10 +87,10 @@ fileprivate struct SQLiteStatement {
 		}
 
 		// Perform
-		if let processValuesProc = self.processValuesProc {
+		if let resultsRowProc = self.resultsRowProc {
 			// Perform as query
 			let	resultsRow = SQLiteResultsRow(statement: statement!)
-			while sqlite3_step(statement) == SQLITE_ROW { try processValuesProc(resultsRow) }
+			while sqlite3_step(statement) == SQLITE_ROW { try resultsRowProc(resultsRow) }
 		} else {
 			// Perform as setp
 			guard sqlite3_step(statement) == SQLITE_DONE else {
@@ -158,14 +158,13 @@ class SQLiteStatementPerformer {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func perform(statement string :String, values :[Any]? = nil,
-			processValuesProc :SQLiteResultsRow.ProcessValuesProc) rethrows {
+	func perform(statement string :String, values :[Any]? = nil, resultsRowProc :SQLiteResultsRow.Proc) rethrows {
 		// Setup
 		try self.lock.perform() {
 			// Convert parameter
-			try withoutActuallyEscaping(processValuesProc) { escapableProcessValuesProc in
+			try withoutActuallyEscaping(resultsRowProc) { escapableResultsRowProc in
 				// Perform
-				try SQLiteStatement(statement: string, values: values, processValuesProc: escapableProcessValuesProc)
+				try SQLiteStatement(statement: string, values: values, resultsRowProc: escapableResultsRowProc)
 					.perform(with: self.database)
 			}
 		}

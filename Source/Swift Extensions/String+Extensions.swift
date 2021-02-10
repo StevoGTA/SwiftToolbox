@@ -145,8 +145,13 @@ extension String {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func subPath(relativeTo path :String) -> String? {
-		// Return subPath
-		return path.hasPrefix(self) ? path.substring(fromCharacterIndex: self.count) : nil
+		// Ensure common root
+		guard path.hasPrefix(self) else { return nil }
+
+		// Get remaining part
+		let	subPath = path.substring(fromCharacterIndex: self.count)
+
+		return subPath.hasPrefix("/") ? subPath.substring(fromCharacterIndex: 1) : subPath
 	}
 }
 

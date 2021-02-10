@@ -46,8 +46,8 @@ public class Folder {
 	public func file(with subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func subPath(for folder :Folder) -> String { self.url.path.relativePath(for: folder.path) }
+	public func subPath(for folder :Folder) -> String { folder.path.subPath(relativeTo: self.path)! }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func subPath(for file :File) -> String { self.url.path.relativePath(for: file.path) }
+	public func subPath(for file :File) -> String { file.path.subPath(relativeTo: self.path)! }
 }

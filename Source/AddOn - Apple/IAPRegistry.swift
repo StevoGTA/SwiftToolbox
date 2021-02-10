@@ -156,12 +156,12 @@ class IAPRegistry : NSObject, SKPaymentTransactionObserver, SKProductsRequestDel
 											SQLiteTableColumn("id", .text, [.notNull, .primaryKey]),
 											SQLiteTableColumn("productIdentifier", .text, [.notNull]),
 											SQLiteTableColumn("quantity", .integer, [.notNull]),
-											SQLiteTableColumn("info", .blob, []),
+											SQLiteTableColumn("info", .blob),
 											SQLiteTableColumn("time", .real, [.notNull]),
-											SQLiteTableColumn("transactionState", .integer, []),
-											SQLiteTableColumn("purchaseTransactionIdentifier", .text, []),
-											SQLiteTableColumn("purchaseTime", .real, []),
-											SQLiteTableColumn("purchaseError", .text, []),
+											SQLiteTableColumn("transactionState", .integer),
+											SQLiteTableColumn("purchaseTransactionIdentifier", .text),
+											SQLiteTableColumn("purchaseTime", .real),
+											SQLiteTableColumn("purchaseError", .text),
 										  ])
 		} catch {
 			// Error

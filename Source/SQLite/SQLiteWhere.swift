@@ -35,10 +35,10 @@ public class SQLiteWhere {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func forEachValueGroup(chunkSize :Int, _ proc :(_ string :String, _ values :[Any]?) throws -> Void)
+	public func forEachValueGroup(groupSize :Int, _ proc :(_ string :String, _ values :[Any]?) throws -> Void)
 			rethrows {
 		// Chunk values
-		try self.values?.forEachChunk(chunkSize: chunkSize) {
+		try self.values?.forEachChunk(chunkSize: groupSize) {
 			// Call proc
 			try proc(
 					self.string.replacingOccurrences(of: SQLiteWhere.variablePlaceholder,

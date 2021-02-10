@@ -80,8 +80,8 @@ public struct SQLiteTableColumn {
 								referencedTableColumn :SQLiteTableColumn)
 
 	// MARK: Properties
-	static	let	rowID = SQLiteTableColumn("rowid", .integer, [])
-	static	let	all = SQLiteTableColumn("*", .integer, [])
+	static	let	rowID = SQLiteTableColumn("rowid", .integer)
+	static	let	all = SQLiteTableColumn("*", .integer)
 
 			let	name :String
 			let	kind :Kind
@@ -105,7 +105,7 @@ public struct SQLiteTableColumn {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(_ name :String, _ kind :Kind, _ options :[Options], _ defaultValue :Any? = nil) {
+	public init(_ name :String, _ kind :Kind, _ options :[Options] = [], _ defaultValue :Any? = nil) {
 		// Store
 		self.name = name
 		self.kind = kind

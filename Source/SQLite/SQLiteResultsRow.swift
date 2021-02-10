@@ -14,7 +14,7 @@ import SQLite3
 public class SQLiteResultsRow {
 
 	// MARK: Types
-	public typealias ProcessValuesProc = (_ resultsRow :SQLiteResultsRow) throws -> Void
+	public typealias Proc = (_ resultsRow :SQLiteResultsRow) throws -> Void
 
 	// MARK: Properties
 	private	let	statement :OpaquePointer
