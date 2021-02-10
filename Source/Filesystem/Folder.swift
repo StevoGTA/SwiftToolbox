@@ -22,10 +22,12 @@ public class Folder {
 	typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
 
 	// MARK: Properties
-	public	let	url :URL
+	static			let	temporary = Folder(URL(fileURLWithPath: NSTemporaryDirectory()))
 
-	public	var	name :String { self.url.lastPathComponent }
-	public	var	path :String { self.url.path }
+			public	let	url :URL
+
+			public	var	name :String { self.url.lastPathComponent }
+			public	var	path :String { self.url.path }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
