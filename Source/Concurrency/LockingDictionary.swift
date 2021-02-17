@@ -13,6 +13,7 @@ public class LockingDictionary<T : Hashable, U> {
 	// MARK: Properties
 	public	var	dictionary :[T : U] { self.lock.read({ self.map }) }
 	public	var	count :Int { self.lock.read({ self.map.count }) }
+	public	var	isEmpty :Bool { self.count == 0 }
 	public	var	keys :[T] { self.lock.read({ Array(self.map.keys) }) }
 	public	var	values :[U] { self.lock.read({ Array(self.map.values) }) }
 
