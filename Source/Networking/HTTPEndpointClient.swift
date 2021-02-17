@@ -140,7 +140,7 @@ extension HTTPEndpointRequest {
 open class HTTPEndpointClient {
 
 	// MARK: Types
-	public	struct Options : OptionSet {
+	public struct Options : OptionSet {
 
 		// MARK: Properties
 		static	public	let	multiValueQueryUseComma = Options(rawValue: 1 << 0)
@@ -155,6 +155,22 @@ open class HTTPEndpointClient {
 	public enum Priority : Int {
 		case normal
 		case background
+	}
+
+	public struct LogOptions : OptionSet {
+
+		// MARK: Properties
+		static	public	let	callAndResponse = LogOptions(rawValue: 1 << 0)
+		static	public	let	query = LogOptions(rawValue: 1 << 1)
+		static	public	let	callHeaders = LogOptions(rawValue: 1 << 2)
+		static	public	let	callBody = LogOptions(rawValue: 1 << 3)
+		static	public	let	responseHeaders = LogOptions(rawValue: 1 << 4)
+		static	public	let	responseBody = LogOptions(rawValue: 1 << 5)
+
+				public	let	rawValue :Int
+
+		// MARK: Lifecycle methods
+		public init(rawValue :Int) { self.rawValue = rawValue }
 	}
 
 	class HTTPEndpointRequestInfo {
@@ -289,18 +305,21 @@ open class HTTPEndpointClient {
 	}
 
 	// MARK: Properties
-	public	var	logTransactions = false
+	static	public	var	logProc :(_ messages :[String]) -> Void = { $0.forEach() { NSLog($0) } }
 
-	private	let	serverPrefix :String
-	private	let	options :Options
-	private	let	maximumURLLength :Int
-	private	let	urlSession :URLSession
-	private	let	maximumConcurrentURLRequests :Int
+			public	var	logOptions = LogOptions()
 
-	private	let	updateActiveHTTPEndpointRequestPerformInfosLock = Lock()
+			private	let	serverPrefix :String
+			private	let	options :Options
+			private	let	maximumURLLength :Int
+			private	let	urlSession :URLSession
+			private	let	maximumConcurrentURLRequests :Int
 
-	private	var	activeHTTPEndpointRequestPerformInfos = LockingArray<HTTPEndpointRequestPerformInfo>()
-	private	var	queuedHTTPEndpointRequestPerformInfos = LockingArray<HTTPEndpointRequestPerformInfo>()
+			private	let	updateActiveHTTPEndpointRequestPerformInfosLock = Lock()
+
+			private	var	activeHTTPEndpointRequestPerformInfos = LockingArray<HTTPEndpointRequestPerformInfo>()
+			private	var	queuedHTTPEndpointRequestPerformInfos = LockingArray<HTTPEndpointRequestPerformInfo>()
+			private	var	httpRequestIndex = 0
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -474,6 +493,9 @@ open class HTTPEndpointClient {
 
 				let	urlRequest = httpEndpointRequestPerformInfo.urlRequest
 
+				let	httpRequestIndex = self.httpRequestIndex
+				self.httpRequestIndex += 1
+
 				// Activate
 				httpEndpointRequestPerformInfo.transition(to: .active)
 				self.activeHTTPEndpointRequestPerformInfos.append(httpEndpointRequestPerformInfo)
@@ -482,23 +504,64 @@ open class HTTPEndpointClient {
 				DispatchQueue.global().async() { [weak self] in
 					// Ensure we are still around
 					guard let strongSelf = self else { return }
-					let	logTransactions = strongSelf.logTransactions
 
 					// Log
-					if logTransactions { NSLog("HTTPEndpointClient - sending \(urlRequest)") }
+					let	logOptions = strongSelf.logOptions
+					let	className = String(describing: type(of: strongSelf))
+					if logOptions.contains(.callAndResponse) {
+						// Setup
+						var	logMessages = [String]()
+
+						// Log call
+						logMessages.append(
+								"\(className): \(urlRequest.httpMethod!) to \(urlRequest.url!.host ?? "unknown"):\(urlRequest.url!.path) (\(httpRequestIndex))")
+
+						if logOptions.contains(.query) {
+							// Log query
+							logMessages.append("    Query: \(urlRequest.url!.query ?? "n/a")")
+						}
+						if logOptions.contains(.callHeaders) {
+							// Log headers
+							logMessages.append("    Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
+						}
+						if logOptions.contains(.callBody) {
+							// Log body
+							logMessages.append(
+									"    Body: \(String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) ?? "unable to decode")")
+						}
+						HTTPEndpointClient.logProc(logMessages)
+					}
 
 					// Resume data task
+					let	date = Date()
 					strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
 						// Log
-						if logTransactions {
-							// Check situation
+						if logOptions.contains(.callAndResponse) {
+							// Setup
+							let	deltaTime = Date().timeIntervalSince(date)
+							var	logMessages = [String]()
+
+							// Log response
 							if $1 != nil {
 								// Success
-								NSLog("HTTPEndpointClient - received \($1!)")
+								let	httpURLResponse = $1 as! HTTPURLResponse
+								logMessages.append(
+										"    \(className) received status \(httpURLResponse.statusCode) for \(urlRequest.url!.host ?? "unknown"):\(urlRequest.url!.path) (\(httpRequestIndex)) in \(String(format: "%0.3f", deltaTime))s")
+
+								if logOptions.contains(.responseHeaders) {
+									// Log headers
+									logMessages.append("        Headers: \(httpURLResponse.allHeaderFields)")
+								}
+								if logOptions.contains(.responseBody) {
+									// Log body
+									logMessages.append(
+											"        Body: \(String(data: $0 ?? Data(), encoding: .utf8) ?? "unable to decode")")
+								}
 							} else {
 								// Error
-								NSLog("HTTPEndpointClinet - received error \($2!) for request \(urlRequest)")
+								logMessages.append("    \(className) received error \($2!) for \(httpRequestIndex)")
 							}
+							HTTPEndpointClient.logProc(logMessages)
 						}
 
 						// Transition to finished
