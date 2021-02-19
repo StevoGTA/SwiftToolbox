@@ -147,10 +147,10 @@ extension String {
 	//------------------------------------------------------------------------------------------------------------------
 	public func subPath(relativeTo path :String) -> String? {
 		// Ensure common root
-		guard path.hasPrefix(self) else { return nil }
+		guard hasPrefix(path) else { return nil }
 
 		// Get remaining part
-		let	subPath = path.substring(fromCharacterIndex: self.count)
+		let	subPath = substring(fromCharacterIndex: path.count)
 
 		return subPath.hasPrefix("/") ? subPath.substring(fromCharacterIndex: 1) : subPath
 	}

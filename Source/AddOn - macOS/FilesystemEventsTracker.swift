@@ -125,23 +125,23 @@ public class FilesystemEventsTracker {
 								// File
 								var	fileFlags = FileFlags()
 								if (thisEventFlags & kFSEventStreamEventFlagItemCreated) != 0 {
-									// Must scan children
+									// Created
 									fileFlags.insert(.created)
 								}
 								if (thisEventFlags & kFSEventStreamEventFlagItemRemoved) != 0 {
-									// Must scan children
+									// Removed
 									fileFlags.insert(.removed)
 								}
 								if (thisEventFlags & kFSEventStreamEventFlagItemRenamed) != 0 {
-									// Must scan children
+									// Renamed
 									fileFlags.insert(.renamed)
 								}
 								if (thisEventFlags & kFSEventStreamEventFlagItemModified) != 0 {
-									// Must scan children
+									// Modified
 									fileFlags.insert(.modified)
 								}
 								if (thisEventFlags & kFSEventStreamEventFlagItemXattrMod) != 0 {
-									// Must scan children
+									// Extended Attributes Modified
 									fileFlags.insert(.extendedAttributesModified)
 								}
 
@@ -153,8 +153,8 @@ public class FilesystemEventsTracker {
 						}
 
 						// Call procs
-						filesystemEventsTracker.foldersProc(folderInfos)
-						filesystemEventsTracker.filesProc?(fileInfos)
+						if !folderInfos.isEmpty { filesystemEventsTracker.foldersProc(folderInfos) }
+						if !fileInfos.isEmpty { filesystemEventsTracker.filesProc?(fileInfos) }
 					}
 
 		var	eventStreamContext =

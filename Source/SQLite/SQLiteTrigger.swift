@@ -26,7 +26,7 @@ public struct SQLiteTrigger {
 	//------------------------------------------------------------------------------------------------------------------
 	func string(for table :SQLiteTable) -> String {
 		// Return string
-		return "CREATE TRIGGER \(self.updateTableColumn.name)Trigger" +
+		return "CREATE TRIGGER `\(table.name)-\(self.updateTableColumn.name)Trigger`" +
 				" AFTER UPDATE ON `\(table.name)`" +
 				" FOR EACH ROW" +
 				" BEGIN UPDATE `\(table.name)`" +

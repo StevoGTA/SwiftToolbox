@@ -101,6 +101,24 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
+			timeoutInterval :TimeInterval = 60.0, xmlBody :Data) {
+		// Setup
+		var	headersUse = headers ?? [:]
+		headersUse["Content-Type"] = "application/xml"
+
+		// Store
+		self.method = method
+		self.path = path
+		self.queryComponents = queryComponents
+		self.multiValueQueryComponent = multiValueQueryComponent
+		self.headers = headersUse
+		self.timeoutInterval = timeoutInterval
+		self.bodyData = xmlBody
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
+			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
 			timeoutInterval :TimeInterval = 60.0, urlEncodedBody :[String : Any]) {
 		// Setup
 		var	headersUse = headers ?? [:]

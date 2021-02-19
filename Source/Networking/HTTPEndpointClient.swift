@@ -295,7 +295,7 @@ open class HTTPEndpointClient {
 					self.completionProc(response, data, nil)
 				} else {
 					// HTTP Request failed
-					self.completionProc(response, nil, HTTPEndpointStatusError.for(httpEndpointStatus))
+					self.completionProc(response, nil, HTTPEndpointStatusError(status: httpEndpointStatus))
 				}
 			} else {
 				// Error

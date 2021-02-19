@@ -34,28 +34,6 @@ extension HTTPEndpointMethod {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - HTTPEndpoint.Status extension
-extension HTTPEndpointStatus {
-
-	// MARK: Properties
-	var	httpResponseStatus :HTTPResponseStatus {
-				// Switch on self
-				switch self {
-					case .ok:					return .ok
-
-					case .badRequest:			return .badRequest
-					case .unauthorized:			return .unauthorized
-					case .forbidden:			return .forbidden
-					case .notFound:				return .notFound
-					case .conflict:				return .conflict
-
-					case .internalServerError:	return .internalServerError
-					case .badGateway:			return .badGateway
-				}
-			}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 // MARK: - ServerResponder
 fileprivate class ServerResponder : HTTPServerResponder {
 
@@ -92,7 +70,7 @@ fileprivate class ServerResponder : HTTPServerResponder {
 
 			return worker.eventLoop.newSucceededFuture(
 					result:
-							HTTPResponse(status: responseStatus.httpResponseStatus,
+							HTTPResponse(status: HTTPResponseStatus(statusCode: responseStatus.rawValue),
 									headers: HTTPHeaders(responseHeaders ?? []),
 									body: responseBody?.data ?? HTTPBody()))
 		} catch {
@@ -102,7 +80,9 @@ fileprivate class ServerResponder : HTTPServerResponder {
 			let	jsonData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
 
 			return worker.eventLoop.newSucceededFuture(
-					result: HTTPResponse(status: httpEndpointError.status.httpResponseStatus, body: jsonData))
+					result:
+							HTTPResponse(status: HTTPResponseStatus(statusCode: httpEndpointError.status.rawValue),
+									body: jsonData))
 		}
     }
 

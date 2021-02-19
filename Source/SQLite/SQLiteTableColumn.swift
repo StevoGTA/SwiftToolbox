@@ -8,7 +8,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SQLiteTableColumn
-public struct SQLiteTableColumn {
+public struct SQLiteTableColumn : Equatable {
 
 	// MARK: Kind
 	public	enum Kind {
@@ -87,6 +87,10 @@ public struct SQLiteTableColumn {
 			let	kind :Kind
 			let	options :[Options]
 			let	defaultValue :Any?
+
+	// MARK: Equatable methods
+	//------------------------------------------------------------------------------------------------------------------
+	public static func == (lhs: SQLiteTableColumn, rhs: SQLiteTableColumn) -> Bool { lhs.name == rhs.name }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------

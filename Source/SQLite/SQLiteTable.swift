@@ -157,6 +157,12 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func dropTrigger(named name :String) {
+		// Perform
+		self.statementPerformer.addToTransactionOrPerform(statement: "DROP TRIGGER \(name)")
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func drop() {
 		// Perform
 		self.statementPerformer.addToTransactionOrPerform(statement: "DROP TABLE `\(self.name)`")
@@ -299,7 +305,8 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	private func columnNames(for tableColumns :[SQLiteTableColumn]) -> String {
 		// Return string
-		return String(combining: tableColumns.map({ "`\($0.name)`" }), with: ",")
+		return String(combining: tableColumns.map({ (($0 == .rowID) || ($0 == .all)) ? $0.name : "`\($0.name)`" }),
+				with: ",")
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
