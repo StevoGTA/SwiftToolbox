@@ -167,6 +167,13 @@ class Image {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
+	init(_ data :Data) {
+		// Setup
+		self.cgImageInternal = nil
+		self.cgImageSource = CGImageSourceCreateWithData(data as CFData, nil)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	init(_ file :File) {
 		// Setup
 		self.cgImageInternal = nil
