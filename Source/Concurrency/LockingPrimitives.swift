@@ -52,28 +52,22 @@ public class LockingNumeric<T : Numeric> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func set(_ value :T) -> Self {
+	public func set(_ value :T) -> T {
 		// Set
-		self.lock.write() { self.valueInternal = value }
-
-		return self
+		return self.lock.write() { self.valueInternal = value; return self.valueInternal }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func add(_ value :T) -> Self {
+	public func add(_ value :T) -> T {
 		// Add
-		self.lock.write() { self.valueInternal += value }
-
-		return self
+		return self.lock.write() { self.valueInternal += value; return self.valueInternal }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func subtract(_ value :T) -> Self {
+	public func subtract(_ value :T) -> T {
 		// Subtract
-		self.lock.write() { self.valueInternal -= value }
-
-		return self
+		return self.lock.write() { self.valueInternal -= value; return self.valueInternal }
 	}
 }

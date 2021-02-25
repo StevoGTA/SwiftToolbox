@@ -426,7 +426,7 @@ extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessMultiResults {
 			} else {
 				// Multiple requests
 				self.multiResponsePartialResultsProc!(response, info, responseError)
-				if completedRequestsCount.add(1).value == totalRequests {
+				if self.completedRequestsCount.add(1) == totalRequests {
 					// All done
 					self.multiResponseCompletionProc!(self.errors)
 				}

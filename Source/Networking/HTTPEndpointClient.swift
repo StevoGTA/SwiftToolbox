@@ -235,7 +235,7 @@ open class HTTPEndpointClient {
 				self.httpEndpointRequest.transition(to: .active)
 			} else if state == .finished {
 				// One more finished
-				if self.finishedPerformInfosCount.add(1).value == self.totalPerformInfosCount {
+				if self.finishedPerformInfosCount.add(1) == self.totalPerformInfosCount {
 					// Finished finished
 					self.httpEndpointRequest.transition(to: .finished)
 				}
