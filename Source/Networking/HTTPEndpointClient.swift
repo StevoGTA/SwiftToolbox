@@ -160,10 +160,10 @@ open class HTTPEndpointClient {
 	public struct LogOptions : OptionSet {
 
 		// MARK: Properties
-		static	public	let	callAndResponse = LogOptions(rawValue: 1 << 0)
-		static	public	let	query = LogOptions(rawValue: 1 << 1)
-		static	public	let	callHeaders = LogOptions(rawValue: 1 << 2)
-		static	public	let	callBody = LogOptions(rawValue: 1 << 3)
+		static	public	let	requestAndResponse = LogOptions(rawValue: 1 << 0)
+		static	public	let	requestQuery = LogOptions(rawValue: 1 << 1)
+		static	public	let	requestHeaders = LogOptions(rawValue: 1 << 2)
+		static	public	let	requestBody = LogOptions(rawValue: 1 << 3)
 		static	public	let	responseHeaders = LogOptions(rawValue: 1 << 4)
 		static	public	let	responseBody = LogOptions(rawValue: 1 << 5)
 
@@ -508,23 +508,23 @@ open class HTTPEndpointClient {
 					// Log
 					let	logOptions = strongSelf.logOptions
 					let	className = String(describing: type(of: strongSelf))
-					if logOptions.contains(.callAndResponse) {
+					if logOptions.contains(.requestAndResponse) {
 						// Setup
 						var	logMessages = [String]()
 
-						// Log call
+						// Log request
 						logMessages.append(
 								"\(className): \(urlRequest.httpMethod!) to \(urlRequest.url!.host ?? "unknown"):\(urlRequest.url!.path) (\(httpRequestIndex))")
 
-						if logOptions.contains(.query) {
+						if logOptions.contains(.requestQuery) {
 							// Log query
 							logMessages.append("    Query: \(urlRequest.url!.query ?? "n/a")")
 						}
-						if logOptions.contains(.callHeaders) {
+						if logOptions.contains(.requestHeaders) {
 							// Log headers
 							logMessages.append("    Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
 						}
-						if logOptions.contains(.callBody) {
+						if logOptions.contains(.requestBody) {
 							// Log body
 							logMessages.append(
 									"    Body: \(String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) ?? "unable to decode")")
@@ -536,7 +536,7 @@ open class HTTPEndpointClient {
 					let	date = Date()
 					strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
 						// Log
-						if logOptions.contains(.callAndResponse) {
+						if logOptions.contains(.requestAndResponse) {
 							// Setup
 							let	deltaTime = Date().timeIntervalSince(date)
 							var	logMessages = [String]()
