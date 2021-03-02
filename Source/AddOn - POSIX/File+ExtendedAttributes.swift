@@ -94,3 +94,26 @@ extension File {
 		}
 	}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Dictionary extension
+extension Dictionary where Key == String, Value == Data {
+
+	// Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func string(forExtendedAttributeNamed name :String) -> String? {
+		// Try to get data
+		guard let data = self[name] else { return nil }
+
+		return String(data: data, encoding: .utf8)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func date(forExtendedAttributeNamed name :String,
+			dateFormatter :DateFormatter = Date.rfc3339ExtendedDateFormatter) -> Date? {
+		// Try to get string
+		guard let string = string(forExtendedAttributeNamed: name) else { return nil }
+
+		return dateFormatter.date(from: string)
+	}
+}
