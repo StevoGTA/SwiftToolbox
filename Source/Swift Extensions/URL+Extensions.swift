@@ -9,7 +9,7 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: URL
+// MARK: URL extension
 extension URL {
 
 	// MARK: Properties
@@ -42,5 +42,21 @@ extension URL {
 		let	rootPath = url.path
 
 		return fullPath.hasPrefix(rootPath) ? fullPath.substring(fromCharacterIndex: rootPath.count + 1) : nil
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	mutating func set(creationDate :Date) throws {
+		// Set resource values
+		var	resourceValues = URLResourceValues()
+		resourceValues.creationDate = creationDate
+		try setResourceValues(resourceValues)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	mutating func set(modificationDate :Date) throws {
+		// Set resource values
+		var	resourceValues = URLResourceValues()
+		resourceValues.contentModificationDate = modificationDate
+		try setResourceValues(resourceValues)
 	}
 }

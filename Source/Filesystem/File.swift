@@ -16,15 +16,15 @@ public class File {
 	typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
 
 	// MARK: Properties
-	public	let	url :URL
+	public	private(set)	var	url :URL
 
-			var	name :String { self.url.lastPathComponent }
-			var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
+							var	name :String { self.url.lastPathComponent }
+							var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
 
-			var	path :String { self.url.path }
-			var	size :Int64? { self.url.fileSize }
-			var	creationDate :Date { self.url.creationDate! }
-			var	modificationDate :Date { self.url.contentModificationDate! }
+							var	path :String { self.url.path }
+							var	size :Int64? { self.url.fileSize }
+							var	creationDate :Date { self.url.creationDate! }
+							var	modificationDate :Date { self.url.contentModificationDate! }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -42,5 +42,8 @@ public class File {
 	func contentsAsData() throws -> Data? { try Data(contentsOf: self.url) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func setContents(_ data :Data) throws { try data.write(to: self.url) }
+	func set(creationDate :Date) throws { try self.url.set(creationDate: creationDate) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	func set(modificationDate :Date) throws { try self.url.set(modificationDate: modificationDate) }
 }
