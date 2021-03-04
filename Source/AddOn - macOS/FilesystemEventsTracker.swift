@@ -89,6 +89,7 @@ public class FilesystemEventsTracker {
 						for i in 0..<eventCount {
 							// Setup
 							let	thisEventFlags = Int(eventFlags[i])
+							
 							// Check for special flags
 							guard (thisEventFlags & kFSEventStreamEventFlagHistoryDone) == 0 else {
 								// History done
