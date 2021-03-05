@@ -135,6 +135,6 @@ class KeyedArchiveStorage {
 		}
 		
 		// Start timer
-		storageTimer = Timer.scheduledTimer(timeInterval: storageDelay) { [weak self] timer in try? self?.save() }
+		self.storageTimer = Timer.scheduledTimer(timeInterval: self.storageDelay) { [weak self] _ in try? self?.save() }
 	}
 }
