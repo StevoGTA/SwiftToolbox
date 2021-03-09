@@ -16,7 +16,16 @@ public class FilesystemEventsTracker {
 	public struct FolderFlags : OptionSet {
 
 		// MARK: Properties
-		static	public	let	mustScanChildren = FolderFlags(rawValue: 1 << 0)
+		static	public	let	created = FolderFlags(rawValue: 1 << 0)
+		static	public	let	removed = FolderFlags(rawValue: 1 << 1)
+		static	public	let	renamed = FolderFlags(rawValue: 1 << 2)
+		static	public	let	modifiedContent = FolderFlags(rawValue: 1 << 3)
+		static	public	let	modifiedInodeMetadata = FolderFlags(rawValue: 1 << 4)
+		static	public	let	modifiedFinderInfo = FolderFlags(rawValue: 1 << 5)
+		static	public	let	modifiedOwner = FolderFlags(rawValue: 1 << 6)
+		static	public	let	modifiedExtendedAttributes = FolderFlags(rawValue: 1 << 7)
+
+		static	public	let	mustScanChildren = FolderFlags(rawValue: 1 << 8)
 
 				public	let	rawValue :Int
 
@@ -38,8 +47,11 @@ public class FilesystemEventsTracker {
 		static	public	let	created = FileFlags(rawValue: 1 << 0)
 		static	public	let	removed = FileFlags(rawValue: 1 << 1)
 		static	public	let	renamed = FileFlags(rawValue: 1 << 2)
-		static	public	let	modified = FileFlags(rawValue: 1 << 3)
-		static	public	let	extendedAttributesModified = FileFlags(rawValue: 1 << 4)
+		static	public	let	modifiedContent = FileFlags(rawValue: 1 << 3)
+		static	public	let	modifiedInodeMetadata = FileFlags(rawValue: 1 << 4)
+		static	public	let	modifiedFinderInfo = FileFlags(rawValue: 1 << 5)
+		static	public	let	modifiedOwner = FileFlags(rawValue: 1 << 6)
+		static	public	let	modifiedExtendedAttributes = FileFlags(rawValue: 1 << 7)
 
 				public	let	rawValue :Int
 
@@ -113,6 +125,38 @@ public class FilesystemEventsTracker {
 									((thisEventFlags & kFSEventStreamEventFlagItemIsFile) == 0) {
 								// Folder/Symlink/Hard link
 								var	folderFlags = FolderFlags()
+								if (thisEventFlags & kFSEventStreamEventFlagItemCreated) != 0 {
+									// Created
+									folderFlags.insert(.created)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemRemoved) != 0 {
+									// Removed
+									folderFlags.insert(.removed)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemInodeMetaMod) != 0 {
+									// Modified inode metadata
+									folderFlags.insert(.modifiedInodeMetadata)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemRenamed) != 0 {
+									// Renamed
+									folderFlags.insert(.renamed)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemModified) != 0 {
+									// Modified content
+									folderFlags.insert(.modifiedContent)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemFinderInfoMod) != 0 {
+									// Modified Extended Attributes
+									folderFlags.insert(.modifiedFinderInfo)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemChangeOwner) != 0 {
+									// Modified Extended Attributes
+									folderFlags.insert(.modifiedOwner)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemXattrMod) != 0 {
+									// Modified Extended Attributes
+									folderFlags.insert(.modifiedExtendedAttributes)
+								}
 								if (thisEventFlags & kFSEventStreamEventFlagMustScanSubDirs) != 0 {
 									// Must scan children
 									folderFlags.insert(.mustScanChildren)
@@ -133,17 +177,29 @@ public class FilesystemEventsTracker {
 									// Removed
 									fileFlags.insert(.removed)
 								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemInodeMetaMod) != 0 {
+									// Modified inode metadata
+									fileFlags.insert(.modifiedInodeMetadata)
+								}
 								if (thisEventFlags & kFSEventStreamEventFlagItemRenamed) != 0 {
 									// Renamed
 									fileFlags.insert(.renamed)
 								}
 								if (thisEventFlags & kFSEventStreamEventFlagItemModified) != 0 {
-									// Modified
-									fileFlags.insert(.modified)
+									// Modified content
+									fileFlags.insert(.modifiedContent)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemFinderInfoMod) != 0 {
+									// Modified Extended Attributes
+									fileFlags.insert(.modifiedFinderInfo)
+								}
+								if (thisEventFlags & kFSEventStreamEventFlagItemChangeOwner) != 0 {
+									// Modified Extended Attributes
+									fileFlags.insert(.modifiedOwner)
 								}
 								if (thisEventFlags & kFSEventStreamEventFlagItemXattrMod) != 0 {
-									// Extended Attributes Modified
-									fileFlags.insert(.extendedAttributesModified)
+									// Modified Extended Attributes
+									fileFlags.insert(.modifiedExtendedAttributes)
 								}
 
 								// Add info
@@ -154,8 +210,14 @@ public class FilesystemEventsTracker {
 						}
 
 						// Call procs
-						if !folderInfos.isEmpty { filesystemEventsTracker.foldersProc(folderInfos) }
-						if !fileInfos.isEmpty { filesystemEventsTracker.filesProc?(fileInfos) }
+						if !folderInfos.isEmpty {
+							// Call proc
+							filesystemEventsTracker.foldersProc(folderInfos.sorted(by: { $0.eventID < $1.eventID }))
+						}
+						if !fileInfos.isEmpty {
+							// Call proc
+							filesystemEventsTracker.filesProc?(fileInfos.sorted(by: { $0.eventID < $1.eventID }))
+						}
 					}
 
 		var	eventStreamContext =
