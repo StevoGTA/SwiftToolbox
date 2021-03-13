@@ -11,6 +11,8 @@
 public class LockingSet<T : Hashable> {
 
 	// MARK: Properties
+	public	var	count :Int { self.lock.read() { self.set.count } }
+	public	var	isEmpty :Bool { self.lock.read() { self.set.isEmpty } }
 	public	var	values :Set<T> { self.lock.read() { self.set } }
 	
 	private	let	lock = ReadPreferringReadWriteLock()

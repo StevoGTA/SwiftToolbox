@@ -12,7 +12,7 @@ public class LockingArray<T> {
 
 	// MARK: Properties
 	public	var	count :Int { self.lock.read() { self.array.count } }
-	public	var	isEmpty :Bool { self.count == 0 }
+	public	var	isEmpty :Bool { self.lock.read() { self.array.isEmpty } }
 	public	var	values :[T] { self.lock.read() { self.array } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
