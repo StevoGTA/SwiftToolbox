@@ -42,6 +42,7 @@ public class LockingNumeric<T : Numeric> {
 	private	let	lock = ReadPreferringReadWriteLock()
 
 	private	var	valueInternal :T
+	private	var	sempahore :DispatchSemaphore?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -61,13 +62,37 @@ public class LockingNumeric<T : Numeric> {
 	@discardableResult
 	public func add(_ value :T) -> T {
 		// Add
-		return self.lock.write() { self.valueInternal += value; return self.valueInternal }
+		return self.lock.write() {
+			// Update value
+			self.valueInternal += value;
+
+			// Signal
+			self.sempahore?.signal()
+
+			return self.valueInternal
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func subtract(_ value :T) -> T {
 		// Subtract
-		return self.lock.write() { self.valueInternal -= value; return self.valueInternal }
+		return self.lock.write() {
+			// Update value
+			self.valueInternal -= value;
+
+			// Signal
+			self.sempahore?.signal()
+
+			return self.valueInternal
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func wait(for value :T = 0) {
+		// Setup
+		self.sempahore = DispatchSemaphore(value: 0)
+
+		while self.value != value { self.sempahore!.wait() }
 	}
 }

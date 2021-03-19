@@ -277,14 +277,18 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func update(_ info :[(tableColumn :SQLiteTableColumn, value :Any)], where sqliteWhere :SQLiteWhere) {
-		// Setup
-		let	statement =
-					"UPDATE `\(self.name)` SET " + String(combining: info.map({ "`\($0.tableColumn.name)` = ?" })) +
-							sqliteWhere.string
-		let	values = info.map({ $0.value }) + (sqliteWhere.values ?? [])
+		// Iterate all groups in SQLiteWhere
+		let	groupSize = self.statementPerformer.variableNumberLimit - info.count
+		sqliteWhere.forEachValueGroup(groupSize: groupSize) { string, values in
+			// Compose statement
+			let	statement =
+						"UPDATE `\(self.name)` SET " + String(combining: info.map({ "`\($0.tableColumn.name)` = ?" })) +
+								string
+			let	combinedValues = info.map({ $0.value }) + (values ?? [])
 
-		// Perform
-		self.statementPerformer.addToTransactionOrPerform(statement: statement, values: values)
+			// Perform
+			self.statementPerformer.addToTransactionOrPerform(statement: statement, values: combinedValues)
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

@@ -9,7 +9,16 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: Array Extension
+// MARK: Types
+fileprivate struct MapItem<T, U> {
+
+	// MARK: Properties
+	let	key :T
+	let	element :U
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Array Extension
 extension Array {
 
 	// MARK: Properties
@@ -106,5 +115,23 @@ extension Array {
 
 		// Do the remove
 		removeSubrange(i...)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	mutating func sort<T : Comparable>(keyProc :(Self.Element) throws -> T,
+			keyCompareProc: (T, T) -> Bool = { $0 < $1 }) rethrows {
+		// Must have at least 2 elements
+		guard self.count > 1 else { return }
+
+		// Create map
+		var	map :[MapItem<T, Element>] =
+					try autoreleasepool()
+							{ try self.map({ MapItem<T, Element>(key: try keyProc($0), element: $0) }) }
+
+		// Sort keys
+		autoreleasepool() { map.sort(by: { keyCompareProc($0.key, $1.key) }) }
+
+		// Reconstruct sorted sequence
+		self = Array(autoreleasepool() { map.map({ $0.element }) })
 	}
 }
