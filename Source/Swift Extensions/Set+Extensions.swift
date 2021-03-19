@@ -24,15 +24,4 @@ extension Set {
 
 		return info
 	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func removing(_ element :Set.Element) -> Self {
-		// Make copy
-		var	set = self
-
-		// Remove
-		set.remove(element)
-
-		return set
-	}
 }
