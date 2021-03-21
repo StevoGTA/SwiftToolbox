@@ -85,8 +85,8 @@ public struct SQLiteTable {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(name :String, options :Options, tableColumns :[SQLiteTableColumn],
-			references :[SQLiteTableColumn.Reference] = [], statementPerformer :SQLiteStatementPerformer) {
+	init(name :String, options :Options, tableColumns :[SQLiteTableColumn], references :[SQLiteTableColumn.Reference],
+			statementPerformer :SQLiteStatementPerformer) {
 		// Store
 		self.name = name
 
