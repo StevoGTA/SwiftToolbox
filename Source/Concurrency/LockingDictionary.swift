@@ -23,7 +23,10 @@ public class LockingDictionary<T : Hashable, U> {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init() {}
+	public init(_ initial :[T : U]? = nil) {
+		// Setup
+		self.map = initial ?? [:]
+	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
