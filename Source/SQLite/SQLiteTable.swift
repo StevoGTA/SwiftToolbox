@@ -172,11 +172,10 @@ public struct SQLiteTable {
 	public func hasRow(where sqliteWhere :SQLiteWhere) -> Bool { count(where: sqliteWhere) > 0 }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func count(where sqliteWhere :SQLiteWhere? = nil) -> Int {
+	public func count(innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil) -> Int {
 		// Perform
 		var	count :Int64 = 0
-		self.statementPerformer.perform(statement: "SELECT COUNT(*) FROM `\(self.name)`" + (sqliteWhere?.string ?? ""),
-				values: sqliteWhere?.values) {
+		try! select(columnNames: type(of: self).countAllTableColumn.name, innerJoin: innerJoin, where: sqliteWhere) {
 					// Query count
 					count = $0.integer(for: type(of: self).countAllTableColumn)!
 				}
@@ -321,7 +320,7 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	private func select(columnNames :String, innerJoin :SQLiteInnerJoin?, where sqliteWhere :SQLiteWhere?,
-			orderBy :SQLiteOrderBy?, resultsRowProc :SQLiteResultsRow.Proc) throws {
+			orderBy :SQLiteOrderBy? = nil, resultsRowProc :SQLiteResultsRow.Proc) throws {
 		// Check if we have SQLiteWhere
 		if sqliteWhere != nil {
 			// Iterate all groups in SQLiteWhere
