@@ -16,16 +16,14 @@ public class BatchQueue<T> {
 	public typealias Proc = (_ items :[T]) -> Void
 
 	// MARK: Properties
-	static	public	var	defaultMaximumBatchSize :Int { 500 }
+	private	let	maximumBatchSize :Int
+	private	let	proc :Proc
 
-			private	let	maximumBatchSize :Int
-			private	let	proc :Proc
-
-			private	var	items = [T]()
+	private	var	items = [T]()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(maximumBatchSize :Int = BatchQueue.defaultMaximumBatchSize, proc :@escaping Proc) {
+	public init(maximumBatchSize :Int = 500, proc :@escaping Proc) {
 		// Store
 		self.maximumBatchSize = maximumBatchSize
 		self.proc = proc
