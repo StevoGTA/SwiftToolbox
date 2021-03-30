@@ -164,8 +164,9 @@ open class HTTPEndpointClient {
 		static	public	let	requestQuery = LogOptions(rawValue: 1 << 1)
 		static	public	let	requestHeaders = LogOptions(rawValue: 1 << 2)
 		static	public	let	requestBody = LogOptions(rawValue: 1 << 3)
-		static	public	let	responseHeaders = LogOptions(rawValue: 1 << 4)
-		static	public	let	responseBody = LogOptions(rawValue: 1 << 5)
+		static	public	let	requestBodySize = LogOptions(rawValue: 1 << 4)
+		static	public	let	responseHeaders = LogOptions(rawValue: 1 << 5)
+		static	public	let	responseBody = LogOptions(rawValue: 1 << 6)
 
 				public	let	rawValue :Int
 
@@ -528,6 +529,11 @@ open class HTTPEndpointClient {
 							// Log body
 							logMessages.append(
 									"    Body: \(String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) ?? "unable to decode")")
+						}
+						if logOptions.contains(.requestBodySize) {
+							// Log body size
+							logMessages.append(
+									"    Body size: \((urlRequest.httpBody ?? Data()).count) bytes")
 						}
 						HTTPEndpointClient.logProc(logMessages)
 					}
