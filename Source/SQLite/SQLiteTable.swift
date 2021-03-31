@@ -157,7 +157,7 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func dropTrigger(named name :String) {
+	public func drop(triggerNamed name :String) {
 		// Perform
 		self.statementPerformer.addToTransactionOrPerform(statement: "DROP TRIGGER \(name)")
 	}
@@ -176,9 +176,9 @@ public struct SQLiteTable {
 		// Perform
 		var	count :Int64 = 0
 		try! select(columnNames: type(of: self).countAllTableColumn.name, innerJoin: innerJoin, where: sqliteWhere) {
-					// Query count
-					count = $0.integer(for: type(of: self).countAllTableColumn)!
-				}
+			// Query count
+			count = $0.integer(for: type(of: self).countAllTableColumn)!
+		}
 
 		return Int(count)
 	}
@@ -197,8 +197,8 @@ public struct SQLiteTable {
 			where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil, resultsRowProc :SQLiteResultsRow.Proc)
 			throws {
 		// Perform
-		try select(columnNames: (tableColumns != nil) ? columnNames(for: tableColumns!) : "*", innerJoin: innerJoin,
-				where: sqliteWhere, orderBy: orderBy, resultsRowProc: resultsRowProc)
+		try select(columnNames: columnNames(for: tableColumns ?? [.all]), innerJoin: innerJoin, where: sqliteWhere,
+				orderBy: orderBy, resultsRowProc: resultsRowProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -308,7 +308,7 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	private func columnNames(for tableColumns :[SQLiteTableColumn]) -> String {
 		// Return string
-		return String(combining: tableColumns.map({ (($0 == .rowID) || ($0 == .all)) ? $0.name : "`\($0.name)`" }),
+		return String(combining: tableColumns.map({ (($0 == .all) || ($0 == .rowID)) ? $0.name : "`\($0.name)`" }),
 				with: ",")
 	}
 

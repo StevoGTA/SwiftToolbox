@@ -80,8 +80,8 @@ public struct SQLiteTableColumn : Equatable {
 								referencedTableColumn :SQLiteTableColumn)
 
 	// MARK: Properties
-	static	let	rowID = SQLiteTableColumn("rowid", .integer)
 	static	let	all = SQLiteTableColumn("*", .integer)
+	static	let	rowID = SQLiteTableColumn("rowid", .integer)
 
 			let	name :String
 			let	kind :Kind

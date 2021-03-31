@@ -14,15 +14,15 @@ public class SQLiteWhere {
 	static	private			let	variablePlaceholder = "##VARIABLEPLACEHOLDER##"
 
 			private(set)	var	string :String
-							var	values :[Any]? { self.valuesInternal?.flatMap({ $0 }) }
 
-			private			var	valuesInternal :[[Any]]?
+			private			var	values :[[Any]]?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, comparison :String = "=", value :Any) {
 		// Setup
 		self.string = " WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`")
+
 		append(comparison: comparison, with: value)
 	}
 
@@ -32,7 +32,7 @@ public class SQLiteWhere {
 		self.string =
 				" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
 						" IN (\(SQLiteWhere.variablePlaceholder))"
-		self.valuesInternal = [values]
+		self.values = [values]
 	}
 
 	// MARK: Instance methods
@@ -42,13 +42,13 @@ public class SQLiteWhere {
 		// Check if need to group
 		if !self.string.contains(SQLiteWhere.variablePlaceholder) {
 			// Perform
-			try proc(self.string, self.values)
+			try proc(self.string, (self.values ?? []).flatMap({ $0 }))
 		} else {
 			// Group
 			var	preValueGroupValues = [Any]()
 			var	valueGroup = [Any]()
 			var	postValueGroupValues = [Any]()
-			self.valuesInternal?.forEach() {
+			self.values?.forEach() {
 				// Check count
 				if $0.count == 1 {
 					// Single value
@@ -67,7 +67,7 @@ public class SQLiteWhere {
 
 			// Check if need to group
 			let	allValues = preValueGroupValues + valueGroup + postValueGroupValues
-			if allValues.count < groupSize {
+			if allValues.count <= groupSize {
 				// Can perform as a single group
 				try proc(
 						self.string
@@ -108,7 +108,7 @@ public class SQLiteWhere {
 		self.string +=
 				" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
 						" IN (\(SQLiteWhere.variablePlaceholder))"
-		self.valuesInternal = [values]
+		self.values = (self.values ?? []) + [values]
 
 		return self
 	}
@@ -142,7 +142,7 @@ public class SQLiteWhere {
 		} else {
 			// Actual value
 			self.string += " \(comparison) ?"
-			self.valuesInternal = (self.valuesInternal ?? []) + [[value]]
+			self.values = (self.values ?? []) + [[value]]
 		}
 	}
 }
