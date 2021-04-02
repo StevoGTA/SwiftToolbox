@@ -117,7 +117,7 @@ class FilesystemDataCache : DataCache {
 			self.lastAccessedDate = Date()
 
 			// Write
-			try self.file.setContents(data)
+			try FileWriter.setContents(of: self.file, to: data)
 			try self.file.set(self.lastAccessedDate.rfc3339Extended, forExtendedAttributeNamed: "lastAccessedDate")
 		}
 
