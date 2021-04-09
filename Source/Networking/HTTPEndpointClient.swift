@@ -9,15 +9,31 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPEndpointRequest extension
-extension HTTPEndpointRequest {
+// MARK: String extension
+fileprivate extension String {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	fileprivate func urlRequests(with serverPrefix :String, options :HTTPEndpointClient.Options, maximumURLLength :Int)
-			-> [URLRequest] {
+	func urlQueryEncoded(encodePlus :Bool) -> String {
+		//
+		return encodePlus ?
+				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+						.replacingOccurrences(of: "+", with: "%2B") :
+				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - HTTPEndpointRequest extension
+fileprivate extension HTTPEndpointRequest {
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func urlRequests(with serverPrefix :String, options :HTTPEndpointClient.Options, maximumURLLength :Int) ->
+			[URLRequest] {
 		// Setup
-		let	urlRequestProc :(_ url :URL) -> URLRequest = {
+		var	urlRequests = [URLRequest]()
+		let	addURLRequestProc :(_ url :URL) -> Void = {
 					// Setup URLRequest
 					var	urlRequest = URLRequest(url: $0)
 					switch self.method {
@@ -31,103 +47,85 @@ extension HTTPEndpointRequest {
 					urlRequest.timeoutInterval = self.timeoutInterval
 					urlRequest.httpBody = self.bodyData
 
-					return urlRequest
+					// Add URLRequest
+					urlRequests.append(urlRequest)
 				}
 
-		var	urlRequests = [URLRequest]()
+		// Check path
 		if self.path.hasPrefix("http") || self.path.hasPrefix("https") {
 			// Already have fully-formed URL
-			urlRequests.append(urlRequestProc(URL(string: self.path)!))
+			addURLRequestProc(URL(string: self.path)!)
 		} else {
-			// Compose URL
-			let	queryString =
-						String(combining: self.queryComponents?.map({ "\($0.key)=\($0.value)" }) ?? [],
-										with: "&")
-								.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
-			let	urlRequestRoot =
+			// Compose URLRequests
+			let	queryComponents =
+						self.queryComponents?.map() {
+							// Return string
+							"\($0.key)=\($0.value)"
+									.urlQueryEncoded(encodePlus: options.contains(.percentEncodePlusCharacter))
+						}
+			let	queryString = String(combining: queryComponents ?? [], with: "&")
+			let	hasQuery = !queryString.isEmpty || (self.multiValueQueryComponent != nil)
+			let	urlRoot =
 						serverPrefix + self.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)! +
-								(!queryString.isEmpty ? "?" + queryString : "")
+								(hasQuery ? "?" : "") + queryString
 
-			var	multiValueQueryString = ""
-			let	canAppendQueryComponentProc :( _ queryComponent :String) -> Bool = {
-						// Compose target string
-						let	string =
-									urlRequestRoot + (queryString.isEmpty ? "?" : "&") +
-											(multiValueQueryString.isEmpty ? $0 : multiValueQueryString + "&" + $0)
-													.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+			if let (key, values) = self.multiValueQueryComponent, !values.isEmpty {
+				// Setup
+				let	keyUse = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+				let	valuesUse =
+							values.map()
+								{ "\($0)".urlQueryEncoded(encodePlus: options.contains(.percentEncodePlusCharacter)) }
 
-						return string.count <= maximumURLLength
-					}
-			let	appendQueryComponentProc :(_ queryComponent :String) -> Void =
-					{ multiValueQueryString = multiValueQueryString.isEmpty ? $0 : multiValueQueryString + "&" + $0 }
-			let	generateURLRequestProc :() -> Void = {
-						// Append URL Request
-						var	string =
-									urlRequestRoot +
-											(!multiValueQueryString.isEmpty ?
-													(queryString.isEmpty ? "?" : "&") +
-															multiValueQueryString
-																	.addingPercentEncoding(
-																			withAllowedCharacters: .urlQueryAllowed)! :
-													"")
-						if options.contains(.percentEncodePlusCharacter) {
-							// Percent encode "+"
-							string = string.replacingOccurrences(of: "+", with: "%2B")
-						}
-
-						// Add URL
-						urlRequests.append(urlRequestProc(URL(string: string)!))
-
-						// Reset
-						multiValueQueryString = ""
-					}
-			let	processQueryComponentProc :(_ queryComponent :String) -> Void = {
-						// Check if can append
-						if !canAppendQueryComponentProc($0) {
-							// Generate URL Request
-							generateURLRequestProc()
-						}
-
-						// Append query component
-						appendQueryComponentProc($0)
-					}
-
-			if let (key, values) = self.multiValueQueryComponent {
-				// Check type
+				// Check options
+				var	queryComponent = ""
 				if options.contains(.multiValueQueryUseComma) {
 					// Use comma
-					var	queryComponent = ""
-					values.forEach() {
+					let	urlBase = !queryString.isEmpty ? "\(urlRoot)&\(keyUse)=" : "\(urlRoot)?\(keyUse)="
+					valuesUse.forEach() {
 						// Compose string with next value
-						let	queryComponentTry = (!queryComponent.isEmpty ? "," : "\(key)=") + "\($0)"
-						if canAppendQueryComponentProc(queryComponentTry) {
+						let	queryComponentTry = !queryComponent.isEmpty ? "\(queryComponent),\($0)" : "\(keyUse)=\($0)"
+						if (urlBase.count + queryComponentTry.count) <= maximumURLLength {
 							// We good
 							queryComponent = queryComponentTry
 						} else {
-							// Generate URL Request
-							appendQueryComponentProc(queryComponent)
-							generateURLRequestProc()
+							// Add URL Request
+							addURLRequestProc(URL(string: urlRoot + queryComponent)!)
 
-							// Reset
-							queryComponent = ""
+							// Restart
+							queryComponent = $0
 						}
 					}
 
-					// Check if have any remaining
-					if !queryComponent.isEmpty {
-						// Append
-						appendQueryComponentProc(queryComponent)
-					}
+					// Add final URL Request
+					addURLRequestProc(URL(string: urlRoot + queryComponent)!)
 				} else {
 					// Repeat key
-					values.forEach() { processQueryComponentProc("\(key)=\($0)") }
+					let	urlBase = !queryString.isEmpty ? "\(urlRoot)&" : "\(urlRoot)?"
+					valuesUse.forEach() {
+						// Check if can add
+						let	queryComponentTry =
+									!queryComponent.isEmpty ? "\(queryComponent)&\(keyUse)=\($0)" : "\(keyUse)=\($0)"
+						if (urlBase.count + queryComponentTry.count) <= maximumURLLength {
+							// We good
+							queryComponent = queryComponentTry
+						} else {
+							// Add URL Request
+							addURLRequestProc(URL(string: urlRoot + queryComponent)!)
+
+							// Restart
+							queryComponent = "\(keyUse)=\($0)"
+						}
+					}
+
+					// Add final URL Request
+					addURLRequestProc(URL(string: urlRoot + queryComponent)!)
 				}
 			}
 
-			// Check if have query string remaining
-			if urlRequests.isEmpty || !multiValueQueryString.isEmpty {
+			// Check if have any URLRequests
+			if urlRequests.isEmpty {
 				// Generate URL Request
-				generateURLRequestProc()
+				addURLRequestProc(URL(string: urlRoot)!)
 			}
 		}
 
@@ -209,7 +207,7 @@ open class HTTPEndpointClient {
 				return urlRequests
 						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
 								completionProc: {
-									// Call process results
+									// Process results
 									httpEndpointRequestProcessResults.processResults(response: $0, data: $1, error: $2)
 								}) })
 			} else {
@@ -221,7 +219,7 @@ open class HTTPEndpointClient {
 				return urlRequests
 						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
 								completionProc: {
-									// Call process results
+									// Process results
 									httpEndpointRequestProcessMultiResults.processResults(response: $0, data: $1,
 											error: $2, totalRequests: urlRequestsCount)
 								}) })
@@ -256,9 +254,9 @@ open class HTTPEndpointClient {
 								{ self.httpEndpointRequestInfo.httpEndpointRequest }
 						var	identifier :String { self.httpEndpointRequestInfo.identifier }
 						var	priority :Priority { self.httpEndpointRequestInfo.priority }
-		private(set)	var	state :HTTPEndpointRequest.State = .queued
-
 						var	isCancelled :Bool { self.httpEndpointRequestInfo.httpEndpointRequest.isCancelled }
+
+		private(set)	var	state :HTTPEndpointRequest.State = .queued
 
 		private			let	httpEndpointRequestInfo :HTTPEndpointRequestInfo
 		private			let	completionProc :CompletionProc
@@ -290,15 +288,16 @@ open class HTTPEndpointClient {
 		//--------------------------------------------------------------------------------------------------------------
 		func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
 			// Process results
-			if let statusCode = response?.statusCode,
-					let httpEndpointStatus = HTTPEndpointStatus(rawValue: statusCode) {
+			if response != nil {
 				// Have a response
-				if httpEndpointStatus == .ok {
+				let	statusCode = response!.statusCode
+				if statusCode == HTTPEndpointStatus.ok.rawValue {
 					// Success
 					self.completionProc(response, data, nil)
 				} else {
-					// HTTP Request failed
-					self.completionProc(response, nil, HTTPEndpointStatusError(status: httpEndpointStatus))
+					// Some other response
+					self.completionProc(response, nil,
+							HTTPEndpointStatusError(status: HTTPEndpointStatus(rawValue: statusCode)!))
 				}
 			} else {
 				// Error
@@ -353,7 +352,7 @@ open class HTTPEndpointClient {
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ httpEndpointRequest :HTTPEndpointRequest, identifier :String = "",
 			priority :Priority = .normal) {
-		// Setup
+		// Add to queue
 		let	httpEndpointRequestInfo =
 					HTTPEndpointRequestInfo(httpEndpointRequest: httpEndpointRequest, identifier: identifier,
 							priority: priority)
@@ -371,7 +370,7 @@ open class HTTPEndpointClient {
 		// Setup
 		dataHTTPEndpointRequest.completionProc = completionProc
 
-		// Perform
+		// Queue
 		queue(dataHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
@@ -381,7 +380,7 @@ open class HTTPEndpointClient {
 		// Setup
 		fileHTTPEndpointRequest.completionProc = completionProc
 
-		// Perform
+		// Queue
 		queue(fileHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
@@ -391,7 +390,7 @@ open class HTTPEndpointClient {
 		// Setup
 		headHTTPEndpointRequest.completionProc = completionProc
 
-		// Perform
+		// Queue
 		queue(headHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
@@ -401,7 +400,7 @@ open class HTTPEndpointClient {
 		// Setup
 		integerHTTPEndpointRequest.completionProc = completionProc
 
-		// Perform
+		// Queue
 		queue(integerHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
@@ -412,7 +411,7 @@ open class HTTPEndpointClient {
 		// Setup
 		jsonHTTPEndpointRequest.completionProc = completionProc
 
-		// Perform
+		// Queue
 		queue(jsonHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
@@ -425,7 +424,7 @@ open class HTTPEndpointClient {
 		jsonHTTPEndpointRequest.multiResponsePartialResultsProc = partialResultsProc
 		jsonHTTPEndpointRequest.multiResponseCompletionProc = completionProc
 
-		// Perform
+		// Queue
 		queue(jsonHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
@@ -435,7 +434,7 @@ open class HTTPEndpointClient {
 		// Setup
 		stringHTTPEndpointRequest.completionProc = completionProc
 
-		// Perform
+		// Queue
 		queue(stringHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
@@ -445,7 +444,7 @@ open class HTTPEndpointClient {
 		// Setup
 		successHTTPEndpointRequest.completionProc = completionProc
 
-		// Perform
+		// Queue
 		queue(successHTTPEndpointRequest, identifier: identifier, priority: priority)
 	}
 
@@ -499,7 +498,7 @@ open class HTTPEndpointClient {
 				let	httpRequestIndex = self.httpRequestIndex
 				self.httpRequestIndex += 1
 
-				// Activate
+				// Make active
 				httpEndpointRequestPerformInfo.transition(to: .active)
 				self.activeHTTPEndpointRequestPerformInfos.append(httpEndpointRequestPerformInfo)
 
@@ -511,14 +510,14 @@ open class HTTPEndpointClient {
 					// Log
 					let	logOptions = strongSelf.logOptions
 					let	className = String(describing: type(of: strongSelf))
+					let	urlRequestInfo =
+								"\(urlRequest.url!.host ?? "unknown"):\(urlRequest.url!.path) (\(httpRequestIndex))"
 					if logOptions.contains(.requestAndResponse) {
 						// Setup
 						var	logMessages = [String]()
 
 						// Log request
-						logMessages.append(
-								"\(className): \(urlRequest.httpMethod!) to \(urlRequest.url!.host ?? "unknown"):\(urlRequest.url!.path) (\(httpRequestIndex))")
-
+						logMessages.append("\(className): \(urlRequest.httpMethod!) to \(urlRequestInfo)")
 						if logOptions.contains(.requestQuery) {
 							// Log query
 							logMessages.append("    Query: \(urlRequest.url!.query ?? "n/a")")
@@ -542,12 +541,12 @@ open class HTTPEndpointClient {
 					}
 
 					// Resume data task
-					let	date = Date()
+					let	startDate = Date()
 					strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
 						// Log
 						if logOptions.contains(.requestAndResponse) {
 							// Setup
-							let	deltaTime = Date().timeIntervalSince(date)
+							let	deltaTime = Date().timeIntervalSince(startDate)
 							var	logMessages = [String]()
 
 							// Log response
@@ -555,8 +554,7 @@ open class HTTPEndpointClient {
 								// Success
 								let	httpURLResponse = $1 as! HTTPURLResponse
 								logMessages.append(
-										"    \(className) received status \(httpURLResponse.statusCode) for \(urlRequest.url!.host ?? "unknown"):\(urlRequest.url!.path) (\(httpRequestIndex)) in \(String(format: "%0.3f", deltaTime))s")
-
+										"    \(className) received status \(httpURLResponse.statusCode) for \(urlRequestInfo) in \(String(format: "%0.3f", deltaTime))s")
 								if logOptions.contains(.responseHeaders) {
 									// Log headers
 									logMessages.append("        Headers: \(httpURLResponse.allHeaderFields)")
@@ -568,7 +566,7 @@ open class HTTPEndpointClient {
 								}
 							} else {
 								// Error
-								logMessages.append("    \(className) received error \($2!) for \(httpRequestIndex)")
+								logMessages.append("    \(className) received error \($2!) for \(urlRequestInfo)")
 							}
 							HTTPEndpointClient.logProc(logMessages)
 						}

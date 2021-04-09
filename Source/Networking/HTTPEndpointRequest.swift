@@ -40,22 +40,24 @@ public class HTTPEndpointRequest {
 	public typealias MultiValueQueryComponent = (key :String, values :[Any])
 
 	// MARK: Properties
-					let	method :HTTPEndpointMethod
-					let	path :String
-					let	queryComponents :[String : Any]?
-					let	multiValueQueryComponent :MultiValueQueryComponent?
-					let	headers :[String : String]?
-					let	timeoutInterval :TimeInterval
-					let	bodyData :Data?
+	static	public			var	defaultTimeoutInterval = 60.0
 
-	private(set)	var	state :State = .queued
-	private(set)	var	isCancelled = false
+							let	method :HTTPEndpointMethod
+							let	path :String
+							let	queryComponents :[String : Any]?
+							let	multiValueQueryComponent :MultiValueQueryComponent?
+							let	headers :[String : String]?
+							let	timeoutInterval :TimeInterval
+							let	bodyData :Data?
+
+			private(set)	var	state :State = .queued
+			private(set)	var	isCancelled = false
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = 60.0) {
+			timeoutInterval :TimeInterval = defaultTimeoutInterval) {
 		// Store
 		self.method = method
 		self.path = path
@@ -69,7 +71,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = 60.0, bodyData :Data) {
+			timeoutInterval :TimeInterval = defaultTimeoutInterval, bodyData :Data) {
 		// Store
 		self.method = method
 		self.path = path
@@ -83,7 +85,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = 60.0, jsonBody :Any) {
+			timeoutInterval :TimeInterval = defaultTimeoutInterval, jsonBody :Any) {
 		// Setup
 		var	headersUse = headers ?? [:]
 		headersUse["Content-Type"] = "application/json"
@@ -101,7 +103,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = 60.0, xmlBody :Data) {
+			timeoutInterval :TimeInterval = defaultTimeoutInterval, xmlBody :Data) {
 		// Setup
 		var	headersUse = headers ?? [:]
 		headersUse["Content-Type"] = "application/xml"
@@ -119,7 +121,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = 60.0, urlEncodedBody :[String : Any]) {
+			timeoutInterval :TimeInterval = defaultTimeoutInterval, urlEncodedBody :[String : Any]) {
 		// Setup
 		var	headersUse = headers ?? [:]
 		headersUse["Content-Type"] = "application/x-www-form-urlencoded"
@@ -139,7 +141,7 @@ public class HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod = .get, url :URL, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = 60.0, bodyData :Data? = nil) {
+			timeoutInterval :TimeInterval = defaultTimeoutInterval, bodyData :Data? = nil) {
 		// Store
 		self.method = method
 		self.path = url.absoluteString
@@ -215,7 +217,8 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, destinationURL :URL) {
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
 
@@ -226,7 +229,7 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, bodyData :Data,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, bodyData :Data,
 			destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
@@ -238,7 +241,7 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, jsonBody :Any,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, jsonBody :Any,
 			destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
@@ -250,8 +253,8 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = 60.0, urlEncodedBody :[String : Any],
-			destinationURL :URL) {
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			urlEncodedBody :[String : Any], destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
 
@@ -261,7 +264,8 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = 60.0, destinationURL :URL) {
+	init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
 
@@ -337,24 +341,24 @@ extension IntegerHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 	// MARK: HTTPEndpointRequestProcessResults methods
 	//------------------------------------------------------------------------------------------------------------------
 	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
-		// Handle results
-		var	value :Int? = nil
-		var	returnError :Error? = error
-		if data != nil {
-			// Try to compose string from response
-			if let string = String(data: data!, encoding: .utf8) {
-				// Try to convert to Int
-				value = Int(string)
-			}
-
-			if value == nil {
-				// Unable to transform results
-				returnError = HTTPEndpointRequestError.unableToProcessResponseData
-			}
-		}
-
 		// Check cancelled
 		if !self.isCancelled {
+			// Handle results
+			var	value :Int? = nil
+			var	returnError :Error? = error
+			if data != nil {
+				// Try to compose string from response
+				if let string = String(data: data!, encoding: .utf8) {
+					// Try to convert to Int
+					value = Int(string)
+				}
+
+				if value == nil {
+					// Unable to transform results
+					returnError = HTTPEndpointRequestError.unableToProcessResponseData
+				}
+			}
+
 			// Call proc
 			self.completionProc(response, value, returnError)
 		}
@@ -376,7 +380,8 @@ public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 	public	var	multiResponsePartialResultsProc :MultiResponsePartialResultsProc?
 	public	var	multiResponseCompletionProc :MultiResponseCompletionProc?
 
-	private	var	completedRequestsCount = LockingNumeric<Int>()
+	private	let	completedRequestsCount = LockingNumeric<Int>()
+
 	private	var	errors = [Error]()
 }
 
@@ -385,47 +390,48 @@ extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessMultiResults {
 	// MARK: HTTPEndpointRequestProcessMultiResults methods
 	//------------------------------------------------------------------------------------------------------------------
 	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?, totalRequests :Int) {
-		// Handle results
-		var	info :T? = nil
-		var	responseError :Error?
-		if data != nil {
-			// Catch errors
-			do {
-				// Try to compose info from data
-				info = try JSONSerialization.jsonObject(with: data!, options: []) as? T
-
-				// Check if got response data
-				if info == nil {
-					// Nope
-					responseError = HTTPEndpointRequestError.unableToProcessResponseData
-				}
-			} catch {
-				// Error
-				responseError = error
-			}
-		} else {
-			// Error
-			responseError = error
-		}
-
-		if responseError != nil { self.errors.append(responseError!) }
-
 		// Check cancelled
 		if !self.isCancelled {
+			// Handle results
+			var	info :T? = nil
+			var	procError :Error?
+			if data != nil {
+				// Catch errors
+				do {
+					// Try to compose info from data
+					info = try JSONSerialization.jsonObject(with: data!, options: []) as? T
+
+					// Check if got response data
+					if info == nil {
+						// Nope
+						procError = HTTPEndpointRequestError.unableToProcessResponseData
+					}
+				} catch {
+					// Error
+					procError = error
+				}
+			} else {
+				// Error
+				procError = error
+			}
+
+			// Check error
+			if procError != nil { self.errors.append(procError!) }
+
 			// Call proc
 			if totalRequests == 1 {
 				// Single request (but could have been multiple
 				if self.completionProc != nil {
 					// Single response expected
-					self.completionProc!(response, info, responseError)
+					self.completionProc!(response, info, procError)
 				} else {
 					// Multi-responses possible
-					self.multiResponsePartialResultsProc!(response, info, responseError)
+					self.multiResponsePartialResultsProc!(response, info, procError)
 					self.multiResponseCompletionProc!(self.errors)
 				}
 			} else {
 				// Multiple requests
-				self.multiResponsePartialResultsProc!(response, info, responseError)
+				self.multiResponsePartialResultsProc!(response, info, procError)
 				if self.completedRequestsCount.add(1) == totalRequests {
 					// All done
 					self.multiResponseCompletionProc!(self.errors)
