@@ -44,7 +44,7 @@ public class LockingNumeric<T : Numeric> {
 	private	let	lock = ReadPreferringReadWriteLock()
 
 	private	var	valueInternal :T
-	private	var	sempahore :DispatchSemaphore?
+	private	var	semaphore :DispatchSemaphore?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -55,10 +55,7 @@ public class LockingNumeric<T : Numeric> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func set(_ value :T) -> T {
-		// Set
-		return self.lock.write() { self.valueInternal = value; return self.valueInternal }
-	}
+	public func set(_ value :T) -> T { self.lock.write() { self.valueInternal = value }; return value }
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
@@ -69,7 +66,7 @@ public class LockingNumeric<T : Numeric> {
 			self.valueInternal += value;
 
 			// Signal
-			self.sempahore?.signal()
+			self.semaphore?.signal()
 
 			return self.valueInternal
 		}
@@ -84,7 +81,7 @@ public class LockingNumeric<T : Numeric> {
 			self.valueInternal -= value;
 
 			// Signal
-			self.sempahore?.signal()
+			self.semaphore?.signal()
 
 			return self.valueInternal
 		}
@@ -93,8 +90,8 @@ public class LockingNumeric<T : Numeric> {
 	//------------------------------------------------------------------------------------------------------------------
 	public func wait(for value :T = 0) {
 		// Setup
-		self.sempahore = DispatchSemaphore(value: 0)
+		self.semaphore = DispatchSemaphore(value: 0)
 
-		while self.value != value { self.sempahore!.wait() }
+		while self.value != value { self.semaphore!.wait() }
 	}
 }

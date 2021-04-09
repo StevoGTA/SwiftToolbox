@@ -77,7 +77,8 @@ public class LockingDictionary<T : Hashable, U> {
 	}
 	
 	//------------------------------------------------------------------------------------------------------------------
-	public func remove(_ keys :[T]) { self.lock.write() { keys.forEach() { self.map[$0] = nil } } }
+	@discardableResult
+	public func remove(_ keys :[T]) -> Self { self.lock.write() { keys.forEach() { self.map[$0] = nil } }; return self }
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
@@ -101,7 +102,7 @@ public class LockingArrayDictionary<T : Hashable, U> {
 
 	// MARK: Properties
 	public	var	isEmpty :Bool { self.lock.read() { self.map.isEmpty } }
-	public	var	values :[U] { self.lock.read() { Array(self.map.values.joined()) } }
+	public	var	allValues :[U] { self.lock.read() { Array(self.map.values.joined()) } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
 
@@ -118,7 +119,7 @@ public class LockingArrayDictionary<T : Hashable, U> {
 		self.lock.write() {
 			// Check if has existing array
 			if var array = self.map[key] {
-				// Has existing array
+				// Have existing array
 				self.map[key] = nil
 				array.append(value)
 				self.map[key] = array
