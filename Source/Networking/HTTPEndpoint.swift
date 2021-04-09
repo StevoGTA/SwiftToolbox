@@ -11,11 +11,16 @@ import Foundation
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointMethod
 public enum HTTPEndpointMethod {
+
+	// Values
 	case get
 	case head
 	case patch
 	case post
 	case put
+
+	// Properties
+	var	supportsBodyData :Bool { (self == .patch) || (self == .post) || (self == .put) }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

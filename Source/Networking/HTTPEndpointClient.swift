@@ -252,6 +252,8 @@ open class HTTPEndpointClient {
 		// MARK: Properties
 						let	urlRequest :URLRequest
 
+						var	httpEndpointRequest :HTTPEndpointRequest
+								{ self.httpEndpointRequestInfo.httpEndpointRequest }
 						var	identifier :String { self.httpEndpointRequestInfo.identifier }
 						var	priority :Priority { self.httpEndpointRequestInfo.priority }
 		private(set)	var	state :HTTPEndpointRequest.State = .queued
@@ -530,7 +532,8 @@ open class HTTPEndpointClient {
 							logMessages.append(
 									"    Body: \(String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) ?? "unable to decode")")
 						}
-						if logOptions.contains(.requestBodySize) {
+						if logOptions.contains(.requestBodySize) &&
+								httpEndpointRequestPerformInfo.httpEndpointRequest.method.supportsBodyData {
 							// Log body size
 							logMessages.append(
 									"    Body size: \((urlRequest.httpBody ?? Data()).count) bytes")
