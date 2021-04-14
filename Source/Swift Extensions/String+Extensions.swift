@@ -140,7 +140,7 @@ extension String {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func lastPathComponents(_ count :Int) -> [String] { return self.pathComponents.suffix(count) }
+	public func lastPathComponents(_ count :Int) -> [String] { self.pathComponents.suffix(count) }
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func lastPathComponentsSubPath(_ count :Int) -> String {

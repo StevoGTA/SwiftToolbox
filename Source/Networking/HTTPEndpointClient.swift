@@ -15,7 +15,7 @@ fileprivate extension String {
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func urlQueryEncoded(encodePlus :Bool) -> String {
-		//
+		// Return encoded string
 		return encodePlus ?
 				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 						.replacingOccurrences(of: "+", with: "%2B") :

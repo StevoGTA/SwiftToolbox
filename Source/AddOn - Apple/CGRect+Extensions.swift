@@ -58,8 +58,10 @@ extension CGRect {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func offsetBy(dx :CGFloat, dy :CGFloat) -> CGRect
-		{ CGRect(origin: self.origin.offsetBy(dx: dx, dy: dy), size: self.size) }
+	func offsetBy(dx :CGFloat, dy :CGFloat) -> CGRect {
+		// Return rect
+		return .CGRect(origin: self.origin.offsetBy(dx: dx, dy: dy), size: self.size)
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	func bounded(to rect :CGRect) -> CGRect {
