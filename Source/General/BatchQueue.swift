@@ -58,13 +58,13 @@ public class BatchQueue<T> {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func finalize() {
-		// Nothing to do if no items
-		guard !self.items.isEmpty else { return }
-		
-		// Call proc
-		self.proc(self.items)
+		// Check for items
+		if !self.items.isEmpty {
+			// Call proc
+			self.proc(self.items)
 
-		// Cleanup
-		self.items.removeAll()
+			// Cleanup
+			self.items.removeAll()
+		}
 	}
 }
