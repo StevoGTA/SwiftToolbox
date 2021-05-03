@@ -16,6 +16,16 @@ extension String {
 	static	let	`nil` :String? = nil
 
 			var	capitalizingFirstLetter :String { self.prefix(1).capitalized + self.dropFirst() }
+			var	removingLeadingAndTrailingQuotes :String {
+						//
+						let	hasLeadingQuote = hasPrefix("\"") || hasPrefix("'")
+						let	hasTrailingQuote = hasSuffix("\"") || hasSuffix("'")
+
+						return (hasLeadingQuote || hasTrailingQuote) ?
+								substring(fromCharacterIndex: hasLeadingQuote ? 1 : 0,
+										toCharacterIndex: hasTrailingQuote ? (self.count - 1) : self.count) :
+								self
+					}
 			var	asDouble :Double? { NumberFormatter().number(from: self)?.doubleValue }
 
 	// MARK: Lifecycle methods
