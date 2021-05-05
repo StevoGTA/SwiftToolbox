@@ -14,6 +14,7 @@ public class LockingArray<T> {
 	public	var	count :Int { self.lock.read() { self.array.count } }
 	public	var	isEmpty :Bool { self.lock.read() { self.array.isEmpty } }
 	public	var	values :[T] { self.lock.read() { self.array } }
+	public	var	first :T? { self.lock.read() { self.array.first } }
 
 	private	let	lock = ReadPreferringReadWriteLock()
 
