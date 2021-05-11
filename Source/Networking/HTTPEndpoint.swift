@@ -27,11 +27,11 @@ public enum HTTPEndpointMethod {
 // MARK: - HTTPEndpointStatusError
 public struct HTTPEndpointStatusError : Error, LocalizedError {
 
-	// MARK: Properties
-	let	status :HTTPEndpointStatus
-
 	// MARK: LocalizedError implementation
 	public	var	errorDescription :String? { self.status.description }
+
+	// MARK: Properties
+	let	status :HTTPEndpointStatus
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------

@@ -207,9 +207,11 @@ extension DataHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
 public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	// MARK: Types
+	public	typealias ProgressProc = (_ progress :Double) -> Void
 	public	typealias CompletionProc = (_ response :HTTPURLResponse?, _ error :Error?) -> Void
 
 	// MARK: Properties
+	public	var	progressProc :ProgressProc = { _ in }
 	public	var	completionProc :CompletionProc = { _,_ in }
 
 	private	let	destinationURL :URL
@@ -272,20 +274,18 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 		// Do super
 		super.init(method: method, url: url, timeoutInterval: timeoutInterval)
 	}
-}
 
-extension FileHTTPEndpointRequest : HTTPEndpointRequestProcessResults {
-
-	// MARK: HTTPEndpointRequestProcessResults methods
+	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
+	func processResults(response :HTTPURLResponse?, url :URL?, error :Error?) {
 		// Check cancelled
 		if !self.isCancelled {
 			// Handle results
-			if data != nil {
+			if url != nil {
 				do {
-					// Store
-					try data!.write(to: self.destinationURL)
+					// Move file
+					try FileManager.default.create(Folder(self.destinationURL.deletingLastPathComponent()))
+					try FileManager.default.moveItem(at: url!, to: self.destinationURL)
 
 					// Call completion
 					self.completionProc(response, nil)

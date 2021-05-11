@@ -13,6 +13,7 @@ import Vapor
 extension HTTPMethod : Hashable {
 
 	// MARK: Hashable implementation
+	//------------------------------------------------------------------------------------------------------------------
 	public func hash(into hasher :inout Hasher) { hasher.combine("\(self)") }
 }
 

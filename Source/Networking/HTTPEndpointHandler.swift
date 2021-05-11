@@ -12,6 +12,9 @@ import Foundation
 // MARK: HTTPEndpointError
 struct HTTPEndpointError : Error, LocalizedError {
 
+	// MARK: LocalizedError implementation
+	var	errorDescription :String? { "\(self.status): \(self.message)" }
+
 	// MARK: Properties
 	static	let	missingBody = HTTPEndpointError(status: .badRequest, message: "Missing body")
 	static	let	unableToConvertBodyToJSON = HTTPEndpointError(status: .badRequest, message: "Invalid body")
@@ -39,9 +42,6 @@ struct HTTPEndpointError : Error, LocalizedError {
 		self.status = status
 		self.message = message
 	}
-
-	// MARK: LocalizedError implementation
-	var	errorDescription :String? { "\(self.status): \(self.message)" }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

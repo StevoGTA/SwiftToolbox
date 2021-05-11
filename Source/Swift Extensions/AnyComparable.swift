@@ -49,18 +49,18 @@ public struct AnyComparable : Comparable, Equatable {
 
 	private	let	boxBase :BoxBase
 
+	// MARK: Comparable implementation
+	//------------------------------------------------------------------------------------------------------------------
+	public static func <(lhs :AnyComparable, rhs :AnyComparable) -> Bool { lhs.boxBase.compare(rhs.boxBase) }
+
+	// MARK: Equatable implementation
+	//------------------------------------------------------------------------------------------------------------------
+	public static func ==(lhs :AnyComparable, rhs :AnyComparable) -> Bool { lhs.boxBase.equals(rhs.boxBase) }
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init<T : Comparable>(_ t :T) {
 		// Store
 		self.boxBase = Box(t)
 	}
-
-	// MARK: Comparable implementation
-	//------------------------------------------------------------------------------------------------------------------
-	public static func < (lhs :AnyComparable, rhs :AnyComparable) -> Bool { lhs.boxBase.compare(rhs.boxBase) }
-
-	// MARK: Equatable implementation
-	//------------------------------------------------------------------------------------------------------------------
-	public static func == (lhs :AnyComparable, rhs :AnyComparable) -> Bool { lhs.boxBase.equals(rhs.boxBase) }
 }

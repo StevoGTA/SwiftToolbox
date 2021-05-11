@@ -135,7 +135,7 @@ fileprivate extension HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointClient
-open class HTTPEndpointClient {
+open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 	// MARK: Types
 	public struct Options : OptionSet {
@@ -172,7 +172,7 @@ open class HTTPEndpointClient {
 		public init(rawValue :Int) { self.rawValue = rawValue }
 	}
 
-	class HTTPEndpointRequestInfo {
+	private class HTTPEndpointRequestInfo {
 
 		// MARK: Properties
 				let	httpEndpointRequest :HTTPEndpointRequest
@@ -202,11 +202,20 @@ open class HTTPEndpointClient {
 			self.totalPerformInfosCount = urlRequests.count
 
 			// Check HTTPEndpointRequest type
-			if let httpEndpointRequestProcessResults = self.httpEndpointRequest as? HTTPEndpointRequestProcessResults {
+			if let fileHTTPEndpointRequest = self.httpEndpointRequest as? FileHTTPEndpointRequest {
+				// FileHTTPEndpointRequest
+				return urlRequests
+						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
+								urlCompletionProc: {
+									// Process results
+									fileHTTPEndpointRequest.processResults(response: $0, url: $1, error: $2)
+								}) })
+			} else if let httpEndpointRequestProcessResults =
+					self.httpEndpointRequest as? HTTPEndpointRequestProcessResults {
 				// Will only ever be a single URLRequest
 				return urlRequests
 						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
-								completionProc: {
+								dataCompletionProc: {
 									// Process results
 									httpEndpointRequestProcessResults.processResults(response: $0, data: $1, error: $2)
 								}) })
@@ -218,7 +227,7 @@ open class HTTPEndpointClient {
 
 				return urlRequests
 						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
-								completionProc: {
+								dataCompletionProc: {
 									// Process results
 									httpEndpointRequestProcessMultiResults.processResults(response: $0, data: $1,
 											error: $2, totalRequests: urlRequestsCount)
@@ -242,10 +251,11 @@ open class HTTPEndpointClient {
 		}
 	}
 
-	class HTTPEndpointRequestPerformInfo {
+	private class HTTPEndpointRequestPerformInfo {
 
 		// MARK: Types
-		typealias CompletionProc = (_ response :HTTPURLResponse?, _ data :Data?, _ error :Error?) -> Void
+		typealias DataCompletionProc = (_ response :HTTPURLResponse?, _ data :Data?, _ error :Error?) -> Void
+		typealias URLCompletionProc = (_ response :HTTPURLResponse?, _ url :URL?, _ error :Error?) -> Void
 
 		// MARK: Properties
 						let	urlRequest :URLRequest
@@ -259,17 +269,30 @@ open class HTTPEndpointClient {
 		private(set)	var	state :HTTPEndpointRequest.State = .queued
 
 		private			let	httpEndpointRequestInfo :HTTPEndpointRequestInfo
-		private			let	completionProc :CompletionProc
+		private			let	dataCompletionProc :DataCompletionProc?
+		private			let	urlCompletionProc :URLCompletionProc?
 
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
 		init(httpEndpointRequestInfo :HTTPEndpointRequestInfo, urlRequest :URLRequest,
-				completionProc :@escaping CompletionProc) {
+				dataCompletionProc :@escaping DataCompletionProc) {
 			// Store
 			self.urlRequest = urlRequest
 
 			self.httpEndpointRequestInfo = httpEndpointRequestInfo
-			self.completionProc = completionProc
+			self.dataCompletionProc = dataCompletionProc
+			self.urlCompletionProc = nil
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		init(httpEndpointRequestInfo :HTTPEndpointRequestInfo, urlRequest :URLRequest,
+				urlCompletionProc :@escaping URLCompletionProc) {
+			// Store
+			self.urlRequest = urlRequest
+
+			self.httpEndpointRequestInfo = httpEndpointRequestInfo
+			self.dataCompletionProc = nil
+			self.urlCompletionProc = urlCompletionProc
 		}
 
 		// MARK: Instance methods
@@ -293,16 +316,99 @@ open class HTTPEndpointClient {
 				let	statusCode = response!.statusCode
 				if statusCode == HTTPEndpointStatus.ok.rawValue {
 					// Success
-					self.completionProc(response, data, nil)
+					self.dataCompletionProc!(response, data, nil)
 				} else {
 					// Some other response
-					self.completionProc(response, nil,
+					self.dataCompletionProc!(response, nil,
 							HTTPEndpointStatusError(status: HTTPEndpointStatus(rawValue: statusCode)!))
 				}
 			} else {
 				// Error
-				self.completionProc(response, nil, error)
+				self.dataCompletionProc!(response, nil, error)
 			}
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		func processResults(response :HTTPURLResponse?, url :URL?, error :Error?) {
+			// Process results
+			if response != nil {
+				// Have a response
+				let	statusCode = response!.statusCode
+				if statusCode == HTTPEndpointStatus.ok.rawValue {
+					// Success
+					self.urlCompletionProc!(response, url, nil)
+				} else {
+					// Some other response
+					self.urlCompletionProc!(response, nil,
+							HTTPEndpointStatusError(status: HTTPEndpointStatus(rawValue: statusCode)!))
+				}
+			} else {
+				// Error
+				self.urlCompletionProc!(response, nil, error)
+			}
+		}
+	}
+
+	private	class URLSessionDelegate :NSObject, Foundation.URLSessionDelegate, URLSessionDownloadDelegate {
+
+		// MARK: Types
+		typealias ProgressProc = (_ progress :Double) -> Void
+		typealias CompletionProc = (_ response :HTTPURLResponse?, _ url :URL?, _ error :Error?) -> Void
+
+		// MARK: Info
+		private struct Info {
+
+			// MARK: Properties
+			let	progressProc :ProgressProc
+			let	completionProc :CompletionProc
+		}
+
+		// MARK: Properties
+		private	let	taskMap = LockingDictionary<URLSessionTask, Info>()
+
+		// MARK: URLSessionDelegate methods
+		//--------------------------------------------------------------------------------------------------------------
+		func urlSession(_ session :URLSession, task :URLSessionTask, didCompleteWithError error :Error?) {
+			// Retrieve info
+			if let info = self.taskMap.value(for: task) {
+				// Call proc
+				info.completionProc(task.response as? HTTPURLResponse, nil, task.error)
+
+				// Cleanup
+				self.taskMap.remove(task)
+			}
+		}
+
+		// MARK: URLSessionDownloadDelegate methods
+		//--------------------------------------------------------------------------------------------------------------
+		func urlSession(_ session :URLSession, downloadTask :URLSessionDownloadTask, didWriteData bytesWritten :Int64,
+				totalBytesWritten :Int64, totalBytesExpectedToWrite :Int64) {
+			// Retrieve info
+			if let info = self.taskMap.value(for: downloadTask) {
+				// Call proc
+				info.progressProc(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+			}
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		func urlSession(_ session :URLSession, downloadTask :URLSessionDownloadTask,
+				didFinishDownloadingTo location :URL) {
+			// Retrieve info
+			if let info = self.taskMap.value(for: downloadTask) {
+				// Call proc
+				info.completionProc(downloadTask.response as? HTTPURLResponse, location, downloadTask.error)
+			}
+
+			// Cleanup
+			self.taskMap.remove(downloadTask)
+		}
+
+		// MARK: Instance methods
+		//--------------------------------------------------------------------------------------------------------------
+		fileprivate func register(downloadTask :URLSessionDownloadTask, progressProc :@escaping ProgressProc,
+				completionProc :@escaping CompletionProc) {
+			// Add to map
+			self.taskMap.set(Info(progressProc: progressProc, completionProc: completionProc), for: downloadTask)
 		}
 	}
 
@@ -315,6 +421,7 @@ open class HTTPEndpointClient {
 			private	let	options :Options
 			private	let	maximumURLLength :Int
 			private	let	urlSession :URLSession
+			private	let	urlSessionDelegate :URLSessionDelegate?
 			private	let	maximumConcurrentURLRequests :Int
 
 			private	let	updateActiveHTTPEndpointRequestPerformInfosLock = Lock()
@@ -326,26 +433,54 @@ open class HTTPEndpointClient {
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(serverPrefix :String, options :Options = [], maximumURLLength :Int = 1024,
-			urlSession :URLSession = URLSession.shared, maximumConcurrentURLRequests :Int? = nil) {
+			urlSession :URLSession? = nil, maximumConcurrentURLRequests :Int? = nil) {
+		// Setup
+		let	urlSessionConfiguration = urlSession?.configuration ?? .default
+
 		// Store
 		self.serverPrefix = serverPrefix
 		self.options = options
 		self.maximumURLLength = maximumURLLength
-		self.urlSession = urlSession
-		self.maximumConcurrentURLRequests =
-				maximumConcurrentURLRequests ?? urlSession.configuration.httpMaximumConnectionsPerHost
+		if urlSession != nil {
+			// Was given URLSession
+			self.urlSessionDelegate = nil
+			self.urlSession = urlSession!
+			self.maximumConcurrentURLRequests =
+					maximumConcurrentURLRequests ?? urlSessionConfiguration.httpMaximumConnectionsPerHost
+		} else {
+			// Was not given URLSession
+			self.urlSessionDelegate = URLSessionDelegate()
+			self.urlSession =
+					URLSession(configuration: .default, delegate: self.urlSessionDelegate!, delegateQueue: nil)
+			self.maximumConcurrentURLRequests =
+					maximumConcurrentURLRequests ?? urlSessionConfiguration.httpMaximumConnectionsPerHost
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(scheme :String, hostName :String, port :Int? = nil, options :Options = [], maximumURLLength :Int = 1024,
-			urlSession :URLSession = URLSession.shared, maximumConcurrentURLRequests :Int? = nil) {
+			urlSession :URLSession? = nil, maximumConcurrentURLRequests :Int? = nil) {
+		// Setup
+		let	urlSessionConfiguration = urlSession?.configuration ?? .default
+
 		// Store
 		self.serverPrefix = (port != nil) ? "\(scheme)://\(hostName):\(port!)" : "\(scheme)://\(hostName)"
 		self.options = options
 		self.maximumURLLength = maximumURLLength
-		self.urlSession = urlSession
-		self.maximumConcurrentURLRequests =
-				maximumConcurrentURLRequests ?? urlSession.configuration.httpMaximumConnectionsPerHost
+		if urlSession != nil {
+			// Was given URLSession
+			self.urlSessionDelegate = nil
+			self.urlSession = urlSession!
+			self.maximumConcurrentURLRequests =
+					maximumConcurrentURLRequests ?? urlSessionConfiguration.httpMaximumConnectionsPerHost
+		} else {
+			// Was not given URLSession
+			self.urlSessionDelegate = URLSessionDelegate()
+			self.urlSession =
+					URLSession(configuration: .default, delegate: self.urlSessionDelegate!, delegateQueue: nil)
+			self.maximumConcurrentURLRequests =
+					maximumConcurrentURLRequests ?? urlSessionConfiguration.httpMaximumConnectionsPerHost
+		}
 	}
 
 	// MARK: Instance methods
@@ -376,8 +511,10 @@ open class HTTPEndpointClient {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ fileHTTPEndpointRequest :FileHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, completionProc :@escaping FileHTTPEndpointRequest.CompletionProc) {
+			priority :Priority = .normal, progressProc :@escaping FileHTTPEndpointRequest.ProgressProc,
+			completionProc :@escaping FileHTTPEndpointRequest.CompletionProc) {
 		// Setup
+		fileHTTPEndpointRequest.progressProc = progressProc
 		fileHTTPEndpointRequest.completionProc = completionProc
 
 		// Queue
@@ -540,50 +677,99 @@ open class HTTPEndpointClient {
 						HTTPEndpointClient.logProc(logMessages)
 					}
 
-					// Resume data task
+					// Run task
 					let	startDate = Date()
-					strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
-						// Log
-						if logOptions.contains(.requestAndResponse) {
-							// Setup
-							let	deltaTime = Date().timeIntervalSince(startDate)
-							var	logMessages = [String]()
+					if let fileHTTPEndpointRequest =
+							httpEndpointRequestPerformInfo.httpEndpointRequest as? FileHTTPEndpointRequest {
+						// FileHTTPEndpointRequest
+						let	urlSessionDownloadTask = strongSelf.urlSession.downloadTask(with: urlRequest)
 
-							// Log response
-							if $1 != nil {
-								// Success
-								let	httpURLResponse = $1 as! HTTPURLResponse
-								logMessages.append(
-										"    \(className) received status \(httpURLResponse.statusCode) for \(urlRequestInfo) in \(String(format: "%0.3f", deltaTime))s")
-								if logOptions.contains(.responseHeaders) {
-									// Log headers
-									logMessages.append("        Headers: \(httpURLResponse.allHeaderFields)")
-								}
-								if logOptions.contains(.responseBody) {
-									// Log body
+						// Register with URLSessionDelegate
+						self?.urlSessionDelegate?.register(downloadTask: urlSessionDownloadTask,
+								progressProc: fileHTTPEndpointRequest.progressProc,
+								completionProc: {
+									// Log
+									if logOptions.contains(.requestAndResponse) {
+										// Setup
+										let	deltaTime = Date().timeIntervalSince(startDate)
+										var	logMessages = [String]()
+
+										// Log response
+										if $0 != nil {
+											// Success
+											logMessages.append(
+													"    \(className) received status \($0!.statusCode) for \(urlRequestInfo) in \(String(format: "%0.3f", deltaTime))s")
+											if logOptions.contains(.responseHeaders) {
+												// Log headers
+												logMessages.append("        Headers: \($0!.allHeaderFields)")
+											}
+										} else {
+											// Error
+											logMessages.append("    \(className) received error \($2!) for \(urlRequestInfo)")
+										}
+										HTTPEndpointClient.logProc(logMessages)
+									}
+
+									// Transition to finished
+									httpEndpointRequestPerformInfo.transition(to: .finished)
+
+									// Check if cancelled
+									if !httpEndpointRequestPerformInfo.isCancelled {
+										// Process results
+										httpEndpointRequestPerformInfo.processResults(response: $0, url: $1, error: $2)
+									}
+
+									// Update
+									strongSelf.updateHTTPEndpointRequestPerformInfos()
+								})
+
+						// Resume
+						urlSessionDownloadTask.resume()
+					} else {
+						// Other
+						strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
+							// Log
+							if logOptions.contains(.requestAndResponse) {
+								// Setup
+								let	deltaTime = Date().timeIntervalSince(startDate)
+								var	logMessages = [String]()
+
+								// Log response
+								if $1 != nil {
+									// Success
+									let	httpURLResponse = $1 as! HTTPURLResponse
 									logMessages.append(
-											"        Body: \(String(data: $0 ?? Data(), encoding: .utf8) ?? "unable to decode")")
+											"    \(className) received status \(httpURLResponse.statusCode) for \(urlRequestInfo) in \(String(format: "%0.3f", deltaTime))s")
+									if logOptions.contains(.responseHeaders) {
+										// Log headers
+										logMessages.append("        Headers: \(httpURLResponse.allHeaderFields)")
+									}
+									if logOptions.contains(.responseBody) {
+										// Log body
+										logMessages.append(
+												"        Body: \(String(data: $0 ?? Data(), encoding: .utf8) ?? "unable to decode")")
+									}
+								} else {
+									// Error
+									logMessages.append("    \(className) received error \($2!) for \(urlRequestInfo)")
 								}
-							} else {
-								// Error
-								logMessages.append("    \(className) received error \($2!) for \(urlRequestInfo)")
+								HTTPEndpointClient.logProc(logMessages)
 							}
-							HTTPEndpointClient.logProc(logMessages)
-						}
 
-						// Transition to finished
-						httpEndpointRequestPerformInfo.transition(to: .finished)
+							// Transition to finished
+							httpEndpointRequestPerformInfo.transition(to: .finished)
 
-						// Check if cancelled
-						if !httpEndpointRequestPerformInfo.isCancelled {
-							// Process results
-							httpEndpointRequestPerformInfo.processResults(response: $1 as? HTTPURLResponse, data: $0,
-									error: $2)
-						}
+							// Check if cancelled
+							if !httpEndpointRequestPerformInfo.isCancelled {
+								// Process results
+								httpEndpointRequestPerformInfo.processResults(response: $1 as? HTTPURLResponse,
+										data: $0, error: $2)
+							}
 
-						// Update
-						strongSelf.updateHTTPEndpointRequestPerformInfos()
-					}).resume()
+							// Update
+							strongSelf.updateHTTPEndpointRequestPerformInfos()
+						}).resume()
+					}
 				}
 			}
 		}
