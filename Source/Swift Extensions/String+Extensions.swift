@@ -66,7 +66,7 @@ extension String {
 	public func hasPrefix(from strings :Set<String>) -> Bool { strings.first(where: { self.hasPrefix($0) }) != nil }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func substring(toCharacterIndex index :Int) -> String {
+	public func substring(toCharacterIndex index :Int) -> String {
 		// Return string
 		return String(self[..<self.index(self.startIndex, offsetBy: index)])
 	}
