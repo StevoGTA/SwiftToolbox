@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Folder
-public class Folder {
+public class Folder : Equatable {
 
 	// MARK: Types
 	enum Action {
@@ -28,6 +28,10 @@ public class Folder {
 
 			public	var	name :String { self.url.lastPathComponent }
 			public	var	path :String { self.url.path }
+
+	// MARK: Equatable methods
+	//------------------------------------------------------------------------------------------------------------------
+	public static func == (lhs: Folder, rhs: Folder) -> Bool { lhs.url == rhs.url }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
