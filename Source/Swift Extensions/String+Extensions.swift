@@ -72,7 +72,7 @@ extension String {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func substring(fromCharacterIndex index :Int) -> String {
+	public func substring(fromCharacterIndex index :Int) -> String {
 		// Return string
 		return String(self[self.index(self.startIndex, offsetBy: index)...])
 	}
