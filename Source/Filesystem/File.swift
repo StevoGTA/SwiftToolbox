@@ -13,7 +13,7 @@ import Foundation
 public class File {
 
 	// MARK: Types
-	typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
+	public typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
 
 	// MARK: Properties
 	public	private(set)	var	url :URL

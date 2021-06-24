@@ -13,7 +13,7 @@ import Foundation
 extension FileManager {
 
 	// MARK: Types
-	struct EnumerationOptions : OptionSet {
+	public struct EnumerationOptions : OptionSet {
 
 		// MARK: Properties
 		static	public	let	sorted = EnumerationOptions(rawValue: 1 << 0)
@@ -21,10 +21,10 @@ extension FileManager {
 				public	let	rawValue :Int
 
 		// MARK: Lifecycle methods
-		init(rawValue :Int) { self.rawValue = rawValue }
+		public init(rawValue :Int) { self.rawValue = rawValue }
 	}
 
-	typealias IsCancelledProc = () -> Bool
+	public typealias IsCancelledProc = () -> Bool
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -121,7 +121,7 @@ extension FileManager {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+	public func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) throws {
 		// Setup

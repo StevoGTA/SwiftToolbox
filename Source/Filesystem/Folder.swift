@@ -13,13 +13,13 @@ import Foundation
 public class Folder : Equatable {
 
 	// MARK: Types
-	enum Action {
+	public enum Action {
 		case process
 		case ignore
 	}
 
-	typealias SubPathProc = (_ folder :Folder, _ subPath :String) -> Void
-	typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
+	public typealias SubPathProc = (_ folder :Folder, _ subPath :String) -> Void
+	public typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
 
 	// MARK: Properties
 	static			let	temporary = Folder(URL(fileURLWithPath: NSTemporaryDirectory()))
