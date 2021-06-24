@@ -10,12 +10,17 @@
 // MARK: LockingDictionary
 public class LockingDictionary<T : Hashable, U> {
 
+	// MARK: Types
+	public typealias CreateValueProc = () -> U
+
 	// MARK: Properties
 	public	var	dictionary :[T : U] { self.lock.read({ self.map }) }
 	public	var	count :Int { self.lock.read({ self.map.count }) }
 	public	var	isEmpty :Bool { self.count == 0 }
 	public	var	keys :[T] { self.lock.read({ Array(self.map.keys) }) }
 	public	var	values :[U] { self.lock.read({ Array(self.map.values) }) }
+
+	public	var	createValueProc :CreateValueProc?
 
 	private	let	lock = ReadPreferringReadWriteLock()
 
@@ -30,7 +35,28 @@ public class LockingDictionary<T : Hashable, U> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func value(for key :T) -> U? { self.lock.read() { self.map[key] } }
+	public func value(for key :T) -> U? {
+		// Check situation
+		if let createValueProc = self.createValueProc {
+			// Can create value if not found
+			return self.lock.write() {
+				// Check for current value
+				if let u = self.map[key] {
+					// Already have a value
+					return u
+				} else {
+					// Create a new value
+					let	u = createValueProc()
+					self.map[key] = u
+
+					return u
+				}
+			}
+		} else {
+			// No creating
+			return self.lock.read() { self.map[key] }
+		}
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
