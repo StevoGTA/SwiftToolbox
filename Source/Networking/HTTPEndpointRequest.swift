@@ -27,7 +27,7 @@ extension HTTPEndpointRequestError : LocalizedError {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPEndpointRequest
+// MARK: - HTTPEndpointRequest
 public class HTTPEndpointRequest {
 
 	// MARK: Types

@@ -37,6 +37,7 @@ fileprivate extension HTTPEndpointRequest {
 					// Setup URLRequest
 					var	urlRequest = URLRequest(url: $0)
 					switch self.method {
+						case .delete:	urlRequest.httpMethod = "DELETE"
 						case .get:		urlRequest.httpMethod = "GET"
 						case .head:		urlRequest.httpMethod = "HEAD"
 						case .patch:	urlRequest.httpMethod = "PATCH"

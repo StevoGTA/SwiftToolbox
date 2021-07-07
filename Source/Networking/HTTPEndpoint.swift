@@ -14,6 +14,7 @@ public enum HTTPEndpointMethod {
 
 	// Values
 	case get
+	case delete
 	case head
 	case patch
 	case post
