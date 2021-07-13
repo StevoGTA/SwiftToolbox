@@ -10,40 +10,44 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Progress
-class Progress {
+public class Progress {
 
 	// MARK: Properties
-	var	messageUpdatedProc :(_ message :String) -> Void = { _ in }
-	var	valueUpdateProc :(_ value :Float?) -> Void = { _ in }
+	public	var	message :String = "" {
+						didSet {
+							// Setup
+							let	message = self.message
 
-	var	message :String = "" {
-				didSet {
-					// Setup
-					let	message = self.message
-
-					// Check thread
-					if Thread.current == Thread.main {
-						// On main thread
-						self.messageUpdatedProc(message)
-					} else {
-						// Queue on main thread
-						DispatchQueue.main.async() { [weak self] in self?.messageUpdatedProc(message) }
+							// Check thread
+							if Thread.current == Thread.main {
+								// On main thread
+								self.messageUpdatedProc(message)
+							} else {
+								// Queue on main thread
+								DispatchQueue.main.async() { [weak self] in self?.messageUpdatedProc(message) }
+							}
+						}
 					}
-				}
-			}
-	var	value :Float? = nil {
-				didSet {
-					// Setup
-					let	value = self.value
+	public	var	value :Float? = nil {
+						didSet {
+							// Setup
+							let	value = self.value
 
-					// Check thread
-					if Thread.current == Thread.main {
-						// On main thread
-						self.valueUpdateProc(value)
-					} else {
-						// Queue on main thread
-						DispatchQueue.main.async() { [weak self] in self?.valueUpdateProc(value) }
+							// Check thread
+							if Thread.current == Thread.main {
+								// On main thread
+								self.valueUpdatedProc(value)
+							} else {
+								// Queue on main thread
+								DispatchQueue.main.async() { [weak self] in self?.valueUpdatedProc(value) }
+							}
+						}
 					}
-				}
-			}
+
+			var	messageUpdatedProc :(_ message :String) -> Void = { _ in }
+			var	valueUpdatedProc :(_ value :Float?) -> Void = { _ in }
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init() {}
 }

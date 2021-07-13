@@ -16,9 +16,10 @@ public class File {
 	public typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
 
 	// MARK: Properties
+	public					var	name :String { self.url.lastPathComponent }
+
 	public	private(set)	var	url :URL
 
-							var	name :String { self.url.lastPathComponent }
 							var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
 
 							var	path :String { self.url.path }
