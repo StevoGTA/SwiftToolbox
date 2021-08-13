@@ -26,7 +26,10 @@ public enum HTTPEndpointMethod {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointStatusError
-public struct HTTPEndpointStatusError : Error, LocalizedError {
+public struct HTTPEndpointStatusError : CustomStringConvertible, Error, LocalizedError {
+
+	// MARK: CustomStringConvertible implementation
+	public 	var	description :String { self.localizedDescription }
 
 	// MARK: LocalizedError implementation
 	public	var	errorDescription :String? { self.status.description }

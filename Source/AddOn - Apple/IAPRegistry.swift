@@ -24,9 +24,10 @@ enum IAPRegistryError : Error {
 	case productNotAvailableForPurchase(productID :String)
 }
 
-extension IAPRegistryError : LocalizedError {
+extension IAPRegistryError : CustomStringConvertible, LocalizedError {
 
 	// MARK: Properties
+	public 	var	description :String { self.localizedDescription }
 	public	var	errorDescription :String? {
 						// What are we
 						switch self {
