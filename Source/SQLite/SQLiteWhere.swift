@@ -106,7 +106,7 @@ public class SQLiteWhere {
 	public func and(table :SQLiteTable? = nil, tableColumn :SQLiteTableColumn, values :[Any]) -> Self {
 		// Append
 		self.string +=
-				" WHERE " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
+				" AND " + ((table != nil) ? "`\(table!.name)`.`\(tableColumn.name)`" : "`\(tableColumn.name)`") +
 						" IN (\(SQLiteWhere.variablePlaceholder))"
 		self.values = (self.values ?? []) + [values]
 
