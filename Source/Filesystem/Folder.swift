@@ -31,11 +31,11 @@ public class Folder : Equatable {
 
 	// MARK: Equatable methods
 	//------------------------------------------------------------------------------------------------------------------
-	public static func == (lhs: Folder, rhs: Folder) -> Bool { lhs.url == rhs.url }
+	static public func == (lhs: Folder, rhs: Folder) -> Bool { lhs.url == rhs.url }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func from(_ url :URL?) -> Folder? { (url != nil) ? Folder(url!) : nil }
+	static public func from(_ url :URL?) -> Folder? { (url != nil) ? Folder(url!) : nil }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -46,10 +46,10 @@ public class Folder : Equatable {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func folder(with subPath :String) -> Folder { Folder(self.url.appendingPathComponent(subPath)) }
+	public func folder(withSubPath subPath :String) -> Folder { Folder(self.url.appendingPathComponent(subPath)) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func file(with subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
+	public func file(withSubPath subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func subPath(for folder :Folder) -> String { folder.path.subPath(relativeTo: self.path)! }

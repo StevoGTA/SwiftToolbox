@@ -90,7 +90,7 @@ public struct SQLiteTableColumn : Equatable {
 
 	// MARK: Equatable methods
 	//------------------------------------------------------------------------------------------------------------------
-	public static func == (lhs: SQLiteTableColumn, rhs: SQLiteTableColumn) -> Bool { lhs.name == rhs.name }
+	static public func == (lhs: SQLiteTableColumn, rhs: SQLiteTableColumn) -> Bool { lhs.name == rhs.name }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------

@@ -23,16 +23,17 @@ extension URL {
 					return nil
 				}
 			}
+	var	isDirectory :Bool { (try? resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false }
 	var	creationDate :Date? { (try? resourceValues(forKeys: [.creationDateKey]))?.creationDate }
 	var	contentModificationDate :Date?
 				{ (try? resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func from(string :String?) -> URL? { (string != nil) ? URL(string: string!) : nil }
+	static public func from(path :String?) -> URL? { (path != nil) ? URL(fileURLWithPath: path!) : nil }
 
 	//------------------------------------------------------------------------------------------------------------------
-	static func from(path :String?) -> URL? { (path != nil) ? URL(fileURLWithPath: path!) : nil }
+	static func from(string :String?) -> URL? { (string != nil) ? URL(string: string!) : nil }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------

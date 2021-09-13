@@ -52,6 +52,26 @@ extension FileManager {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func folders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: EnumerationOptions = []) -> [Folder] {
+		// Collect folders
+		var	folders = [Folder]()
+		enumerateFolders(in: folder, includingPropertiesForKeys: keys, options: options) { folders.append($0); _ = $1 }
+
+		return folders
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func files(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: EnumerationOptions = []) -> [File] {
+		// Collect files
+		var	files = [File]()
+		enumerateFiles(in: folder, includingPropertiesForKeys: keys, options: options) { files.append($0); _ = $1 }
+
+		return files
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFolders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			folderProc :Folder.SubPathProc) {

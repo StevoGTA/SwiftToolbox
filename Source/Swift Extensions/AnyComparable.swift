@@ -51,11 +51,11 @@ public struct AnyComparable : Comparable, Equatable {
 
 	// MARK: Comparable implementation
 	//------------------------------------------------------------------------------------------------------------------
-	public static func <(lhs :AnyComparable, rhs :AnyComparable) -> Bool { lhs.boxBase.compare(rhs.boxBase) }
+	static public func <(lhs :AnyComparable, rhs :AnyComparable) -> Bool { lhs.boxBase.compare(rhs.boxBase) }
 
 	// MARK: Equatable implementation
 	//------------------------------------------------------------------------------------------------------------------
-	public static func ==(lhs :AnyComparable, rhs :AnyComparable) -> Bool { lhs.boxBase.equals(rhs.boxBase) }
+	static public func ==(lhs :AnyComparable, rhs :AnyComparable) -> Bool { lhs.boxBase.equals(rhs.boxBase) }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
