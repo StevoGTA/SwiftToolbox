@@ -10,14 +10,14 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: FileReader
-class FileReader {
+public class FileReader {
 
 	// MARK: Properties
 	private	let	file :File
 
 	// Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func contentsAsData(of file :File) throws -> Data {
+	static public func contentsAsData(of file :File) throws -> Data {
 		// Read as data
 		try Data(contentsOf: file.url, options: [.mappedIfSafe])
 	}

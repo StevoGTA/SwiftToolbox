@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Progress
-public class Progress {
+open class Progress {
 
 	// MARK: Properties
 	public	var	message :String = "" {

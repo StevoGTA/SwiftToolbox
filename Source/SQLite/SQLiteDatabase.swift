@@ -56,8 +56,8 @@ public class SQLiteDatabase {
 	//------------------------------------------------------------------------------------------------------------------
 	static func doesExist(in folder :Folder, with name :String = "database") -> Bool {
 		// Check for known extensions
-		return FileManager.default.exists(folder.file(with: name.appending(pathExtension: "sqlite"))) ||
-				FileManager.default.exists(folder.file(with: name.appending(pathExtension: "sqlite3")))
+		return FileManager.default.exists(folder.file(withSubPath: name.appending(pathExtension: "sqlite"))) ||
+				FileManager.default.exists(folder.file(withSubPath: name.appending(pathExtension: "sqlite3")))
 	}
 
 	// MARK: Lifecycle methods
