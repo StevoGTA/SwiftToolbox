@@ -10,7 +10,10 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointError
-struct HTTPEndpointError : Error, LocalizedError {
+struct HTTPEndpointError : CustomStringConvertible, Error, LocalizedError {
+
+	// MARK: CustomStringConvertible implementation
+	var	description :String { self.localizedDescription }
 
 	// MARK: LocalizedError implementation
 	var	errorDescription :String? { "\(self.status): \(self.message)" }

@@ -65,7 +65,7 @@ public class LockingDictionary<T : Hashable, U> {
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func merge(_ map :[T : U]) -> Self {
-		// Perform with lock
+		// Perform under lock
 		self.lock.write({ self.map.merge(map, uniquingKeysWith: { $1 }) });
 
 		return self
@@ -74,7 +74,7 @@ public class LockingDictionary<T : Hashable, U> {
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func update(for key :T, with proc :(_ previous :U?) -> U?) -> Self {
-		// Update value under lock
+		// Perform under lock
 		self.lock.write() {
 			// Retrieve current value
 			let	value = self.map[key]
@@ -109,7 +109,7 @@ public class LockingDictionary<T : Hashable, U> {
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func removeAll() -> [T : U] {
-		// Perform
+		// Perform under lock
 		self.lock.write() {
 			// Get map
 			let map = self.map
@@ -123,7 +123,7 @@ public class LockingDictionary<T : Hashable, U> {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: LockingArrayMap
+// MARK: - LockingArrayMap
 public class LockingArrayDictionary<T : Hashable, U> {
 
 	// MARK: Properties
@@ -140,10 +140,10 @@ public class LockingArrayDictionary<T : Hashable, U> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func appendArrayValue(_ value :U, for key :T) {
+	public func append(_ value :U, for key :T) {
 		// Perform under lock
 		self.lock.write() {
-			// Check if has existing array
+			// Check if have existing array
 			if var array = self.map[key] {
 				// Have existing array
 				self.map[key] = nil
@@ -158,4 +158,40 @@ public class LockingArrayDictionary<T : Hashable, U> {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func values(for key :T) -> [U]? { self.lock.read() { self.map[key] } }
+
+	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
+	public func remove(_ key :T) -> [U]? {
+		// Perform under lock
+		self.lock.write() {
+			// Get array
+			let	array = self.map[key]
+
+			// Remove array
+			self.map[key] = nil
+
+			return array
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func removeAll() { self.lock.write() { self.map.removeAll() } }
+}
+
+extension LockingArrayDictionary where U : Equatable {
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func remove(_ value :U, for key :T) {
+		// Perform under lock
+		self.lock.write() {
+			// Check if has existing array
+			if var array = self.map[key] {
+				// Have existing array
+				self.map[key] = nil
+				array.removeAll(where: { $0 == value })
+				if !array.isEmpty { self.map[key] = array }
+			}
+		}
+	}
 }
