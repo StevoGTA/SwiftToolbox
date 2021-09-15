@@ -15,16 +15,19 @@ extension UserDefaults {
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func bool(forKey key :String, default value :Bool) -> Bool {
+		// Return value
 		return (UserDefaults.standard.object(forKey: key) as? NSNumber)?.boolValue ?? value
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	func float(forKey key :String, default value :Float) -> Float {
+		// Return value
 		return (UserDefaults.standard.object(forKey: key) as? NSNumber)?.floatValue ?? value
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	func double(forKey key :String, default value :Double) -> Double {
+		// Return value
 		return (UserDefaults.standard.object(forKey: key) as? NSNumber)?.doubleValue ?? value
 	}
 }

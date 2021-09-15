@@ -72,6 +72,24 @@ extension FileManager {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
+			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) throws {
+		// Setup
+		let	keysUse = (keys ?? []) + [.isRegularFileKey]
+
+		// Enumerate
+		try enumerateFoldersFilesDeep(levels: 0, folder: folder, includingPropertiesForKeys: keysUse, options: options,
+				isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func remove(_ file :File) throws { try removeItem(at: file.url) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func remove(_ folder :Folder) throws { try removeItem(at: folder.url) }
+
+	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFolders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			folderProc :Folder.SubPathProc) {
@@ -139,24 +157,6 @@ extension FileManager {
 			}
 		}
 	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	public func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
-			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) throws {
-		// Setup
-		let	keysUse = (keys ?? []) + [.isRegularFileKey]
-
-		// Enumerate
-		try enumerateFoldersFilesDeep(levels: 0, folder: folder, includingPropertiesForKeys: keysUse, options: options,
-				isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func remove(_ file :File) throws { try removeItem(at: file.url) }
-
-	//------------------------------------------------------------------------------------------------------------------
-	func remove(_ folder :Folder) throws { try removeItem(at: folder.url) }
 
 	// Private methods
 	//------------------------------------------------------------------------------------------------------------------
