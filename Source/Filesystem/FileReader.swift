@@ -29,7 +29,7 @@ class FileReader {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static func jsonContents<T>(of file :File) throws -> T? {
+	static func contentsAsJSON<T>(of file :File) throws -> T? {
 		// Return contents
 		return try JSONSerialization.jsonObject(with: try Data(contentsOf: file.url), options: []) as? T
 	}

@@ -112,7 +112,7 @@ class KeyedArchiveStorage {
 	//------------------------------------------------------------------------------------------------------------------
 	private func load() {
 		// Attempt to load
-		if let data = try? FileReader.contents(of: self.storageFile),
+		if let data = try? FileReader.contentsAsData(of: self.storageFile),
 				let info = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? [String : Any] {
 			// Setup
 			set(info: info!)

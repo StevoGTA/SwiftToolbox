@@ -19,6 +19,7 @@ public class File {
 	public	private(set)	var	url :URL
 
 							var	name :String { self.url.lastPathComponent }
+							var	`extension` :String? { self.url.pathExtension }
 							var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
 
 							var	path :String { self.url.path }
