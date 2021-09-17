@@ -110,7 +110,7 @@ public extension Dictionary {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	mutating func appendSetValueElement<T : Hashable>(key :Key, value :T) {
+	mutating func insertSetValueElement<T : Hashable>(key :Key, value :T) {
 		// Retrieve set
 		var	set = (self[key] as? Set<T>) ?? Set<T>()
 		self[key] = nil

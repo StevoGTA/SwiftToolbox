@@ -13,16 +13,17 @@ import Foundation
 public class File {
 
 	// MARK: Types
-	typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
+	public typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
 
 	// MARK: Properties
+	public					var	name :String { self.url.lastPathComponent }
+	public					var	path :String { self.url.path }
+
 	public	private(set)	var	url :URL
 
-							var	name :String { self.url.lastPathComponent }
 							var	`extension` :String? { self.url.pathExtension }
 							var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
 
-							var	path :String { self.url.path }
 							var	size :Int64? { self.url.fileSize }
 							var	creationDate :Date { self.url.creationDate! }
 							var	modificationDate :Date { self.url.contentModificationDate! }

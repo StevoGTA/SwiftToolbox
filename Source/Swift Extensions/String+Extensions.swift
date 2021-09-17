@@ -17,7 +17,7 @@ extension String {
 
 			var	capitalizingFirstLetter :String { self.prefix(1).capitalized + self.dropFirst() }
 			var	removingLeadingAndTrailingQuotes :String {
-						//
+						// Check for leading and trailing quotes
 						let	hasLeadingQuote = hasPrefix("\"") || hasPrefix("'")
 						let	hasTrailingQuote = hasSuffix("\"") || hasSuffix("'")
 
@@ -66,13 +66,13 @@ extension String {
 	public func hasPrefix(from strings :Set<String>) -> Bool { strings.first(where: { self.hasPrefix($0) }) != nil }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func substring(toCharacterIndex index :Int) -> String {
+	public func substring(toCharacterIndex index :Int) -> String {
 		// Return string
 		return String(self[..<self.index(self.startIndex, offsetBy: index)])
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func substring(fromCharacterIndex index :Int) -> String {
+	public func substring(fromCharacterIndex index :Int) -> String {
 		// Return string
 		return String(self[self.index(self.startIndex, offsetBy: index)...])
 	}
@@ -146,6 +146,7 @@ extension String {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func appending(pathExtension :String) -> String {
+		// Return after adding path extension
 		return !pathExtension.isEmpty ? self + "." + pathExtension : self
 	}
 
@@ -154,6 +155,7 @@ extension String {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func lastPathComponentsSubPath(_ count :Int) -> String {
+		// Return last path components as a subPath
 		return String(combining: lastPathComponents(count), with: "/")
 	}
 

@@ -48,7 +48,7 @@ extension DispatchQueue {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static public func performBlocking(_ proc :(_ completionProc :@escaping () -> Void) -> Void) {
+	static public func performBlocking(proc :(_ completionProc :@escaping () -> Void) -> Void) {
 		// Setup
 		let	dispatchGroup = DispatchGroup()
 		dispatchGroup.enter()
@@ -64,7 +64,7 @@ extension DispatchQueue {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static public func performBlocking<T>(_ proc :(_ completionProc :@escaping (_ t :T) -> Void) -> Void) -> T {
+	static public func performBlocking<T>(proc :(_ completionProc :@escaping (_ t :T) -> Void) -> Void) -> T {
 		// Setup
 		let	dispatchGroup = DispatchGroup()
 		dispatchGroup.enter()
@@ -81,5 +81,27 @@ extension DispatchQueue {
 		dispatchGroup.wait()
 
 		return t
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	static public func performConcurrentlyAndWait<T>(_ ts :[T], dispatchQueue :DispatchQueue = .global(),
+			proc :@escaping (_ t :T) -> Void) {
+		// Setup
+		let	tsRemaining = LockingNumeric<Int>(ts.count)
+
+		// Iterate all ts
+		ts.forEach() { t in
+			// Queue work
+			dispatchQueue.async() {
+				// Call proc
+				proc(t)
+
+				// One more done
+				tsRemaining.subtract(1)
+			}
+		}
+
+		// Wait
+		tsRemaining.wait()
 	}
 }

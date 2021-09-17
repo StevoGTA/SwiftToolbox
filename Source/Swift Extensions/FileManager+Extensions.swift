@@ -13,7 +13,7 @@ import Foundation
 extension FileManager {
 
 	// MARK: Types
-	struct EnumerationOptions : OptionSet {
+	public struct EnumerationOptions : OptionSet {
 
 		// MARK: Properties
 		static	public	let	sorted = EnumerationOptions(rawValue: 1 << 0)
@@ -21,10 +21,10 @@ extension FileManager {
 				public	let	rawValue :Int
 
 		// MARK: Lifecycle methods
-		init(rawValue :Int) { self.rawValue = rawValue }
+		public init(rawValue :Int) { self.rawValue = rawValue }
 	}
 
-	typealias IsCancelledProc = () -> Bool
+	public typealias IsCancelledProc = () -> Bool
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -50,6 +50,44 @@ extension FileManager {
 					attributes: attributes)
 		}
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func folders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: EnumerationOptions = []) -> [Folder] {
+		// Collect folders
+		var	folders = [Folder]()
+		enumerateFolders(in: folder, includingPropertiesForKeys: keys, options: options) { folders.append($0); _ = $1 }
+
+		return folders
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func files(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: EnumerationOptions = []) -> [File] {
+		// Collect files
+		var	files = [File]()
+		enumerateFiles(in: folder, includingPropertiesForKeys: keys, options: options) { files.append($0); _ = $1 }
+
+		return files
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
+			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
+			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) throws {
+		// Setup
+		let	keysUse = (keys ?? []) + [.isRegularFileKey]
+
+		// Enumerate
+		try enumerateFoldersFilesDeep(levels: 0, folder: folder, includingPropertiesForKeys: keysUse, options: options,
+				isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func remove(_ file :File) throws { try removeItem(at: file.url) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func remove(_ folder :Folder) throws { try removeItem(at: folder.url) }
 
 	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFolders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
@@ -119,24 +157,6 @@ extension FileManager {
 			}
 		}
 	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
-			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) throws {
-		// Setup
-		let	keysUse = (keys ?? []) + [.isRegularFileKey]
-
-		// Enumerate
-		try enumerateFoldersFilesDeep(levels: 0, folder: folder, includingPropertiesForKeys: keysUse, options: options,
-				isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func remove(_ file :File) throws { try removeItem(at: file.url) }
-
-	//------------------------------------------------------------------------------------------------------------------
-	func remove(_ folder :Folder) throws { try removeItem(at: folder.url) }
 
 	// Private methods
 	//------------------------------------------------------------------------------------------------------------------

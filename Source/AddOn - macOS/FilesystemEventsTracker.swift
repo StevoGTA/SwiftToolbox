@@ -12,59 +12,62 @@ import Foundation
 // MARK: FilesystemEventsTracker
 public class FilesystemEventsTracker {
 
-	// MARK: Types
-	public struct FolderFlags : OptionSet {
-
-		// MARK: Properties
-		static	public	let	created = FolderFlags(rawValue: 1 << 0)
-		static	public	let	removed = FolderFlags(rawValue: 1 << 1)
-		static	public	let	renamed = FolderFlags(rawValue: 1 << 2)
-		static	public	let	modifiedContent = FolderFlags(rawValue: 1 << 3)
-		static	public	let	modifiedInodeMetadata = FolderFlags(rawValue: 1 << 4)
-		static	public	let	modifiedFinderInfo = FolderFlags(rawValue: 1 << 5)
-		static	public	let	modifiedOwner = FolderFlags(rawValue: 1 << 6)
-		static	public	let	modifiedExtendedAttributes = FolderFlags(rawValue: 1 << 7)
-
-		static	public	let	mustScanChildren = FolderFlags(rawValue: 1 << 8)
-
-				public	let	rawValue :Int
-
-		// MARK: Lifecycle methods
-		public init(rawValue :Int) { self.rawValue = rawValue }
-	}
-
+	// MARK: FolderInfo
 	public struct FolderInfo {
+
+		// MARK: Flags
+		public struct Flags : OptionSet {
+
+			// MARK: Properties
+			static	public	let	created = Flags(rawValue: 1 << 0)
+			static	public	let	removed = Flags(rawValue: 1 << 1)
+			static	public	let	renamed = Flags(rawValue: 1 << 2)
+			static	public	let	modifiedContent = Flags(rawValue: 1 << 3)
+			static	public	let	modifiedInodeMetadata = Flags(rawValue: 1 << 4)
+			static	public	let	modifiedFinderInfo = Flags(rawValue: 1 << 5)
+			static	public	let	modifiedOwner = Flags(rawValue: 1 << 6)
+			static	public	let	modifiedExtendedAttributes = Flags(rawValue: 1 << 7)
+
+			static	public	let	mustScanChildren = Flags(rawValue: 1 << 8)
+
+					public	let	rawValue :Int
+
+			// MARK: Lifecycle methods
+			public init(rawValue :Int) { self.rawValue = rawValue }
+		}
 
 		// MARK: Properties
 		public	let	folder :Folder
 		public	let	eventID :FSEventStreamEventId
-		public	let	flags :FolderFlags
+		public	let	flags :Flags
 	}
 
-	public struct FileFlags : OptionSet {
-
-		// MARK: Properties
-		static	public	let	created = FileFlags(rawValue: 1 << 0)
-		static	public	let	removed = FileFlags(rawValue: 1 << 1)
-		static	public	let	renamed = FileFlags(rawValue: 1 << 2)
-		static	public	let	modifiedContent = FileFlags(rawValue: 1 << 3)
-		static	public	let	modifiedInodeMetadata = FileFlags(rawValue: 1 << 4)
-		static	public	let	modifiedFinderInfo = FileFlags(rawValue: 1 << 5)
-		static	public	let	modifiedOwner = FileFlags(rawValue: 1 << 6)
-		static	public	let	modifiedExtendedAttributes = FileFlags(rawValue: 1 << 7)
-
-				public	let	rawValue :Int
-
-		// MARK: Lifecycle methods
-		public init(rawValue :Int) { self.rawValue = rawValue }
-	}
-
+	// MARK: FileInfo
 	public struct FileInfo {
+
+		// MARK: Flags
+		public struct Flags : OptionSet {
+
+			// MARK: Properties
+			static	public	let	created = Flags(rawValue: 1 << 0)
+			static	public	let	removed = Flags(rawValue: 1 << 1)
+			static	public	let	renamed = Flags(rawValue: 1 << 2)
+			static	public	let	modifiedContent = Flags(rawValue: 1 << 3)
+			static	public	let	modifiedInodeMetadata = Flags(rawValue: 1 << 4)
+			static	public	let	modifiedFinderInfo = Flags(rawValue: 1 << 5)
+			static	public	let	modifiedOwner = Flags(rawValue: 1 << 6)
+			static	public	let	modifiedExtendedAttributes = Flags(rawValue: 1 << 7)
+
+					public	let	rawValue :Int
+
+			// MARK: Lifecycle methods
+			public init(rawValue :Int) { self.rawValue = rawValue }
+		}
 
 		// MARK: Properties
 		public	let	file :File
 		public	let	eventID :FSEventStreamEventId
-		public	let	flags :FileFlags
+		public	let	flags :Flags
 	}
 
 	public typealias FoldersProc = (_ folderInfos :[FolderInfo]) -> Void
@@ -124,7 +127,7 @@ public class FilesystemEventsTracker {
 							if (filesystemEventsTracker.filesProc == nil) ||
 									((thisEventFlags & kFSEventStreamEventFlagItemIsFile) == 0) {
 								// Folder/Symlink/Hard link
-								var	folderFlags = FolderFlags()
+								var	folderFlags = FolderInfo.Flags()
 								if (thisEventFlags & kFSEventStreamEventFlagItemCreated) != 0 {
 									// Created
 									folderFlags.insert(.created)
@@ -168,7 +171,7 @@ public class FilesystemEventsTracker {
 												flags: folderFlags))
 							} else {
 								// File
-								var	fileFlags = FileFlags()
+								var	fileFlags = FileInfo.Flags()
 								if (thisEventFlags & kFSEventStreamEventFlagItemCreated) != 0 {
 									// Created
 									fileFlags.insert(.created)

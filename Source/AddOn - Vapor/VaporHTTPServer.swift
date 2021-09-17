@@ -25,6 +25,7 @@ extension HTTPEndpointMethod {
 	var	httpMethod :HTTPMethod {
 				// Switch on self
 				switch self {
+					case .delete:	return .DELETE
 					case .get:		return .GET
 					case .head:		return .HEAD
 					case .patch:	return .PATCH

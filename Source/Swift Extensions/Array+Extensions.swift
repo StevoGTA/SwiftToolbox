@@ -47,6 +47,27 @@ extension Array {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func collate(proc :(_ element :Element) -> Bool) -> (bucket1 :[Element], bucket2 :[Element]) {
+		// Setup
+		var	bucket1 = [Element]()
+		var	bucket2 = [Element]()
+
+		// Iterate
+		forEach() {
+			// Call proc
+			if proc($0) {
+				// Bucket 1
+				bucket1.append($0)
+			} else {
+				// Bucket 2
+				bucket2.append($0)
+			}
+		}
+
+		return (bucket1, bucket2)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func chunk(by chunkSize :Int) -> [[Element]] {
 		// Check count
 		if self.count == 0 {

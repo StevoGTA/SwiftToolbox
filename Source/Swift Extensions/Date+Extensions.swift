@@ -14,9 +14,10 @@ enum DateError {
 	case invalidStandardizedForm(string :String)
 }
 
-extension DateError : LocalizedError {
+extension DateError : CustomStringConvertible, LocalizedError {
 
 	// MARK: Properties
+	public 	var	description :String { self.localizedDescription }
 	public	var	errorDescription :String? {
 						switch self {
 							case .invalidStandardizedForm(let string):

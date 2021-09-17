@@ -14,9 +14,10 @@ enum HTTPEndpointRequestError : Error {
 	case unableToProcessResponseData
 }
 
-extension HTTPEndpointRequestError : LocalizedError {
+extension HTTPEndpointRequestError : CustomStringConvertible, LocalizedError {
 
 	// MARK: Properties
+	public 	var	description :String { self.localizedDescription }
 	public	var	errorDescription :String? {
 						// What are we
 						switch self {
@@ -27,7 +28,7 @@ extension HTTPEndpointRequestError : LocalizedError {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPEndpointRequest
+// MARK: - HTTPEndpointRequest
 public class HTTPEndpointRequest {
 
 	// MARK: Types

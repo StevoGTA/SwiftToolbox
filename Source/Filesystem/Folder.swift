@@ -10,16 +10,16 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Folder
-public class Folder {
+public class Folder : Equatable {
 
 	// MARK: Types
-	enum Action {
+	public enum Action {
 		case process
 		case ignore
 	}
 
-	typealias SubPathProc = (_ folder :Folder, _ subPath :String) -> Void
-	typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
+	public typealias SubPathProc = (_ folder :Folder, _ subPath :String) -> Void
+	public typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
 
 	// MARK: Properties
 	static			let	temporary = Folder(URL(fileURLWithPath: NSTemporaryDirectory()))
@@ -29,9 +29,13 @@ public class Folder {
 			public	var	name :String { self.url.lastPathComponent }
 			public	var	path :String { self.url.path }
 
+	// MARK: Equatable methods
+	//------------------------------------------------------------------------------------------------------------------
+	static public func == (lhs: Folder, rhs: Folder) -> Bool { lhs.url == rhs.url }
+
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func from(_ url :URL?) -> Folder? { (url != nil) ? Folder(url!) : nil }
+	static public func from(_ url :URL?) -> Folder? { (url != nil) ? Folder(url!) : nil }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -42,10 +46,10 @@ public class Folder {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func folder(with subPath :String) -> Folder { Folder(self.url.appendingPathComponent(subPath)) }
+	public func folder(withSubPath subPath :String) -> Folder { Folder(self.url.appendingPathComponent(subPath)) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func file(with subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
+	public func file(withSubPath subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func subPath(for folder :Folder) -> String { folder.path.subPath(relativeTo: self.path)! }

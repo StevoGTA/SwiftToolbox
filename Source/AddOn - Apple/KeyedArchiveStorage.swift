@@ -50,10 +50,12 @@ class KeyedArchiveStorage {
 			case .libraryFolderByBundleName:
 				// Get info
 				let	storageFolder =
-							FileManager.default.folder(for: .libraryDirectory).folder(with: Bundle.main.bundleName)
+							FileManager.default
+								.folder(for: .libraryDirectory)
+								.folder(withSubPath: Bundle.main.bundleName)
 				try FileManager.default.create(storageFolder)
 
-				self.storageFile = storageFolder.file(with: storageFilename)
+				self.storageFile = storageFolder.file(withSubPath: storageFilename)
 		}
 		
 		self.storageDelay = 5.0

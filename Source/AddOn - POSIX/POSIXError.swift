@@ -14,9 +14,10 @@ enum POSIXError : Error {
 	case general(_ errno :Int32)
 }
 
-extension POSIXError : LocalizedError {
+extension POSIXError : CustomStringConvertible, LocalizedError {
 
 	// MARK: Properties
+	public 	var	description :String { self.localizedDescription }
 	public	var	errorDescription :String?
 					{ switch self { case .general(let errno):	return String(validatingUTF8: strerror(errno))! } }
 }
