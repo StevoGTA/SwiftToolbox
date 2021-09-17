@@ -176,7 +176,7 @@ class FilesystemDataCache : DataCache {
 	init(folderName :String, sizeLimit :Int64? = nil) throws {
 		// Setup
 		let	cachesFolder = FileManager.default.folder(for: .cachesDirectory)
-		self.folder = !folderName.isEmpty ? cachesFolder.folder(with: folderName) : cachesFolder
+		self.folder = !folderName.isEmpty ? cachesFolder.folder(withSubPath: folderName) : cachesFolder
 
 		// Store
 		self.sizeLimit = sizeLimit
@@ -195,7 +195,7 @@ class FilesystemDataCache : DataCache {
 	//------------------------------------------------------------------------------------------------------------------
 	func store(_ data :Data, for identifier :String) throws {
 		// Setup
-		let	file = self.folder.file(with: identifier)
+		let	file = self.folder.file(withSubPath: identifier)
 
 		// Create folder if needed
 		try FileManager.default.create(file.folder)
