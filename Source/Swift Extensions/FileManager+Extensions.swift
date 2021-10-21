@@ -53,20 +53,21 @@ extension FileManager {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func folders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
-			options: EnumerationOptions = []) -> [Folder] {
+			options: EnumerationOptions = []) throws -> [Folder] {
 		// Collect folders
 		var	folders = [Folder]()
-		enumerateFolders(in: folder, includingPropertiesForKeys: keys, options: options) { folders.append($0); _ = $1 }
+		try enumerateFolders(in: folder, includingPropertiesForKeys: keys, options: options)
+				{ folders.append($0); _ = $1 }
 
 		return folders
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func files(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
-			options: EnumerationOptions = []) -> [File] {
+			options: EnumerationOptions = []) throws -> [File] {
 		// Collect files
 		var	files = [File]()
-		enumerateFiles(in: folder, includingPropertiesForKeys: keys, options: options) { files.append($0); _ = $1 }
+		try enumerateFiles(in: folder, includingPropertiesForKeys: keys, options: options) { files.append($0); _ = $1 }
 
 		return files
 	}
@@ -92,12 +93,12 @@ extension FileManager {
 	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFolders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			folderProc :Folder.SubPathProc) {
+			folderProc :Folder.SubPathProc) throws {
 		// Setup
 		let	keysUse = (keys ?? []) + [.isRegularFileKey]
 
 		// Iterate all urls
-		var	urls = try! contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
+		var	urls = try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
 		if options.contains(.sorted) { urls = urls.sorted(by: { $0.path < $1.path }) }
 		for url in urls {
 			// Check for cancelled
@@ -114,12 +115,12 @@ extension FileManager {
 	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFiles(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			fileProc :File.SubPathProc) {
+			fileProc :File.SubPathProc) throws {
 		// Setup
 		let	keysUse = (keys ?? []) + [.isRegularFileKey]
 
 		// Iterate all urls
-		var	urls = try! contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
+		var	urls = try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
 		if options.contains(.sorted) { urls = urls.sorted(by: { $0.path < $1.path }) }
 		for url in urls {
 			// Check for cancelled
@@ -136,12 +137,12 @@ extension FileManager {
 	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFoldersFiles(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			folderProc :Folder.SubPathProc, fileProc :File.SubPathProc) {
+			folderProc :Folder.SubPathProc, fileProc :File.SubPathProc) throws {
 		// Setup
 		let	keysUse = (keys ?? []) + [.isRegularFileKey]
 
 		// Iterate all urls
-		var	urls = try! contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
+		var	urls = try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
 		if options.contains(.sorted) { urls = urls.sorted(by: { $0.path < $1.path }) }
 		for url in urls {
 			// Check for cancelled
