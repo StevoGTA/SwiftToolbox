@@ -114,7 +114,7 @@ class GroupTreeBuilder<G : TreeGroup> : TreeBuilder<G, String, VoidTreeItem, Voi
 	static func rootGroup(for groupPaths :[String], createGroupProc :@escaping CreateGroupProc) -> G {
 		// Setup
 		let	treeBuilder = TreeBuilder<G, String, VoidTreeItem, Void>(createGroupProc: createGroupProc)
-		groupPaths.forEach() { treeBuilder.addGroup(at: $0, with: $0) }
+		groupPaths.sorted().forEach() { treeBuilder.addGroup(at: $0, with: $0) }
 
 		return treeBuilder.rootGroup
 	}
