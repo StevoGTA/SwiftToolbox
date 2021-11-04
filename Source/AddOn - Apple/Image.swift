@@ -8,7 +8,13 @@
 
 import AVFoundation
 import Foundation
-import ImageIO
+
+#if os(iOS)
+	import MobileCoreServices
+	import UIKit
+#else
+	import ImageIO
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: CGImageMetadataTag extension
@@ -165,6 +171,20 @@ class Image {
 	private			let	cgImageInternal :CGImage?
 	private			let	cgImageSource :CGImageSource?
 
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func creationDate(from info :[String : Any]) -> Date? {
+		// Check what we have
+		if let createDate = (info["xmp"] as? [String : Any])?["CreateDate"] as? String,
+				let offsetTime = (info["exif"] as? [String : Any])?["OffsetTime"] as? String {
+			// 2021-09-14T10:27:38.915 + -07:00
+			return Date(fromRFC3339Extended: createDate + offsetTime.replacingOccurrences(of: ":", with: ""))
+		} else {
+			// Unknown
+			return nil
+		}
+	}
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(_ data :Data) {
@@ -255,7 +275,11 @@ class Image {
 		// Check scale mode
 		if scaleMode == .aspectFit {
 			// Clear as there may be transparent pixels
+#if os(iOS)
+			cgContext.setFillColor(UIColor.clear.cgColor)
+#else
 			cgContext.setFillColor(.clear)
+#endif
 			cgContext.fill(CGRect(origin: .zero, size: imageSize))
 		}
 

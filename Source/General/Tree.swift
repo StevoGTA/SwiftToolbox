@@ -15,24 +15,25 @@ protocol TreeGroup : TreeItem {}
 class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
 
 	// MARK: Types
-	typealias CreateGroupProc = (_ name :String, _ info :GInfo?, _ groups :[G]?, _ items :[I]?) -> G
-	typealias CreateItemProc = (_ name :String, _ info :IInfo?) -> I
+	typealias CreateGroupProc = (_ subPath :String, _ info :GInfo?, _ groups :[G]?, _ items :[I]?) -> G
+	typealias CreateItemProc = (_ subPath :String, _ info :IInfo?) -> I
 
 	// MARK: Tracker
 	private class GroupTracker {
 
 		// MARK: Properties
-		private	let	name :String
-		private	let	info :GInfo?
+				var	info :GInfo?
+
+		private	let	subPath :String
 
 		private var	childGroupTrackers :[GroupTracker]?
-		private	var	childItemInfos :[(name :String, info :IInfo?)]?
+		private	var	childItemInfos :[/* Name */ String : IInfo?]?
 
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
-		init(name :String, info :GInfo? = nil) {
+		init(subPath :String, info :GInfo? = nil) {
 			// Store
-			self.name = name
+			self.subPath = subPath
 			self.info = info
 		}
 
@@ -47,20 +48,21 @@ class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
-		func add(_ name :String, with info :IInfo? = nil) {
+		func add(_ subPath :String, with info :IInfo? = nil) {
 			// Setup
-			self.childItemInfos = self.childItemInfos ?? [(name :String, info :IInfo?)]()
+			self.childItemInfos = self.childItemInfos ?? [String : IInfo?]()
 
 			// Add
-			self.childItemInfos!.append((name, info))
+			self.childItemInfos![subPath.lastPathComponent!] = info
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
 		func createGroup(_ createGroupProc :CreateGroupProc, _ createItemProc :CreateItemProc?) -> G {
 			// Create group
-			return createGroupProc(self.name, self.info,
+			return createGroupProc(self.subPath, self.info,
 					self.childGroupTrackers?.map({ $0.createGroup(createGroupProc, createItemProc) }),
-					self.childItemInfos?.map({ createItemProc!($0.name, $0.info) }))
+					self.childItemInfos?.map(
+							{ createItemProc!(self.subPath.appending(pathComponent: $0.key), $0.value) }))
 		}
 	}
 
@@ -80,20 +82,33 @@ class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
 		self.createItemProc = createItemProc
 
 		// Create root group tracker
-		self.groupTrackerMap[""] = GroupTracker(name: "")
+		self.groupTrackerMap[""] = GroupTracker(subPath: "")
 	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func addGroup(at path :String, with info :GInfo? = nil) {
-		// Setup
-		let	groupTracker = GroupTracker(name: path.lastPathComponent!, info: info)
+	func addGroup(at subPath :String, with info :GInfo? = nil) {
+		// Check if already have a GroupTracker
+		if let groupTracker = self.groupTrackerMap[subPath] {
+			// Have GroupTracker
+			groupTracker.info = info
+		} else {
+			// Setup
+			let	groupTracker = GroupTracker(subPath: subPath, info: info)
+			let	folder = subPath.deletingLastPathComponent
 
-		// Add group tracker
-		self.groupTrackerMap[path] = groupTracker
+			// Add group tracker
+			self.groupTrackerMap[subPath] = groupTracker
 
-		// Add to parent
-		self.groupTrackerMap[path.deletingLastPathComponent]!.add(groupTracker)
+			// Check if have GroupTracker for folder
+			if self.groupTrackerMap[folder] == nil {
+				// Add Group for parent
+				addGroup(at: folder)
+			}
+
+			// Add to parent
+			self.groupTrackerMap[folder]!.add(groupTracker)
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -114,7 +129,7 @@ class GroupTreeBuilder<G : TreeGroup> : TreeBuilder<G, String, VoidTreeItem, Voi
 	static func rootGroup(for groupPaths :[String], createGroupProc :@escaping CreateGroupProc) -> G {
 		// Setup
 		let	treeBuilder = TreeBuilder<G, String, VoidTreeItem, Void>(createGroupProc: createGroupProc)
-		groupPaths.sorted().forEach() { treeBuilder.addGroup(at: $0, with: $0) }
+		groupPaths.sorted().forEach() { treeBuilder.addGroup(at: $0) }
 
 		return treeBuilder.rootGroup
 	}
