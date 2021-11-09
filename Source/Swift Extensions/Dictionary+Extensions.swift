@@ -12,7 +12,7 @@ import Foundation
 // MARK: Dictionary extension for convenience initializers
 public extension Dictionary {
 
-	// MARK: Lifecycle methods
+	// MARK: Lifecycle methods 
 	//------------------------------------------------------------------------------------------------------------------
 	init(_ pairs :[Element]) { self.init(pairs, uniquingKeysWith: { $1 }) }
 
