@@ -30,7 +30,7 @@ public class File {
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static func from(_ url :URL?) -> File? { (url != nil) ? File(url!) : nil }
+	static public func from(_ url :URL?) -> File? { (url != nil) ? File(url!) : nil }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------

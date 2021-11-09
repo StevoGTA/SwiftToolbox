@@ -15,7 +15,7 @@ extension Int {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init?(_ string :String?) {
+	public init?(_ string :String?) {
 		// Check if string is nil
 		guard string != nil else { return nil }
 

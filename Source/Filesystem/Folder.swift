@@ -22,7 +22,7 @@ public class Folder : Equatable {
 	public typealias SubPathDeepProc = (_ folder :Folder, _ subPath :String) -> Action
 
 	// MARK: Properties
-	static			let	temporary = Folder(URL(fileURLWithPath: NSTemporaryDirectory()))
+	static	public	let	temporary = Folder(URL(fileURLWithPath: NSTemporaryDirectory()))
 
 			public	let	url :URL
 
