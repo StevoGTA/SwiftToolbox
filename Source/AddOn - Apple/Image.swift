@@ -109,10 +109,11 @@ class Image {
 										CGImageSourceCreateImageAtIndex(self.cgImageSource!, 0, nil) : nil
 							}()
 			lazy	var	orientation :Orientation = { [unowned self] in
-								//
+								// Setup
 								let	metadata = self.metadata
 								let	orientation = (metadata?["tiff"] as? [String : Any])?["Orientation"] as? String
 
+								// Check results
 								if let value = Int(orientation) {
 									// Have value
 									return Orientation(rawValue: value)!
