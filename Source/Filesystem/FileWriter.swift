@@ -38,7 +38,7 @@ public class FileWriter {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static func setJSONContents<T>(of file :File, to t :T) throws {
+	static public func setJSONContents<T>(of file :File, to t :T) throws {
 		// Set content
 		try setContents(of: file, to: try JSONSerialization.data(withJSONObject: t, options: []))
 	}

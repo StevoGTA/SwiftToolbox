@@ -14,13 +14,7 @@ public extension Dictionary {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(_ pairs :[Element]) {
-		// Init
-		self.init()
-
-		// Iterate elements and construct dictionary
-		pairs.forEach() { self[$0.key] = $0.value }
-	}
+	init(_ pairs :[Element]) { self.init(pairs, uniquingKeysWith: { $1 }) }
 
 	//------------------------------------------------------------------------------------------------------------------
 	init(_ keys :[Key], valueProc :(_ key :Key) -> Value?) {

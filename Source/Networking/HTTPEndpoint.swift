@@ -35,7 +35,7 @@ public struct HTTPEndpointStatusError : CustomStringConvertible, Error, Localize
 	public	var	errorDescription :String? { self.status.description }
 
 	// MARK: Properties
-	let	status :HTTPEndpointStatus
+	public	let	status :HTTPEndpointStatus
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------

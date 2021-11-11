@@ -23,13 +23,13 @@ public class FileReader {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static func contentsAsString(of file :File, encoding :String.Encoding = .utf8) throws -> String? {
+	static public func contentsAsString(of file :File, encoding :String.Encoding = .utf8) throws -> String? {
 		// Read as string
 		return String(data: try Data(contentsOf: file.url, options: [.mappedIfSafe]), encoding: encoding)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static func contentsAsJSON<T>(of file :File) throws -> T? {
+	static public func contentsAsJSON<T>(of file :File) throws -> T? {
 		// Return contents
 		return try JSONSerialization.jsonObject(with: try Data(contentsOf: file.url), options: []) as? T
 	}

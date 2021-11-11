@@ -23,8 +23,8 @@ extension Sequence {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func sorted<T : Comparable>(keyProc :(Self.Element) throws -> T, keyCompareProc: (T, T) -> Bool = { $0 < $1 })
-			rethrows -> [Self.Element] {
+	public func sorted<T : Comparable>(keyProc :(Self.Element) throws -> T,
+			keyCompareProc: (T, T) -> Bool = { $0 < $1 }) rethrows -> [Self.Element] {
 		// Must have at least 2 elements
 		guard self.underestimatedCount > 1 else { return Array(self) }
 
