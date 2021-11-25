@@ -166,7 +166,7 @@ class FilesystemDataCache : DataCache {
 		try FileManager.default.createDirectory(at: self.folder.url, withIntermediateDirectories: true, attributes: nil)
 
 		// Note existing files
-		FileManager.default.enumerateFiles(in: self.folder, includingPropertiesForKeys: [.fileSizeKey]) {
+		try FileManager.default.enumerateFiles(in: self.folder, includingPropertiesForKeys: [.fileSizeKey]) {
 			// Update map
 			self.map[$1] = ItemInfo(file: $0)
 		}
@@ -185,7 +185,7 @@ class FilesystemDataCache : DataCache {
 		try FileManager.default.createDirectory(at: self.folder.url, withIntermediateDirectories: true, attributes: nil)
 
 		// Note existing files
-		FileManager.default.enumerateFiles(in: self.folder, includingPropertiesForKeys: [.fileSizeKey]) {
+		try FileManager.default.enumerateFiles(in: self.folder, includingPropertiesForKeys: [.fileSizeKey]) {
 			// Update map
 			self.map[$1] = ItemInfo(file: $0)
 		}

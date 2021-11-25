@@ -117,7 +117,7 @@ class KeyedArchiveStorage {
 		if let data = try? FileReader.contentsAsData(of: self.storageFile),
 				let info = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? [String : Any] {
 			// Setup
-			set(info: info!)
+			set(info: info)
 		}
 	}
 	
