@@ -53,21 +53,40 @@ extension FileManager {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func folders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
-			options: EnumerationOptions = []) throws -> [Folder] {
-		// Collect folders
+			options: EnumerationOptions = [], deep :Bool = false) throws -> [Folder] {
+		// Setup
 		var	folders = [Folder]()
-		try enumerateFolders(in: folder, includingPropertiesForKeys: keys, options: options)
+
+		// Check deep
+		if deep {
+			// Deep
+			try enumerateFoldersFilesDeep(in: folder, includingPropertiesForKeys: keys, options: options,
+					folderProc: { folders.append($0); _ = $1; return .process })
+		} else {
+			// Shallow
+			try enumerateFolders(in: folder, includingPropertiesForKeys: keys, options: options)
 				{ folders.append($0); _ = $1 }
+		}
 
 		return folders
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func files(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
-			options: EnumerationOptions = []) throws -> [File] {
-		// Collect files
+			options: EnumerationOptions = [], deep :Bool = false) throws -> [File] {
+		// Setup
 		var	files = [File]()
-		try enumerateFiles(in: folder, includingPropertiesForKeys: keys, options: options) { files.append($0); _ = $1 }
+
+		// Check deep
+		if deep {
+			// Deep
+			try enumerateFoldersFilesDeep(in: folder, includingPropertiesForKeys: keys, options: options,
+					fileProc: { files.append($0); _ = $1 })
+		} else {
+			// Shallow
+			try enumerateFiles(in: folder, includingPropertiesForKeys: keys, options: options)
+				{ files.append($0); _ = $1 }
+		}
 
 		return files
 	}
@@ -75,7 +94,7 @@ extension FileManager {
 	//------------------------------------------------------------------------------------------------------------------
 	public func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			options: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
-			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc) throws {
+			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc = { _,_ in }) throws {
 		// Setup
 		let	keysUse = (keys ?? []) + [.isRegularFileKey]
 
