@@ -47,9 +47,10 @@ public class HTTPEndpointRequest {
 							let	path :String
 							let	queryComponents :[String : Any]?
 							let	multiValueQueryComponent :MultiValueQueryComponent?
-							let	headers :[String : String]?
 							let	timeoutInterval :TimeInterval
 							let	bodyData :Data?
+
+							var	headers :[String : String]?
 
 			private(set)	var	state :State = .queued
 			private(set)	var	isCancelled = false
@@ -64,9 +65,11 @@ public class HTTPEndpointRequest {
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.headers = headers
 		self.timeoutInterval = timeoutInterval
 		self.bodyData = nil
+
+		self.headers = headers
+		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -78,9 +81,11 @@ public class HTTPEndpointRequest {
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.headers = headers
 		self.timeoutInterval = timeoutInterval
 		self.bodyData = bodyData
+
+		self.headers = headers
+		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -96,9 +101,11 @@ public class HTTPEndpointRequest {
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.headers = headersUse
 		self.timeoutInterval = timeoutInterval
 		self.bodyData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
+
+		self.headers = headersUse
+		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -114,9 +121,11 @@ public class HTTPEndpointRequest {
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.headers = headersUse
 		self.timeoutInterval = timeoutInterval
 		self.bodyData = xmlBody
+
+		self.headers = headersUse
+		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -132,12 +141,14 @@ public class HTTPEndpointRequest {
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.headers = headersUse
 		self.timeoutInterval = timeoutInterval
 		self.bodyData =
 				String(combining: urlEncodedBody.map({ "\($0.key)=\($0.value)" }), with: "&")
 					.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 					.data(using: .utf8)
+
+		self.headers = headersUse
+		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -148,9 +159,11 @@ public class HTTPEndpointRequest {
 		self.path = url.absoluteString
 		self.queryComponents = nil
 		self.multiValueQueryComponent = nil
-		self.headers = headers
 		self.timeoutInterval = timeoutInterval
 		self.bodyData = bodyData
+
+		self.headers = headers
+		adjustHeaders()
 	}
 
 	// MARK: Instance methods
@@ -159,6 +172,10 @@ public class HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func transition(to state :State) { self.state = state }
+
+	// MARK: Subclass methods
+	//------------------------------------------------------------------------------------------------------------------
+	fileprivate func adjustHeaders() {}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -384,6 +401,14 @@ public class JSONHTTPEndpointRequest<T> : HTTPEndpointRequest {
 	private	let	completedRequestsCount = LockingNumeric<Int>()
 
 	private	var	errors = [Error]()
+
+	// MARK: HTTPEndpointRequest methods
+	//------------------------------------------------------------------------------------------------------------------
+	override func adjustHeaders() {
+		// Setup
+		self.headers = self.headers ?? [:]
+		self.headers!["Accept"] = "application/json"
+	}
 }
 
 extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessMultiResults {

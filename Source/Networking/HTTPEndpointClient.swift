@@ -314,14 +314,13 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 			// Process results
 			if response != nil {
 				// Have a response
-				let	statusCode = response!.statusCode
-				if statusCode == HTTPEndpointStatus.ok.rawValue {
+				let	httpEndpointStatus = HTTPEndpointStatus(rawValue: response!.statusCode)!
+				if httpEndpointStatus.isSuccess {
 					// Success
 					self.dataCompletionProc!(response, data, nil)
 				} else {
 					// Some other response
-					self.dataCompletionProc!(response, nil,
-							HTTPEndpointStatusError(status: HTTPEndpointStatus(rawValue: statusCode)!))
+					self.dataCompletionProc!(response, nil, HTTPEndpointStatusError(status: httpEndpointStatus))
 				}
 			} else {
 				// Error
