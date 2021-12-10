@@ -72,9 +72,10 @@ public struct SQLiteTable {
 			}
 
 	// MARK: Properties
-	static	private			let	countAllTableColumn = SQLiteTableColumn("COUNT(*)", .integer)
-
 			private(set)	var	name :String
+
+	static	private			let	countAllTableColumn = SQLiteTableColumn("COUNT(*)", .integer)
+	static	private			let	nameTableColumn = SQLiteTableColumn("name", .text)
 
 			private			let	options :Options
 			private			let tableColumnReferenceMap :[String : SQLiteTableColumn.Reference]
@@ -82,6 +83,18 @@ public struct SQLiteTable {
 
 			private			var	tableColumns :[SQLiteTableColumn]
 			private			var	tableColumnsMap = [String : SQLiteTableColumn]()
+
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func all(_ statementPerformer :SQLiteStatementPerformer) -> [SQLiteTable] {
+		// Collect table names
+		var	tableNames = [String]()
+		statementPerformer.perform(
+				statement: "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+				{ tableNames.append($0.text(for: self.nameTableColumn)!) }
+
+		return tableNames.map({ SQLiteTable(name: $0, statementPerformer: statementPerformer) })
+	}
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -97,6 +110,17 @@ public struct SQLiteTable {
 
 		// Setup
 		tableColumns.forEach() { self.tableColumnsMap["\($0.name)TableColumn"] = $0 }
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	private init(name :String, statementPerformer :SQLiteStatementPerformer) {
+		// Store
+		self.name = name
+
+		self.options = []
+		self.tableColumns = []
+		self.tableColumnReferenceMap = [:]
+		self.statementPerformer = statementPerformer
 	}
 
 	// MARK: Property methods

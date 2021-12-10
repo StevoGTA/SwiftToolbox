@@ -49,6 +49,8 @@ public class SQLiteDatabase {
 	}
 
 	// MARK: Properties
+			var	tables :[SQLiteTable] { SQLiteTable.all(self.statementPerformer) }
+
 	private	let	database :OpaquePointer
 	private	let	statementPerformer :SQLiteStatementPerformer
 
