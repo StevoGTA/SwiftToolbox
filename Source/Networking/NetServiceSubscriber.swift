@@ -16,6 +16,20 @@ import Foundation
 // MARK: NetServiceSubscriber
 class NetServiceSubscriber : NSObject, NetServiceBrowserDelegate, NetServiceDelegate {
 
+	// MARK: Options
+	public struct Options : OptionSet {
+
+		// MARK: Properties
+#if os(iOS) || os(watchOS) || os(tvOS)
+		static	public	let	restartSearchOnApplicationWillEnterForeground = Options(rawValue: 1 << 0)
+#endif
+
+				public	let	rawValue :Int
+
+		// MARK: Lifecycle methods
+		public init(rawValue :Int) { self.rawValue = rawValue }
+	}
+
 	// MARK: Properties
 	static			let	domainDefault = "local."
 	static			let	domainAll = ""
@@ -37,6 +51,7 @@ class NetServiceSubscriber : NSObject, NetServiceBrowserDelegate, NetServiceDele
 			private	let	domain :String
 			private	let	type :String
 			private	let	name :String
+			private	let	options :Options
 
 			private	let	netServiceBrowser = NetServiceBrowser()
 
@@ -50,11 +65,12 @@ class NetServiceSubscriber : NSObject, NetServiceBrowserDelegate, NetServiceDele
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(domain :String = NetServiceSubscriber.domainDefault, type :String = NetServiceSubscriber.typeHTTPTCP,
-			name :String) {
+			name :String, options :Options = []) {
 		// Store
 		self.domain = domain
 		self.type = type
 		self.name = name
+		self.options = options
 
 		// Do super
 		super.init()
@@ -83,7 +99,8 @@ class NetServiceSubscriber : NSObject, NetServiceBrowserDelegate, NetServiceDele
 				NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification)
 						{ [unowned self] _ in
 							// Check if was searching
-							if self.isSearching {
+							if self.isSearching ||
+									self.options.contains(.restartSearchOnApplicationWillEnterForeground) {
 								// Check logging
 								if self.logActions {
 									// Log
@@ -103,8 +120,8 @@ class NetServiceSubscriber : NSObject, NetServiceBrowserDelegate, NetServiceDele
 	//------------------------------------------------------------------------------------------------------------------
 	deinit {
 #if os(iOS) || os(watchOS) || os(tvOS)
-		NotificationCenter.default.removeObserver(self.applicationDidEnterBackgroundNotificationObserver)
-		NotificationCenter.default.removeObserver(self.applicationWillEnterForegroundNotificationObserver)
+		NotificationCenter.default.removeObserver(self.applicationDidEnterBackgroundNotificationObserver!)
+		NotificationCenter.default.removeObserver(self.applicationWillEnterForegroundNotificationObserver!)
 #endif
 
 		// Stop
