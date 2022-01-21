@@ -30,7 +30,7 @@ extension String {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(combining components :[String], with separator :String = ", ") {
+	public init<T : ExpressibleByStringInterpolation>(combining components :[T], with separator :String = ", ") {
 		// Setup
 		var	string = ""
 
@@ -39,7 +39,7 @@ extension String {
 			// Append to string
 			if $0.offset == 0 {
 				// Start of string
-				string = $0.element
+				string = "\($0.element)"
 			} else {
 				// Continuing
 				string += separator + "\($0.element)"
