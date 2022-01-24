@@ -751,7 +751,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 									}
 								} else {
 									// Error
-									logMessages.append("    \(className) received error \($2!) for \(urlRequestInfo)")
+									logMessages.append("    \(className) received error for \(urlRequestInfo) in \(String(format: "%0.3f", deltaTime))s: \($2!)")
 								}
 								HTTPEndpointClient.logProc(logMessages)
 							}
