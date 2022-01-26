@@ -176,3 +176,15 @@ public extension Dictionary where Key == String, Value == Any {
 		return true
 	}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Dictionary extension for key pairs
+public extension Dictionary {
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func mapPairs<OutKey: Hashable, OutValue>(_ transform: (Element) throws -> (OutKey, OutValue)) rethrows ->
+			[OutKey : OutValue] {
+		return Dictionary<OutKey, OutValue>(try map(transform))
+	}
+}

@@ -32,8 +32,7 @@ extension NSExtensionItem {
 
 		// MARK: Lifecycle methods
 		//------------------------------------------------------------------------------------------------------------------
-		init() {
-		}
+		init() {}
 	}
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -258,7 +257,6 @@ extension NSExtensionItem {
 			var	mediaItems = [MediaItem]()
 			attachments.forEach() {
 				// Check what can be loaded
-NSLog("\($0.registeredTypeIdentifiers)")
 				if let photoMediaItem = PhotoMediaItem.canLoad(itemProvider: $0) {
 					// Can load as PhotoMediaItem
 					remainingMediaItemsCount.add(1)
