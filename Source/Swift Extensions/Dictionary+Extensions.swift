@@ -38,7 +38,7 @@ public extension Dictionary {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: Dictionary extension for values of Arrays and Sets
+// MARK: - Dictionary extension for values of Arrays and Sets
 public extension Dictionary {
 
 	// MARK: Instance methods
@@ -174,6 +174,20 @@ public extension Dictionary where Key == String, Value == Any {
 		}
 
 		return true
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Dictionary extension for String keys and Data values
+public extension Dictionary where Key == String, Value == Data {
+
+	// Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func string(for key :String) -> String? {
+		// Try to get data
+		guard let data = self[key] else { return nil }
+
+		return String(data: data, encoding: .utf8)
 	}
 }
 

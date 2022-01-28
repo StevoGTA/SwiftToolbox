@@ -48,7 +48,7 @@ extension Date {
 
 								return dateFormatter
 							}()
-	static			let	rfc3339ExtendedDateFormatter :DateFormatter = {
+	static	public	let	rfc3339ExtendedDateFormatter :DateFormatter = {
 								// Setup
 								let	dateFormatter = DateFormatter()
 								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
@@ -142,5 +142,20 @@ extension Date {
 		dateComponents.year = years
 
 		return NSCalendar.current.date(byAdding: dateComponents, to: self)!
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Dictionary extension for String keys and Data values
+public extension Dictionary where Key == String, Value == Data {
+
+	// Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func date(for key :String, dateFormatter :DateFormatter = Date.rfc3339ExtendedDateFormatter) -> Date? {
+		// Try to get data
+		guard let data = self[key] else { return nil }
+		guard let string = String(data: data, encoding: .utf8) else { return nil }
+
+		return dateFormatter.date(from: string)
 	}
 }
