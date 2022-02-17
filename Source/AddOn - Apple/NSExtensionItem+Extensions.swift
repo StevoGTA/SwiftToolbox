@@ -21,6 +21,8 @@ extension NSExtensionItem {
 	class MediaItem {
 
 		// MARK: Properties
+					let	id = UUID().uuidString
+					
 					var	filename :String?
 					var	image :CGImage?
 					var	error :Error?
@@ -74,14 +76,24 @@ extension NSExtensionItem {
 				if let url = $0 {
 					// Success
 					self.file = File(url)
+					self.filename = self.file!.name
+
 #if os(iOS)
+					// iOS
 					self.image = UIImage(data: try! Data(contentsOf: url))?.cgImage
 #endif
 #if os(macOS)
-					let	imageSource = CGImageSourceCreateWithURL(url as CFURL, nil)
-					self.image = CGImageSourceCreateImageAtIndex(imageSource!, 0, nil)
+					// macOS
+					do {
+						// Create image
+						let	data = try FileReader.contentsAsData(of: self.file!)
+						let	imageSource = CGImageSourceCreateWithData(data as CFData, nil)
+						self.image = CGImageSourceCreateImageAtIndex(imageSource!, 0, nil)
+					} catch {
+						// Error
+						self.error = error
+					}
 #endif
-					self.filename = self.file!.name
 
 					// Call completion
 					completionProc()
