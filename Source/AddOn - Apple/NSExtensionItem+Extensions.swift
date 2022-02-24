@@ -33,11 +33,11 @@ extension NSExtensionItem {
 		fileprivate	var	typeDisplayNameInternal :String? { nil }
 
 		// MARK: Lifecycle methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		init() {}
 	}
 
-	//----------------------------------------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------------------------------------
 	// MARK: - PhotoMediaItem
 	class PhotoMediaItem : MediaItem {
 
@@ -50,7 +50,7 @@ extension NSExtensionItem {
 		private					let	itemProvider :NSItemProvider
 
 		// MARK: Class methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		static fileprivate func canLoad(itemProvider :NSItemProvider) -> PhotoMediaItem? {
 			// Check if can load
 			return itemProvider.hasItemConformingToTypeIdentifier(kUTTypeImage as String) ?
@@ -58,7 +58,7 @@ extension NSExtensionItem {
 		}
 
 		// MARK: Lifecycle methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		private init(itemProvider :NSItemProvider) {
 			// Store
 			self.itemProvider = itemProvider
@@ -68,7 +68,7 @@ extension NSExtensionItem {
 		}
 
 		// MARK: Instance methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		fileprivate func load(completionProc :@escaping () -> Void) {
 			// Load
 			_ = self.itemProvider.loadFileRepresentation(forTypeIdentifier: kUTTypeImage as String) {
@@ -124,7 +124,7 @@ extension NSExtensionItem {
 		}
 	}
 
-	//----------------------------------------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------------------------------------
 	// MARK: - URLMediaItem
 	class URLMediaItem : MediaItem {
 
@@ -136,7 +136,7 @@ extension NSExtensionItem {
 		private					let	itemProvider :NSItemProvider
 
 		// MARK: Class methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		static fileprivate func canLoad(itemProvider :NSItemProvider) -> URLMediaItem? {
 			// Check if can load
 			return itemProvider.hasItemConformingToTypeIdentifier(kUTTypeURL as String) ?
@@ -144,7 +144,7 @@ extension NSExtensionItem {
 		}
 
 		// MARK: Lifecycle methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		private init(itemProvider :NSItemProvider) {
 			// Store
 			self.itemProvider = itemProvider
@@ -154,7 +154,7 @@ extension NSExtensionItem {
 		}
 
 		// MARK: Instance methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		fileprivate func load(completionProc :@escaping () -> Void) {
 			// Load
 			_ = self.itemProvider.loadObject(ofClass: URL.self) {
@@ -191,7 +191,7 @@ extension NSExtensionItem {
 		}
 	}
 
-	//----------------------------------------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------------------------------------
 	// MARK: - VideoMediaItem
 	class VideoMediaItem : MediaItem {
 
@@ -204,7 +204,7 @@ extension NSExtensionItem {
 		private					let	itemProvider :NSItemProvider
 
 		// MARK: Class methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		static fileprivate func canLoad(itemProvider :NSItemProvider) -> VideoMediaItem? {
 			// Check if can load
 			return (itemProvider.hasItemConformingToTypeIdentifier(kUTTypeVideo as String) ||
@@ -213,7 +213,7 @@ extension NSExtensionItem {
 		}
 
 		// MARK: Lifecycle methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		private init(itemProvider :NSItemProvider) {
 			// Store
 			self.itemProvider = itemProvider
@@ -223,7 +223,7 @@ extension NSExtensionItem {
 		}
 
 		// MARK: Instance methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		fileprivate func load(completionProc :@escaping () -> Void) {
 			// Load
 			_ = self.itemProvider.loadObject(ofClass: URL.self) {
