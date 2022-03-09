@@ -1,0 +1,21 @@
+//
+//  SerialQueue.swift
+//  Swift Toolbox
+//
+//  Created by Stevo on 3/8/22.
+//  Copyright © 2022 Stevo Brock. All rights reserved.
+//
+
+import Foundation
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: SerialQueue
+public class SerialQueue<T> : ConcurrentQueue<T> {
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init(procDispatchQueue :DispatchQueue = .global(), proc :@escaping Proc) {
+		// Do super
+		super.init(maxConcurrency: .specified(value: 1), procDispatchQueue: procDispatchQueue, proc: proc)
+	}
+}

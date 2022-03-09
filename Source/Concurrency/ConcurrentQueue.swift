@@ -14,6 +14,7 @@ public class ConcurrentQueue<T> {
 
 	// MARK: Enums
 	public enum MaxConcurrency {
+		case specified(value :Int)
 		case coresMinusOne
 		case cores
 		case unlimited
@@ -38,9 +39,10 @@ public class ConcurrentQueue<T> {
 			proc :@escaping Proc) {
 		// Setup
 		switch maxConcurrency {
-			case .coresMinusOne:	self.maxConcurrentItems = max(ProcessInfo.processInfo.processorCount - 1, 1)
-			case .cores:			self.maxConcurrentItems = ProcessInfo.processInfo.processorCount
-			case .unlimited:		self.maxConcurrentItems = .max
+			case .specified(let value):	self.maxConcurrentItems = value
+			case .coresMinusOne:		self.maxConcurrentItems = max(ProcessInfo.processInfo.processorCount - 1, 1)
+			case .cores:				self.maxConcurrentItems = ProcessInfo.processInfo.processorCount
+			case .unlimited:			self.maxConcurrentItems = .max
 		}
 
 		// Store
@@ -53,6 +55,15 @@ public class ConcurrentQueue<T> {
 	public func add(_ item :T) {
 		// Add
 		self.itemsLock.perform() { self.queuedItems.append(item) }
+
+		// Process
+		processItems()
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func add(_ items :[T]) {
+		// Add
+		self.itemsLock.perform() { self.queuedItems += items }
 
 		// Process
 		processItems()
