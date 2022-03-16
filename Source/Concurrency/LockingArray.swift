@@ -49,6 +49,20 @@ public class LockingArray<T> {
 	public func removeFirst() -> T { self.lock.write({ self.array.removeFirst() }) }
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func removeFirst(_ count :Int) -> [T] {
+		// Drop first count items and return
+		return self.lock.write({
+			// Get items
+			let	items = Array(self.array[0..<count])
+
+			// Drop those items
+			self.array = Array(self.array.dropFirst(count))
+
+			return items
+		})
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func removeAll(where proc :(_ value :T) -> Bool) -> Self {
 		// Remove all using proc

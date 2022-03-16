@@ -21,7 +21,7 @@ public class BatchQueue<T> {
 	private	let	procDispatchQueue :DispatchQueue?
 	private	let	itemBatchesInFlight = LockingNumeric<Int>()
 
-	private	var	items = [T]()
+	private	var	items = LockingArray<T>()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -41,10 +41,7 @@ public class BatchQueue<T> {
 		// Check if time to process some
 		if self.items.count >= self.maximumBatchSize {
 			// Time to process
-			let	items = Array(self.items[0..<self.maximumBatchSize])
-			self.items = Array(self.items.dropFirst(self.maximumBatchSize))
-
-			process(items)
+			process(self.items.removeFirst(self.maximumBatchSize))
 		}
 	}
 
@@ -56,10 +53,7 @@ public class BatchQueue<T> {
 		// Check if time to process some
 		while self.items.count >= self.maximumBatchSize {
 			// Time to process
-			let	items = Array(self.items[0..<self.maximumBatchSize])
-			self.items = Array(self.items.dropFirst(self.maximumBatchSize))
-
-			process(items)
+			process(self.items.removeFirst(self.maximumBatchSize))
 		}
 	}
 
@@ -67,11 +61,8 @@ public class BatchQueue<T> {
 	public func finalize() {
 		// Check for items
 		if !self.items.isEmpty {
-			// Process
-			let	items = self.items
-			self.items.removeAll()
-
-			process(items)
+			// Process the remaining
+			process(self.items.removeAll())
 
 			// Wait until all finished
 			self.itemBatchesInFlight.wait()
