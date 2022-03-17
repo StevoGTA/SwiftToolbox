@@ -89,78 +89,92 @@ extension String {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - String Path Extension
-extension String {
+public extension String {
 
 	// MARK: Properties
-	public	var	pathComponents :[String] {
-						// What's our deal?
-						if self.isEmpty {
-							// Empty
-							return []
-						} else if hasPrefix("/") {
-							// /asdfasdfa
-							return dropFirst(1).components(separatedBy: "/")
-						} else {
-							// asdfa/asdf
-							return components(separatedBy: "/")
-						}
-					}
-	public	var	firstPathComponent :String? { self.pathComponents.first }
-	public	var	lastPathComponent :String? { self.pathComponents.last }
-	public	var	lastPathComponentWithoutPathExtension :String? { self.pathComponents.last?.deletingPathExtension }
-	public	var	deletingFirstPathComponent :String {
-						// Get path components
-						let	pathComponents = self.pathComponents
+	var	pathComponents :[String] {
+				// What's our deal?
+				if self.isEmpty {
+					// Empty
+					return []
+				} else if hasPrefix("/") {
+					// /asdfasdfa
+					return dropFirst(1).components(separatedBy: "/")
+				} else {
+					// asdfa/asdf
+					return components(separatedBy: "/")
+				}
+			}
+	var	firstPathComponent :String? { self.pathComponents.first }
+	var	lastPathComponent :String? { self.pathComponents.last }
+	var	lastPathComponentWithoutPathExtension :String? { self.pathComponents.last?.deletingPathExtension }
+	var	deletingFirstPathComponent :String {
+				// Get path components
+				let	pathComponents = self.pathComponents
 
-						return (pathComponents.count > 1) ?
-								self.substring(fromCharacterIndex: pathComponents.first!.count + 1) : ""
-					}
-	public	var	deletingLastPathComponent :String {
-						// Get path components
-						let	pathComponents = self.pathComponents
+				return (pathComponents.count > 1) ?
+						self.substring(fromCharacterIndex: pathComponents.first!.count + 1) : ""
+			}
+	var	deletingLastPathComponent :String {
+				// Get path components
+				let	pathComponents = self.pathComponents
 
-						return (pathComponents.count > 1) ?
-								self.substring(toCharacterIndex: self.count - pathComponents.last!.count - 1) : ""
-					}
-	public	var	pathExtension :String? {
-						// Setup
-						let	components = self.components(separatedBy: ".")
+				return (pathComponents.count > 1) ?
+						self.substring(toCharacterIndex: self.count - pathComponents.last!.count - 1) : ""
+			}
+	var	pathExtension :String? {
+				// Setup
+				let	components = self.components(separatedBy: ".")
 
-						return (components.count > 1) ? components.last : nil
-					}
-	public	var	deletingPathExtension :String {
-						// Split path by "."
-						let	nameComponents = self.components(separatedBy: ".")
+				return (components.count > 1) ? components.last : nil
+			}
+	var	deletingPathExtension :String {
+				// Split path by "."
+				let	nameComponents = self.components(separatedBy: ".")
 
-						return (nameComponents.count > 1) ?
-								self.substring(toCharacterIndex: self.count - nameComponents.last!.count - 1) : self
-					}
+				return (nameComponents.count > 1) ?
+						self.substring(toCharacterIndex: self.count - nameComponents.last!.count - 1) : self
+			}
+
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func allTreeSubPaths(given leafSubPaths :[String]) -> Set<String> {
+		// Setup
+		var	subPaths = Set<String>(!leafSubPaths.isEmpty ? [""] : [])
+		leafSubPaths.forEach() {
+			// Add all folder subPaths going up the tree
+			var	subPath = $0.deletingLastPathComponent
+			while !subPath.isEmpty {
+				// Add
+				subPaths.insert(subPath)
+
+				// Go up a level
+				subPath = subPath.deletingPathExtension
+			}
+		}
+
+		return subPaths
+	}
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(combiningPathComponents pathComponents :[String]) { self.init(combining: pathComponents, with: "/") }
+	init(combiningPathComponents pathComponents :[String]) { self.init(combining: pathComponents, with: "/") }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func appending(pathComponent :String) -> String { self.isEmpty ? pathComponent : self + "/" + pathComponent }
+	func appending(pathComponent :String) -> String { self.isEmpty ? pathComponent : self + "/" + pathComponent }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func appending(pathExtension :String) -> String {
-		// Return after adding path extension
-		return !pathExtension.isEmpty ? self + "." + pathExtension : self
-	}
+	func appending(pathExtension :String) -> String { !pathExtension.isEmpty ? self + "." + pathExtension : self }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func lastPathComponents(_ count :Int) -> [String] { self.pathComponents.suffix(count) }
+	func lastPathComponents(_ count :Int) -> [String] { self.pathComponents.suffix(count) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func lastPathComponentsSubPath(_ count :Int) -> String {
-		// Return last path components as a subPath
-		return String(combining: lastPathComponents(count), with: "/")
-	}
+	func lastPathComponentsSubPath(_ count :Int) -> String { String(combining: lastPathComponents(count), with: "/") }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func subPath(relativeTo path :String) -> String? {
+	func subPath(relativeTo path :String) -> String? {
 		// Ensure common root
 		guard hasPrefix(path) else { return nil }
 
