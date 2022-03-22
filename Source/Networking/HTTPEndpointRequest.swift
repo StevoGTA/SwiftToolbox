@@ -420,7 +420,7 @@ extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessMultiResults {
 		if !self.isCancelled {
 			// Handle results
 			var	info :T? = nil
-			var	procError :Error?
+			var	localError = error
 			if data != nil {
 				// Catch errors
 				do {
@@ -430,34 +430,31 @@ extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessMultiResults {
 					// Check if got response data
 					if info == nil {
 						// Nope
-						procError = HTTPEndpointRequestError.unableToProcessResponseData
+						localError = localError ?? HTTPEndpointRequestError.unableToProcessResponseData
 					}
 				} catch {
 					// Error
-					procError = error
+					localError = localError ?? error
 				}
-			} else {
-				// Error
-				procError = error
 			}
 
 			// Check error
-			if procError != nil { self.errors.append(procError!) }
+			if localError != nil { self.errors.append(localError!) }
 
 			// Call proc
 			if totalRequests == 1 {
 				// Single request (but could have been multiple
 				if self.completionProc != nil {
 					// Single response expected
-					self.completionProc!(response, info, procError)
+					self.completionProc!(response, info, localError)
 				} else {
 					// Multi-responses possible
-					self.multiResponsePartialResultsProc!(response, info, procError)
+					self.multiResponsePartialResultsProc!(response, info, localError)
 					self.multiResponseCompletionProc!(self.errors)
 				}
 			} else {
 				// Multiple requests
-				self.multiResponsePartialResultsProc!(response, info, procError)
+				self.multiResponsePartialResultsProc!(response, info, localError)
 				if self.completedRequestsCount.add(1) == totalRequests {
 					// All done
 					self.multiResponseCompletionProc!(self.errors)

@@ -32,14 +32,20 @@ public struct HTTPEndpointStatusError : CustomStringConvertible, Error, Localize
 	public 	var	description :String { self.localizedDescription }
 
 	// MARK: LocalizedError implementation
-	public	var	errorDescription :String? { self.status.description }
+	public	var	errorDescription :String?
+					{ (self.info != nil) ? "\(self.status.description) (\(self.info!))" : self.status.description }
 
 	// MARK: Properties
 	public	let	status :HTTPEndpointStatus
+	public	let	info :String?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(status :HTTPEndpointStatus) { self.status = status }
+	init(status :HTTPEndpointStatus, info :String? = nil) {
+		// Store
+		self.status = status
+		self.info = info
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

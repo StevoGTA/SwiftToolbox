@@ -318,13 +318,18 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 				if httpEndpointStatus.isSuccess {
 					// Success
 					self.dataCompletionProc!(response, data, nil)
+				} else if data != nil {
+					// Other response with payload
+					self.dataCompletionProc!(response, data,
+							HTTPEndpointStatusError(status: httpEndpointStatus,
+									info: String(data: data!, encoding: .utf8)))
 				} else {
 					// Some other response
-					self.dataCompletionProc!(response, nil, HTTPEndpointStatusError(status: httpEndpointStatus))
+					self.dataCompletionProc!(response, data, HTTPEndpointStatusError(status: httpEndpointStatus))
 				}
 			} else {
-				// Error
-				self.dataCompletionProc!(response, nil, error)
+				// Some other error
+				self.dataCompletionProc!(nil, nil, error)
 			}
 		}
 
