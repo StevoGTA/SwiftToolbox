@@ -21,7 +21,8 @@ public class BatchQueue<T> {
 	private	let	procDispatchQueue :DispatchQueue?
 	private	let	itemBatchesInFlight = LockingNumeric<Int>()
 
-	private	var	items = LockingArray<T>()
+	private	var	items = [T]()
+	private	var	itemsLock = Lock()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -35,37 +36,51 @@ public class BatchQueue<T> {
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	public func add(_ item :T) {
-		// Add
-		self.items.append(item)
+		// One at a time please
+		self.itemsLock.perform() {
+			// Add
+			self.items.append(item)
 
-		// Check if time to process some
-		if self.items.count >= self.maximumBatchSize {
-			// Time to process
-			process(self.items.removeFirst(self.maximumBatchSize))
+			// Check if time to process some
+			if self.items.count >= self.maximumBatchSize {
+				// Time to process
+				let	items = Array(self.items[0..<self.maximumBatchSize])
+				self.items = Array(self.items.dropFirst(self.maximumBatchSize))
+				process(items)
+			}
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func add(_ items :[T]) {
-		// Add
-		self.items += items
+		// One at a time please
+		self.itemsLock.perform() {
+			// Add
+			self.items += items
 
-		// Check if time to process some
-		while self.items.count >= self.maximumBatchSize {
-			// Time to process
-			process(self.items.removeFirst(self.maximumBatchSize))
+			// Check if time to process some
+			while self.items.count >= self.maximumBatchSize {
+				// Time to process
+				let	items = Array(self.items[0..<self.maximumBatchSize])
+				self.items = Array(self.items.dropFirst(self.maximumBatchSize))
+				process(items)
+			}
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func finalize() {
-		// Check for items
-		if !self.items.isEmpty {
-			// Process the remaining
-			process(self.items.removeAll())
+		// One at a time please
+		self.itemsLock.perform() {
+			// Check for items
+			if !self.items.isEmpty {
+				// Process the remaining
+				process(self.items)
+				self.items.removeAll()
 
-			// Wait until all finished
-			self.itemBatchesInFlight.wait()
+				// Wait until all finished
+				self.itemBatchesInFlight.wait()
+			}
 		}
 	}
 
