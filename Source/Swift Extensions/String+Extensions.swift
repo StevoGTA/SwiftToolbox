@@ -143,13 +143,13 @@ public extension String {
 		var	subPaths = Set<String>(!leafSubPaths.isEmpty ? [""] : [])
 		leafSubPaths.forEach() {
 			// Add all folder subPaths going up the tree
-			var	subPath = $0.deletingLastPathComponent
+			var	subPath = $0
 			while !subPath.isEmpty {
 				// Add
 				subPaths.insert(subPath)
 
 				// Go up a level
-				subPath = subPath.deletingPathExtension
+				subPath = subPath.deletingLastPathComponent
 			}
 		}
 
