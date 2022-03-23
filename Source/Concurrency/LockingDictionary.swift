@@ -157,6 +157,23 @@ public class LockingArrayDictionary<T : Hashable, U> {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func append(_ values :[U], for key :T) {
+		// Perform under lock
+		self.lock.write() {
+			// Check if have existing array
+			if var array = self.map[key] {
+				// Have existing array
+				self.map[key] = nil
+				array += values
+				self.map[key] = array
+			} else {
+				// First item
+				self.map[key] = values
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func values(for key :T) -> [U]? { self.lock.read() { self.map[key] } }
 
 	//------------------------------------------------------------------------------------------------------------------

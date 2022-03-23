@@ -13,11 +13,26 @@ import Foundation
 public class ConcurrentQueue<T> {
 
 	// MARK: Enums
-	public enum MaxConcurrency {
-		case specified(value :Int)
-		case coresMinusOne
-		case cores
+	public enum ConcurrentItems {
+
+		// MARK: Values
+		case specified(_ value :Int)
+
+		case coreCount
+		case coreCountMinus(_ value :Int)
+
 		case unlimited
+
+		// MARK: Methods
+		func resolved(with coreCount :Int) -> Int {
+					// Check value
+					switch self {
+						case .specified(let value):			return min(coreCount, value)
+						case .coreCount:					return coreCount
+						case .coreCountMinus(let value):	return max(coreCount - value, 1)
+						case .unlimited:					return .max
+					}
+				}
 	}
 
 	// MARK: Types
@@ -35,19 +50,21 @@ public class ConcurrentQueue<T> {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(maxConcurrency :MaxConcurrency = .coresMinusOne, procDispatchQueue :DispatchQueue = .global(),
+	public init(maxConcurrentItems :ConcurrentItems = .coreCountMinus(1), procDispatchQueue :DispatchQueue = .global(),
 			proc :@escaping Proc) {
 		// Setup
-		switch maxConcurrency {
-			case .specified(let value):	self.maxConcurrentItems = value
-			case .coresMinusOne:		self.maxConcurrentItems = max(ProcessInfo.processInfo.processorCount - 1, 1)
-			case .cores:				self.maxConcurrentItems = ProcessInfo.processInfo.processorCount
-			case .unlimited:			self.maxConcurrentItems = .max
-		}
+		self.maxConcurrentItems = maxConcurrentItems.resolved(with: ProcessInfo.processInfo.processorCount)
 
 		// Store
 		self.procDispatchQueue = procDispatchQueue
 		self.proc = proc
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public convenience init(maxConcurrentItems :Int, procDispatchQueue :DispatchQueue = .global(),
+			proc :@escaping Proc) {
+		// Call designated initializor
+		self.init(maxConcurrentItems: .specified(maxConcurrentItems), procDispatchQueue: procDispatchQueue, proc: proc)
 	}
 
 	// MARK: Instance methods

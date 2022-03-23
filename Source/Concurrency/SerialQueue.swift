@@ -16,6 +16,6 @@ public class SerialQueue<T> : ConcurrentQueue<T> {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(procDispatchQueue :DispatchQueue = .global(), proc :@escaping Proc) {
 		// Do super
-		super.init(maxConcurrency: .specified(value: 1), procDispatchQueue: procDispatchQueue, proc: proc)
+		super.init(maxConcurrentItems: .specified(1), procDispatchQueue: procDispatchQueue, proc: proc)
 	}
 }
