@@ -12,6 +12,9 @@ import CoreServices
 #if os(iOS)
 	import UIKit
 #endif
+#if os(macOS)
+	import AppKit
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: NSExtensionItem extension
@@ -45,7 +48,8 @@ extension NSExtensionItem {
 		fileprivate	override	var	typeDisplayNameInternal :String? { "Photo" }
 
 								var	data :Data?
-								var	file :File?
+								var	creationDate :Date?
+								var	modificationDate :Date?
 
 		private					let	itemProvider :NSItemProvider
 
@@ -75,20 +79,34 @@ extension NSExtensionItem {
 				// Handle results
 				if let url = $0 {
 					// Success
-					self.file = File(url)
-					self.filename = self.file!.name
+					let	file = File(url)
+					self.filename = file.name
+					self.creationDate = file.creationDate
+					self.modificationDate = file.modificationDate
 
 #if os(iOS)
 					// iOS
-					self.image = UIImage(data: try! Data(contentsOf: url))?.cgImage
+					self.data = try! Data(contentsOf: url)
+					self.image = UIImage(data: self.data!)?.cgImage
 #endif
 #if os(macOS)
 					// macOS
 					do {
-						// Create image
-						let	data = try FileReader.contentsAsData(of: self.file!)
-						let	imageSource = CGImageSourceCreateWithData(data as CFData, nil)
+						// Load data
+						self.data = try FileReader.contentsAsData(of: file)
+
+						// Create image - try loading directly
+						let	imageSource = CGImageSourceCreateWithData(self.data! as CFData, nil)
 						self.image = CGImageSourceCreateImageAtIndex(imageSource!, 0, nil)
+
+						// Check if succeeded
+						if self.image == nil {
+							// Try loading as a PLIST
+							if let image = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(self.data!) as? NSImage {
+								// Loaded as NSImage
+								self.image = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+							}
+						}
 					} catch {
 						// Error
 						self.error = error
