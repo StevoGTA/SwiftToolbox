@@ -11,8 +11,7 @@ import CoreServices
 
 #if os(iOS)
 	import UIKit
-#endif
-#if os(macOS)
+#else
 	import AppKit
 #endif
 
@@ -27,7 +26,7 @@ extension NSExtensionItem {
 					let	id = UUID().uuidString
 					
 					var	filename :String?
-					var	image :CGImage?
+					var	image :Image?
 					var	error :Error?
 					var	typeDisplayName :String { self.typeDisplayNameInternal! }
 
@@ -87,7 +86,8 @@ extension NSExtensionItem {
 #if os(iOS)
 					// iOS
 					self.data = try! Data(contentsOf: url)
-					self.image = UIImage(data: self.data!)?.cgImage
+
+					self.image = Image(self.data!)
 #endif
 #if os(macOS)
 					// macOS
@@ -96,15 +96,14 @@ extension NSExtensionItem {
 						self.data = try FileReader.contentsAsData(of: file)
 
 						// Create image - try loading directly
-						let	imageSource = CGImageSourceCreateWithData(self.data! as CFData, nil)
-						self.image = CGImageSourceCreateImageAtIndex(imageSource!, 0, nil)
+						self.image = Image(self.data!)
 
 						// Check if succeeded
 						if self.image == nil {
 							// Try loading as a PLIST
 							if let image = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(self.data!) as? NSImage {
 								// Loaded as NSImage
-								self.image = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+								self.image = Image(image)
 							}
 						}
 					} catch {
@@ -123,13 +122,8 @@ extension NSExtensionItem {
 						if let data = $0 {
 							// Success
 							self.data = data
-#if os(iOS)
-							self.image = UIImage(data: data)?.cgImage
-#endif
-#if os(macOS)
-							let	imageSource = CGImageSourceCreateWithData(data as CFData, nil)
-							self.image = CGImageSourceCreateImageAtIndex(imageSource!, 0, nil)
-#endif
+
+							self.image = Image(self.data!)
 						} else {
 							// Error
 							self.error = $1
@@ -185,13 +179,8 @@ extension NSExtensionItem {
 									// Store
 									self.data = data
 
-#if os(iOS)
-									self.image = (data != nil) ? UIImage(data: data!)?.cgImage : nil
-#endif
-#if os(macOS)
-									self.image = (data != nil) ? Image(data!).cgImage : nil
-#endif
 									self.filename = url.lastPathComponent
+									self.image = (data != nil) ? Image(data!) : nil
 									self.error = error
 
 									// Call completion
@@ -257,12 +246,15 @@ extension NSExtensionItem {
 					let	assetImageGenerator = AVAssetImageGenerator(asset: asset)
 					assetImageGenerator.appliesPreferredTrackTransform = true
 
-					self.image =
+					self.filename = self.file!.name
+
+					if let cgImage =
 							try? assetImageGenerator.copyCGImage(
 									at: CMTime(value: assetDuration.value / 2, timescale: assetDuration.timescale),
-									actualTime: nil)
-
-					self.filename = self.file!.name
+							 		actualTime: nil) {
+						// Was able to generate image
+						self.image = Image(cgImage)
+					}
 				} else {
 					// Error
 					self.error = $1

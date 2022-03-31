@@ -13,6 +13,7 @@ import Foundation
 	import MobileCoreServices
 	import UIKit
 #else
+	import AppKit
 	import ImageIO
 #endif
 
@@ -102,11 +103,12 @@ class Image {
 	// MARK: Properties
 			lazy	var	cgImage :CGImage? = { [unowned self] in
 								// Check if have CGImage already
-								if self.cgImageInternal != nil { return self.cgImageInternal }
+								if (self.cgImageInternal == nil) && (self.cgImageSource != nil) {
+									// Create from source
+									self.cgImageInternal = CGImageSourceCreateImageAtIndex(self.cgImageSource!, 0, nil)
+								}
 
-								// Create from source
-								return (self.cgImageSource != nil) ?
-										CGImageSourceCreateImageAtIndex(self.cgImageSource!, 0, nil) : nil
+								return self.cgImageInternal
 							}()
 			lazy	var	orientation :Orientation = { [unowned self] in
 								// Setup
@@ -169,8 +171,9 @@ class Image {
 								return CGImageSourceCopyProperties(cgImageSource, nil) as? [String : Any]
 							}()
 
-	private			let	cgImageInternal :CGImage?
 	private			let	cgImageSource :CGImageSource?
+
+	private			var	cgImageInternal :CGImage?
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -216,6 +219,15 @@ class Image {
 		self.cgImageInternal = cgImage
 		self.cgImageSource = nil
 	}
+
+#if os(macOS)
+	//------------------------------------------------------------------------------------------------------------------
+	init(_ image :NSImage) {
+		// Setup
+		self.cgImageInternal = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+		self.cgImageSource = nil
+	}
+#endif
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
