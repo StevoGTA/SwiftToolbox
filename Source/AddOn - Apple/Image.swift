@@ -101,6 +101,31 @@ class Image {
 	}
 
 	// MARK: Properties
+					var	creationDate :Date? {
+								// Check what we have
+								if let createDate =
+										(self.metadata?["xmp"] as? [String : Any])?["CreateDate"] as? String {
+									// Have CreateDate
+									if let offsetTime =
+											(self.metadata?["exif"] as? [String : Any])?["OffsetTime"] as? String {
+										// Have OffsetTime too
+										// 2021-09-14T10:27:38.915 + -07:00
+										return Date(
+												fromRFC3339Extended:
+														createDate + offsetTime.replacingOccurrences(of: ":", with: ""))
+									} else {
+										// Don't have OffsetTime
+										let	dateFormatter = DateFormatter()
+										dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+
+										return dateFormatter.date(from: createDate)
+									}
+								} else {
+									// Unknown
+									return nil
+								}
+							}
+
 			lazy	var	cgImage :CGImage? = { [unowned self] in
 								// Check if have CGImage already
 								if (self.cgImageInternal == nil) && (self.cgImageSource != nil) {
@@ -174,29 +199,6 @@ class Image {
 	private			let	cgImageSource :CGImageSource?
 
 	private			var	cgImageInternal :CGImage?
-
-	// MARK: Class methods
-	//------------------------------------------------------------------------------------------------------------------
-	static func creationDate(from info :[String : Any]) -> Date? {
-		// Check what we have
-		if let createDate = (info["xmp"] as? [String : Any])?["CreateDate"] as? String {
-			// Have CreateDate
-			if let offsetTime = (info["exif"] as? [String : Any])?["OffsetTime"] as? String {
-				// Have OffsetTime too
-				// 2021-09-14T10:27:38.915 + -07:00
-				return Date(fromRFC3339Extended: createDate + offsetTime.replacingOccurrences(of: ":", with: ""))
-			} else {
-				// Don't have OffsetTime
-				let	dateFormatter = DateFormatter()
-				dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-
-				return dateFormatter.date(from: createDate)
-			}
-		} else {
-			// Unknown
-			return nil
-		}
-	}
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------

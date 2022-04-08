@@ -16,6 +16,26 @@ import CoreServices
 #endif
 
 //----------------------------------------------------------------------------------------------------------------------
+// MARK: NSExtensionItemError
+enum NSExtensionItemError : Error {
+	case couldNotIdentifyPhoto
+	case couldNotIdentifyVideoAttachment
+}
+
+extension NSExtensionItemError : CustomStringConvertible, LocalizedError {
+
+	// MARK: Properties
+	public 	var	description :String { self.localizedDescription }
+	public	var	errorDescription :String? {
+						// What are we
+						switch self {
+							case .couldNotIdentifyPhoto: return "Could not identify Photo"
+							case .couldNotIdentifyVideoAttachment: return "Could not identify Video Attachment"
+						}
+					}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // MARK: NSExtensionItem extension
 extension NSExtensionItem {
 
@@ -37,6 +57,100 @@ extension NSExtensionItem {
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
 		init() {}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	// MARK: - LivePhotoBundle
+	class LivePhotoBundleMediaItem : MediaItem {
+
+		// MARK: Properties
+		fileprivate	override	var	typeDisplayNameInternal: String? { "Live Photo" }
+
+								var	photoData :Data?
+
+								var	videoAttachmentFilename :String?
+								var	videoAttachmentData :Data?
+
+								var	creationDate :Date?
+								var	modificationDate :Date?
+
+		private					let	itemProvider :NSItemProvider
+
+		// MARK: Class methods
+		//--------------------------------------------------------------------------------------------------------------
+		static fileprivate func canLoad(itemProvider :NSItemProvider) -> LivePhotoBundleMediaItem? {
+			// Check if can load
+			return itemProvider.hasItemConformingToTypeIdentifier("com.apple.private.live-photo-bundle") ?
+					LivePhotoBundleMediaItem(itemProvider: itemProvider) : nil
+		}
+
+		// MARK: Lifecycle methods
+		//--------------------------------------------------------------------------------------------------------------
+		private init(itemProvider :NSItemProvider) {
+			// Store
+			self.itemProvider = itemProvider
+
+			// Do super
+			super.init()
+		}
+
+		// MARK: Instance methods
+		//--------------------------------------------------------------------------------------------------------------
+		fileprivate func load(completionProc :@escaping () -> Void) {
+			// Load
+			_ = self.itemProvider.loadObject(ofClass: URL.self) {
+				// Setup
+				defer { completionProc() }
+
+				// Handle results
+				if let url = $0 {
+					// Catch errors
+					do {
+						// Load files
+						var	filesByKind = [PhotoMediaFileKind : File]()
+						try FileManager.default.files(in: Folder(url))
+								.forEach() {
+									// Get kind
+									if let photoMediaFileKind = PhotoMediaFileKind.forSubPath($0.path) {
+										// Store
+										filesByKind[photoMediaFileKind] = $0
+									}
+								}
+
+						// Get results
+						guard let photoFile = filesByKind[.photo] else {
+							// Did not find photo file
+							self.error = NSExtensionItemError.couldNotIdentifyPhoto
+
+							return
+						}
+						guard let videoAttachmentFile = filesByKind[.videoAttachment] else {
+							// Did not find video attachment file
+							self.error = NSExtensionItemError.couldNotIdentifyVideoAttachment
+
+							return
+						}
+
+						// Found files
+						self.filename = photoFile.name
+						self.photoData = try FileReader.contentsAsData(of: photoFile)
+						self.image = Image(self.photoData!)
+
+						self.videoAttachmentFilename =
+								videoAttachmentFile.name
+									.deletingPathExtension
+									.appending(pathExtension: videoAttachmentFile.extension?.lowercased() ?? "")
+						self.videoAttachmentData = try FileReader.contentsAsData(of: videoAttachmentFile)
+					} catch {
+						// Error
+						self.error = error
+					}
+				} else {
+					// Error
+					self.error = $1
+				}
+			}
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -234,6 +348,9 @@ extension NSExtensionItem {
 		fileprivate func load(completionProc :@escaping () -> Void) {
 			// Load
 			_ = self.itemProvider.loadObject(ofClass: URL.self) {
+				// Setup
+				defer { completionProc() }
+
 				// Handle results
 				if let url = $0 {
 					// Success
@@ -259,9 +376,6 @@ extension NSExtensionItem {
 					// Error
 					self.error = $1
 				}
-
-				// Call completion
-				completionProc()
 			}
 		}
 	}
@@ -289,6 +403,11 @@ extension NSExtensionItem {
 					remainingMediaItemsCount.add(1)
 					mediaItems.append(videoMediaItem)
 					videoMediaItem.load() { remainingMediaItemsCount.subtract(1) }
+				} else if let livePhotoBundleMediaItem = LivePhotoBundleMediaItem.canLoad(itemProvider: $0) {
+					// Can load as LivePhotoBundleMediaItem
+					remainingMediaItemsCount.add(1)
+					mediaItems.append(livePhotoBundleMediaItem)
+					livePhotoBundleMediaItem.load() { remainingMediaItemsCount.subtract(1) }
 				} else if let urlMediaItem = URLMediaItem.canLoad(itemProvider: $0) {
 					// Can load as URLMediaItem
 					remainingMediaItemsCount.add(1)
