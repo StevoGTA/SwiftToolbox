@@ -113,12 +113,18 @@ class Image {
 										return Date(
 												fromRFC3339Extended:
 														createDate + offsetTime.replacingOccurrences(of: ":", with: ""))
+									} else if let date =
+											 DateFormatter(dateFormat: "yyyy-MM-dd'T'HH:mm:ss").date(from: createDate) {
+										// Could create date
+										return date
+									} else if let date =
+											DateFormatter(dateFormat: "yyyy-MM-dd'T'HH:mm:ss.SSS")
+													.date(from: createDate) {
+										// Could create date
+										return date
 									} else {
-										// Don't have OffsetTime
-										let	dateFormatter = DateFormatter()
-										dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-
-										return dateFormatter.date(from: createDate)
+										// Don't know how to create date
+										return nil
 									}
 								} else {
 									// Unknown
