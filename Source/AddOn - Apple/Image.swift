@@ -149,7 +149,7 @@ class Image {
 								// Check results
 								if let value = Int(orientation) {
 									// Have value
-									return Orientation(rawValue: value)!
+									return Orientation(rawValue: value) ?? .up
 								} else {
 									// Use default
 									return .up

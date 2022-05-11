@@ -329,7 +329,9 @@ extension NSExtensionItem {
 		static fileprivate func canLoad(itemProvider :NSItemProvider) -> VideoMediaItem? {
 			// Check if can load
 			return (itemProvider.hasItemConformingToTypeIdentifier(kUTTypeVideo as String) ||
-							itemProvider.hasItemConformingToTypeIdentifier(AVFileType.mov.rawValue)) ?
+							itemProvider.hasItemConformingToTypeIdentifier(AVFileType.mov.rawValue) ||
+							itemProvider.hasItemConformingToTypeIdentifier(AVFileType.mp4.rawValue) ||
+							itemProvider.hasItemConformingToTypeIdentifier(AVFileType.m4v.rawValue)) ?
 					VideoMediaItem(itemProvider: itemProvider) : nil
 		}
 
