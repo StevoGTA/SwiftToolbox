@@ -83,9 +83,8 @@ public class FilesystemEventsTracker {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(_ folders :[Folder],
-			since eventID :FSEventStreamEventId = FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
-			eventLatency: TimeInterval = 0.0, foldersProc :@escaping FoldersProc, filesProc :FilesProc? = nil) {
+	public init(_ folders :[Folder], since eventID :FSEventStreamEventId? = nil, eventLatency: TimeInterval = 0.0,
+			foldersProc :@escaping FoldersProc, filesProc :FilesProc? = nil) {
 		// Store
 		self.foldersProc = foldersProc
 		self.filesProc = filesProc
@@ -235,7 +234,8 @@ public class FilesystemEventsTracker {
 
 		self.eventStreamRef =
 				FSEventStreamCreate(kCFAllocatorDefault, eventStreamCallback, &eventStreamContext,
-						(folders.map({ $0.path })) as CFArray, eventID, eventLatency,
+						(folders.map({ $0.path })) as CFArray,
+						eventID ?? FSEventStreamEventId(kFSEventStreamEventIdSinceNow), eventLatency,
 						FSEventStreamCreateFlags(eventStreamCreateFlags))
 		FSEventStreamSetDispatchQueue(self.eventStreamRef, DispatchQueue.global(qos: .background))
 	}

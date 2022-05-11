@@ -101,7 +101,7 @@ fileprivate extension HTTPEndpointRequest {
 					addURLRequestProc(URL(string: urlRoot + queryComponent)!)
 				} else {
 					// Repeat key
-					let	urlBase = !queryString.isEmpty ? "\(urlRoot)&" : "\(urlRoot)?"
+					let	urlBase = !queryString.isEmpty ? "\(urlRoot)&" : urlRoot
 					valuesUse.forEach() {
 						// Check if can add
 						let	queryComponentTry =
@@ -119,7 +119,7 @@ fileprivate extension HTTPEndpointRequest {
 					}
 
 					// Add final URL Request
-					addURLRequestProc(URL(string: urlRoot + queryComponent)!)
+					addURLRequestProc(URL(string: urlBase + queryComponent)!)
 				}
 			}
 
