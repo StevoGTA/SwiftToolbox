@@ -162,13 +162,17 @@ public extension Dictionary where Key == String, Value == Any {
 			guard let otherValue = other[key] else { return false }
 
 			// Compare values
-			if let array = value as? [String], let otherArray = otherValue as? [String], array == otherArray { continue }
+			if let array = value as? [String], let otherArray = otherValue as? [String],
+					array == otherArray { continue }
 			if let bool = value as? Bool, let otherBool = otherValue as? Bool, bool == otherBool { continue }
-			if let dictionary = value as? [String : Any], let otherDictionary = otherValue as? [String : Any], dictionary.equals(otherDictionary) { continue }
-			if let double = value as? Double, let otherDouble = otherValue as? Double, double == otherDouble { continue }
+			if let dictionary = value as? [String : Any], let otherDictionary = otherValue as? [String : Any],
+					dictionary.equals(otherDictionary) { continue }
+			if let double = value as? Double, let otherDouble = otherValue as? Double,
+					double == otherDouble { continue }
 			if let int = value as? Int, let otherInt = otherValue as? Int, int == otherInt { continue }
 			if let int64 = value as? Int64, let otherInt64 = otherValue as? Int64, int64 == otherInt64 { continue }
-			if let string = value as? String, let otherString = otherValue as? String, string == otherString { continue }
+			if let string = value as? String, let otherString = otherValue as? String,
+					string == otherString { continue }
 
 			return false
 		}
@@ -182,6 +186,9 @@ public extension Dictionary where Key == String, Value == Any {
 public extension Dictionary where Key == String, Value == Data {
 
 	// Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func int(for key :String) -> Int? { Int(string(for: key)) }
+
 	//------------------------------------------------------------------------------------------------------------------
 	func string(for key :String) -> String? {
 		// Try to get data
