@@ -123,7 +123,7 @@ public class LockingDictionary<T : Hashable, U> {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - LockingArrayMap
+// MARK: - LockingArrayDictionary
 public class LockingArrayDictionary<T : Hashable, U> {
 
 	// MARK: Properties
@@ -211,4 +211,77 @@ extension LockingArrayDictionary where U : Equatable {
 			}
 		}
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - LockingSetDictionary
+public class LockingSetDictionary<T : Hashable, U : Hashable> {
+
+	// MARK: Properties
+	public	var	isEmpty :Bool { self.lock.read() { self.map.isEmpty } }
+	public	var	allValues :[U] { self.lock.read() { Array(self.map.values.joined()) } }
+
+	private	let	lock = ReadPreferringReadWriteLock()
+
+	private	var	map = [T : Set<U>]()
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init() {}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func insert(_ value :U, for key :T) {
+		// Perform under lock
+		self.lock.write() {
+			// Check if have existing array
+			if var set = self.map[key] {
+				// Have existing array
+				self.map[key] = nil
+				set.insert(value)
+				self.map[key] = set
+			} else {
+				// First item
+				self.map[key] = [value]
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func insert(_ values :[U], for key :T) {
+		// Perform under lock
+		self.lock.write() {
+			// Check if have existing array
+			if var set = self.map[key] {
+				// Have existing array
+				self.map[key] = nil
+				set.formUnion(values)
+				self.map[key] = set
+			} else {
+				// First item
+				self.map[key] = Set<U>(values)
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func values(for key :T) -> Set<U>? { self.lock.read() { self.map[key] } }
+
+	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
+	public func remove(_ key :T) -> Set<U>? {
+		// Perform under lock
+		self.lock.write() {
+			// Get array
+			let	set = self.map[key]
+
+			// Remove array
+			self.map[key] = nil
+
+			return set
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func removeAll() { self.lock.write() { self.map.removeAll() } }
 }
