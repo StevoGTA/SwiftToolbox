@@ -162,7 +162,10 @@ public extension String {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func appending(pathComponent :String) -> String { self.isEmpty ? pathComponent : self + "/" + pathComponent }
+	func appending(pathComponent :String) -> String {
+		// Return correct path considering self may be empty and pathComponent may be empty
+		return pathComponent.isEmpty ? self : (self.isEmpty ? pathComponent : self + "/" + pathComponent)
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	func appending(pathExtension :String) -> String { !pathExtension.isEmpty ? self + "." + pathExtension : self }
