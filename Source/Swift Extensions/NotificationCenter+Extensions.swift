@@ -14,6 +14,7 @@ extension NotificationCenter {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
 	public func addObserver(forName name :Notification.Name, object :Any? = nil,
 			using :@escaping (_ notification :Notification) -> Void) -> NSObjectProtocol {
 		// Add observer
