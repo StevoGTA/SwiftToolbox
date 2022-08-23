@@ -34,7 +34,7 @@ extension Date {
 	// MARK: Properties
 	static	public	let	`nil` :Date? = nil
 
-	static			let	iso8601DateFormatter :DateFormatter = {
+	static	public	let	iso8601DateFormatter :DateFormatter = {
 								// Setup
 								let	dateFormatter = DateFormatter()
 								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
