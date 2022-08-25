@@ -265,6 +265,23 @@ public class LockingSetDictionary<T : Hashable, U : Hashable> {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func insert(_ values :Set<U>, for key :T) {
+		// Perform under lock
+		self.lock.write() {
+			// Check if have existing array
+			if var set = self.map[key] {
+				// Have existing array
+				self.map[key] = nil
+				set.formUnion(values)
+				self.map[key] = set
+			} else {
+				// First item
+				self.map[key] = values
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func values(for key :T) -> Set<U>? { self.lock.read() { self.map[key] } }
 
 	//------------------------------------------------------------------------------------------------------------------
