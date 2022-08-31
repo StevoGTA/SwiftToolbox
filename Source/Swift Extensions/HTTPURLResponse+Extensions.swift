@@ -13,13 +13,15 @@ import Foundation
 extension HTTPURLResponse {
 
 	// MARK: Properties
-	var	contentRange :(units :String?, start :Int64?, length :Int64?, size :Int64?)? {
+	var	contentRange :(units :String?, range :(start :Int64, length :Int64)?, size :Int64?)? {
 				// Specification:
 				//	Content-Range: <unit> <range-start>-<range-end>/<size>
 				//	Content-Range: <unit> <range-start>-<range-end>/*
 				//	Content-Range: <unit> */<size>
 				// Examples:
 				//	Content-Range: bytes 200-1000/67589
+				//	Content-Range: bytes */0
+				//	Content-Range: 200-1000/*
 				guard let string = self.value(forHeaderField: "Content-Range") else { return nil }
 
 				let	components = string.components(separatedBy: " ")
@@ -37,10 +39,10 @@ extension HTTPURLResponse {
 					guard let start = Int64(rangeComponents[0]) else { return nil }
 					guard let end = Int64(rangeComponents[1]) else { return nil }
 
-					return (units, start, end - start + 1, size)
+					return (units, (start, end - start + 1), size)
 				} else {
 					// Probably just size
-					return (units, nil, nil, size)
+					return (units, nil, size)
 				}
 			}
 	var	contentType :String? { self.allHeaderFields["Content-Type"] as? String }
