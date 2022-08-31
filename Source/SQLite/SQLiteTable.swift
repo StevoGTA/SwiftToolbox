@@ -74,6 +74,8 @@ public struct SQLiteTable {
 	// MARK: Properties
 			private(set)	var	name :String
 
+							var	variableNumberLimit :Int { self.statementPerformer.variableNumberLimit }
+
 	static	private			let	countAllTableColumn = SQLiteTableColumn("COUNT(*)", .integer)
 	static	private			let	nameTableColumn = SQLiteTableColumn("name", .text)
 
