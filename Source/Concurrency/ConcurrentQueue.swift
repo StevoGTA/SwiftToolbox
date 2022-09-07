@@ -92,10 +92,6 @@ public class ConcurrentQueue<T> {
 	// MARK: Private methods
 	//------------------------------------------------------------------------------------------------------------------
 	private func processItems() {
-		// Setup
-		let	procsDispatchQueue = self.procDispatchQueue
-		let	proc = self.proc
-
 		// Process
 		self.itemsLock.perform() {
 			// Check situation
@@ -105,12 +101,12 @@ public class ConcurrentQueue<T> {
 				self.activeItemsCount.add(1)
 
 				// Perform
-				procsDispatchQueue.async() {
+				self.procDispatchQueue.async() { [weak self] in
 					// Perform
-					proc(item)
+					self?.proc(item)
 
 					// Done
-					self.activeItemsCount.subtract(1)
+					self?.activeItemsCount.subtract(1)
 
 					// Process more items
 					DispatchQueue.main.async() { [weak self] in self?.processItems() }
