@@ -663,9 +663,16 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 						// Log request
 						logMessages.append("\(className): \(urlRequest.httpMethod!) to \(urlRequestInfo)")
-						if logOptions.contains(.requestQuery) {
+						if logOptions.contains(.requestQuery), let query = urlRequest.url!.query {
 							// Log query
-							logMessages.append("    Query: \(urlRequest.url!.query ?? "n/a")")
+							if httpEndpointRequestPerformInfo.httpEndpointRequest.options.contains(
+									.queryContainsSecureInfo) {
+								// Redact secure info
+								logMessages.append("    Query: <redacted>)")
+							} else {
+								// Proceed as usual
+								logMessages.append("    Query: \(query)")
+							}
 						}
 						if logOptions.contains(.requestHeaders) {
 							// Log headers
