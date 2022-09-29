@@ -241,9 +241,33 @@ class Image {
 	//------------------------------------------------------------------------------------------------------------------
 	func scaled(to size :CGSize, scaleMode :ScaleMode) -> Image? {
 		// Setup
-		guard let cgImage = self.cgImage else { return nil }
-		guard let imageSize = self.size else { return nil }
-		guard let cgColorSpace = self.cgColorSpace else { return nil }
+		let	cgImage :CGImage
+		let	imageSize :CGSize
+		if self.cgImage == nil {
+			// No image
+			return nil
+		} else if (scaleMode == .aspectFill) && (self.orientation == .topLeft) {
+			// We gonna do a crop to help with memory usage
+			let	initialSize = self.size!
+			let	wScale = size.width / initialSize.width
+			let	hScale = size.height / initialSize.height
+			imageSize =
+					(wScale < hScale) ?
+							CGSize(width: size.width / hScale, height: initialSize.height) :
+							CGSize(width: initialSize.width, height: size.height / wScale)
+			cgImage =
+					self.cgImage!.cropping(
+							to: CGRect(
+									origin:
+											CGPoint(x: (initialSize.width - imageSize.width) * 0.5,
+													y: (initialSize.height - imageSize.height) * 0.5),
+									size: imageSize))!
+		} else {
+			// The rest
+			cgImage = self.cgImage!
+			imageSize = self.size!
+		}
+		let	cgColorSpace = cgImage.colorSpace!
 
 		// Calculate final bitmap size
 		let	sizeUse :CGSize
