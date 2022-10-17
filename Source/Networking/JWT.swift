@@ -51,6 +51,8 @@ public struct JWT {
 
 		// Decode
 		let	segments = string.components(separatedBy: ".")
+		guard segments.count >= 2 else { throw JWTError.decodeError }
+
 		let	segment1Info = try stringToInfoProc(segments[1])
 		guard let expiration = Date.withTimeIntervalSince1970(segment1Info["exp"] as? TimeInterval) else
 				{ throw JWTError.decodeError }
