@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: File
-public class File {
+public class File : Equatable, Hashable {
 
 	// MARK: Types
 	public typealias SubPathProc = (_ file :File, _ subPath :String) -> Void
@@ -38,6 +38,14 @@ public class File {
 		// Store
 		self.url = url
 	}
+
+	// MARK: Equatable methods
+	//------------------------------------------------------------------------------------------------------------------
+	public static func ==(lhs :File, rhs :File) -> Bool { lhs.url == rhs.url }
+
+	// MARK: Hashable methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func hash(into hasher :inout Hasher) { hasher.combine(self.path) }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
