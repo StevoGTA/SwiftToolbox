@@ -66,9 +66,7 @@ fileprivate extension HTTPEndpointRequest {
 						}
 			let	queryString = String(combining: queryComponents ?? [], with: "&")
 			let	hasQuery = !queryString.isEmpty || (self.multiValueQueryComponent != nil)
-			let	urlRoot =
-						serverPrefix + self.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)! +
-								(hasQuery ? "?" : "") + queryString
+			let	urlRoot = serverPrefix + self.path + (hasQuery ? "?" : "") + queryString
 
 			if let (key, values) = self.multiValueQueryComponent, !values.isEmpty {
 				// Setup
