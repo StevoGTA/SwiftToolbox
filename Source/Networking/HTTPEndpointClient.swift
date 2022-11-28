@@ -72,8 +72,17 @@ fileprivate extension HTTPEndpointRequest {
 				// Setup
 				let	keyUse = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 				let	valuesUse =
-							values.map()
-								{ "\($0)".urlQueryEncoded(encodePlus: options.contains(.percentEncodePlusCharacter)) }
+							values.map() { value -> String in
+									// Check value type
+									if let string = value as? String {
+										// String
+										return string.urlQueryEncoded(
+												encodePlus: options.contains(.percentEncodePlusCharacter))
+									} else {
+										// Not string
+										return "\(value)"
+									}
+								}
 
 				// Check options
 				var	queryComponent = ""
@@ -416,7 +425,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 	}
 
 	// MARK: Properties
-	static	public	var	logProc :(_ messages :[String]) -> Void = { $0.forEach() { NSLog($0) } }
+	static	public	var	logProc :(_ messages :[String]) -> Void = { $0.forEach() { NSLog("%@", $0) } }
 
 			public	var	logOptions = LogOptions()
 
