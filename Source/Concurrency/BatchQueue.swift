@@ -91,12 +91,12 @@ public class BatchQueue<T> {
 		if self.procDispatchQueue != nil {
 			// Perform on queue
 			self.itemBatchesInFlight.add(1)
-			self.procDispatchQueue!.async() {
+			self.procDispatchQueue!.async() { [weak self] in
 				// Process
-				self.proc(items)
+				self?.proc(items)
 
 				// Done
-				self.itemBatchesInFlight.subtract(1)
+				self?.itemBatchesInFlight.subtract(1)
 			}
 		} else {
 			// Perform

@@ -40,7 +40,7 @@ extension NSExtensionItemError : CustomStringConvertible, LocalizedError {
 extension NSExtensionItem {
 
 	// MARK: - MediaItem
-	class MediaItem {
+	class MediaItem : Equatable {
 
 		// MARK: Properties
 					let	id = UUID().uuidString
@@ -57,6 +57,10 @@ extension NSExtensionItem {
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
 		init() {}
+
+		// MARK: Equatable methods
+		//------------------------------------------------------------------------------------------------------------------
+		static func == (lhs :MediaItem, rhs :MediaItem) -> Bool { lhs.id == rhs.id }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

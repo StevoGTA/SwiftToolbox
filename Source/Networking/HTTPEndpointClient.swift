@@ -66,16 +66,23 @@ fileprivate extension HTTPEndpointRequest {
 						}
 			let	queryString = String(combining: queryComponents ?? [], with: "&")
 			let	hasQuery = !queryString.isEmpty || (self.multiValueQueryComponent != nil)
-			let	urlRoot =
-						serverPrefix + self.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)! +
-								(hasQuery ? "?" : "") + queryString
+			let	urlRoot = serverPrefix + self.path + (hasQuery ? "?" : "") + queryString
 
 			if let (key, values) = self.multiValueQueryComponent, !values.isEmpty {
 				// Setup
 				let	keyUse = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 				let	valuesUse =
-							values.map()
-								{ "\($0)".urlQueryEncoded(encodePlus: options.contains(.percentEncodePlusCharacter)) }
+							values.map() { value -> String in
+									// Check value type
+									if let string = value as? String {
+										// String
+										return string.urlQueryEncoded(
+												encodePlus: options.contains(.percentEncodePlusCharacter))
+									} else {
+										// Not string
+										return "\(value)"
+									}
+								}
 
 				// Check options
 				var	queryComponent = ""
@@ -90,7 +97,7 @@ fileprivate extension HTTPEndpointRequest {
 							queryComponent = queryComponentTry
 						} else {
 							// Add URL Request
-							addURLRequestProc(URL(string: urlRoot + queryComponent)!)
+							addURLRequestProc(URL(string: urlBase + queryComponent)!)
 
 							// Restart
 							queryComponent = $0
@@ -98,7 +105,7 @@ fileprivate extension HTTPEndpointRequest {
 					}
 
 					// Add final URL Request
-					addURLRequestProc(URL(string: urlRoot + queryComponent)!)
+					addURLRequestProc(URL(string: urlBase + queryComponent)!)
 				} else {
 					// Repeat key
 					let	urlBase = !queryString.isEmpty ? "\(urlRoot)&" : urlRoot
@@ -111,7 +118,7 @@ fileprivate extension HTTPEndpointRequest {
 							queryComponent = queryComponentTry
 						} else {
 							// Add URL Request
-							addURLRequestProc(URL(string: urlRoot + queryComponent)!)
+							addURLRequestProc(URL(string: urlBase + queryComponent)!)
 
 							// Restart
 							queryComponent = "\(keyUse)=\($0)"
@@ -418,7 +425,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 	}
 
 	// MARK: Properties
-	static	public	var	logProc :(_ messages :[String]) -> Void = { $0.forEach() { NSLog($0) } }
+	static	public	var	logProc :(_ messages :[String]) -> Void = { $0.forEach() { NSLog("%@", $0) } }
 
 			public	var	logOptions = LogOptions()
 
@@ -663,9 +670,16 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 						// Log request
 						logMessages.append("\(className): \(urlRequest.httpMethod!) to \(urlRequestInfo)")
-						if logOptions.contains(.requestQuery) {
+						if logOptions.contains(.requestQuery), let query = urlRequest.url!.query {
 							// Log query
-							logMessages.append("    Query: \(urlRequest.url!.query ?? "n/a")")
+							if httpEndpointRequestPerformInfo.httpEndpointRequest.options.contains(
+									.queryContainsSecureInfo) {
+								// Redact secure info
+								logMessages.append("    Query: <redacted>)")
+							} else {
+								// Proceed as usual
+								logMessages.append("    Query: \(query)")
+							}
 						}
 						if logOptions.contains(.requestHeaders) {
 							// Log headers

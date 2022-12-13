@@ -124,8 +124,8 @@ public class LockingNumeric<T : Numeric> {
 	//------------------------------------------------------------------------------------------------------------------
 	public func wait(for value :T = 0) {
 		// Setup
-		self.semaphore = DispatchSemaphore(value: 0)
-
+		self.lock.write() { self.semaphore = DispatchSemaphore(value: 0) }
 		while self.value != value { self.semaphore!.wait() }
+		self.lock.write() { self.semaphore = nil }
 	}
 }

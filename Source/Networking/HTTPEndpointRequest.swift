@@ -31,13 +31,26 @@ extension HTTPEndpointRequestError : CustomStringConvertible, LocalizedError {
 // MARK: - HTTPEndpointRequest
 public class HTTPEndpointRequest {
 
-	// MARK: Types
+	// MARK: Options
+	public struct Options : OptionSet {
+
+		// MARK: Properties
+		static	public	let	queryContainsSecureInfo = Options(rawValue: 1 << 0)
+
+				public	let	rawValue :Int
+
+		// MARK: Lifecycle methods
+		public init(rawValue :Int) { self.rawValue = rawValue }
+	}
+
+	// MARK: State
 	enum State {
 		case queued
 		case active
 		case finished
 	}
 
+	// MARK: Types
 	public typealias MultiValueQueryComponent = (key :String, values :[Any])
 
 	// MARK: Properties
@@ -47,8 +60,9 @@ public class HTTPEndpointRequest {
 							let	path :String
 							let	queryComponents :[String : Any]?
 							let	multiValueQueryComponent :MultiValueQueryComponent?
-							let	timeoutInterval :TimeInterval
 							let	bodyData :Data?
+							let	timeoutInterval :TimeInterval
+							let	options :Options
 
 							var	headers :[String : String]?
 
@@ -57,32 +71,34 @@ public class HTTPEndpointRequest {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = defaultTimeoutInterval) {
-		// Store
-		self.method = method
-		self.path = path
-		self.queryComponents = queryComponents
-		self.multiValueQueryComponent = multiValueQueryComponent
-		self.timeoutInterval = timeoutInterval
-		self.bodyData = nil
-
-		self.headers = headers
-		adjustHeaders()
-	}
-
+//	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
+//			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
+//			timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
+//		// Store
+//		self.method = method
+//		self.path = path
+//		self.queryComponents = queryComponents
+//		self.multiValueQueryComponent = multiValueQueryComponent
+//		self.bodyData = nil
+//		self.timeoutInterval = timeoutInterval
+//		self.options = options
+//
+//		self.headers = headers
+//		adjustHeaders()
+//	}
+//
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = defaultTimeoutInterval, bodyData :Data) {
+			bodyData :Data? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
 		// Store
 		self.method = method
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.timeoutInterval = timeoutInterval
 		self.bodyData = bodyData
+		self.timeoutInterval = timeoutInterval
+		self.options = options
 
 		self.headers = headers
 		adjustHeaders()
@@ -91,7 +107,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = defaultTimeoutInterval, jsonBody :Any) {
+			jsonBody :Any, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
 		// Setup
 		var	headersUse = headers ?? [:]
 		headersUse["Content-Type"] = "application/json"
@@ -101,8 +117,9 @@ public class HTTPEndpointRequest {
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.timeoutInterval = timeoutInterval
 		self.bodyData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
+		self.timeoutInterval = timeoutInterval
+		self.options = options
 
 		self.headers = headersUse
 		adjustHeaders()
@@ -111,7 +128,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = defaultTimeoutInterval, xmlBody :Data) {
+			xmlBody :Data, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
 		// Setup
 		var	headersUse = headers ?? [:]
 		headersUse["Content-Type"] = "application/xml"
@@ -121,8 +138,9 @@ public class HTTPEndpointRequest {
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.timeoutInterval = timeoutInterval
 		self.bodyData = xmlBody
+		self.timeoutInterval = timeoutInterval
+		self.options = options
 
 		self.headers = headersUse
 		adjustHeaders()
@@ -131,7 +149,8 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = defaultTimeoutInterval, urlEncodedBody :[String : Any]) {
+			urlEncodedBody :[String : Any], timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			options :Options = []) {
 		// Setup
 		var	headersUse = headers ?? [:]
 		headersUse["Content-Type"] = "application/x-www-form-urlencoded"
@@ -141,11 +160,12 @@ public class HTTPEndpointRequest {
 		self.path = path
 		self.queryComponents = queryComponents
 		self.multiValueQueryComponent = multiValueQueryComponent
-		self.timeoutInterval = timeoutInterval
 		self.bodyData =
 				String(combining: urlEncodedBody.map({ "\($0.key)=\($0.value)" }), with: "&")
 					.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 					.data(using: .utf8)
+		self.timeoutInterval = timeoutInterval
+		self.options = options
 
 		self.headers = headersUse
 		adjustHeaders()
@@ -153,14 +173,15 @@ public class HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod = .get, url :URL, headers :[String : String]? = nil,
-			timeoutInterval :TimeInterval = defaultTimeoutInterval, bodyData :Data? = nil) {
+			bodyData :Data? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
 		// Store
 		self.method = method
 		self.path = url.absoluteString
 		self.queryComponents = nil
 		self.multiValueQueryComponent = nil
-		self.timeoutInterval = timeoutInterval
 		self.bodyData = bodyData
+		self.timeoutInterval = timeoutInterval
+		self.options = options
 
 		self.headers = headers
 		adjustHeaders()
@@ -235,62 +256,61 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	private	let	destinationURL :URL
 
 	// MARK: Lifecycle methods
+//	//------------------------------------------------------------------------------------------------------------------
+//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
+//			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+//			destinationURL :URL) {
+//		// Store
+//		self.destinationURL = destinationURL
+//
+//		// Do super
+//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
+//				timeoutInterval: timeoutInterval)
+//	}
+//
+//	//------------------------------------------------------------------------------------------------------------------
+//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
+//			headers :[String : String]? = nil, bodyData :Data? = nil,
+//			timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
+//		// Store
+//		self.destinationURL = destinationURL
+//
+//		// Do super
+//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
+//				bodyData: bodyData, timeoutInterval: timeoutInterval, options: options)
+//	}
+//
+//	//------------------------------------------------------------------------------------------------------------------
+//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
+//			headers :[String : String]? = nil, jsonBody :Any, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+//			options :Options = [], destinationURL :URL) {
+//		// Store
+//		self.destinationURL = destinationURL
+//
+//		// Do super
+//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
+//				jsonBody: jsonBody, timeoutInterval: timeoutInterval, options: options)
+//	}
+//
+//	//------------------------------------------------------------------------------------------------------------------
+//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
+//			headers :[String : String]? = nil, urlEncodedBody :[String : Any],
+//			timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
+//		// Store
+//		self.destinationURL = destinationURL
+//
+//		// Do super
+//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
+//				urlEncodedBody: urlEncodedBody, timeoutInterval: timeoutInterval, options: options)
+//	}
+
 	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
-			destinationURL :URL) {
+	init(url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
 
 		// Do super
-		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-				timeoutInterval: timeoutInterval)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, bodyData :Data,
-			destinationURL :URL) {
-		// Store
-		self.destinationURL = destinationURL
-
-		// Do super
-		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-				timeoutInterval: timeoutInterval, bodyData: bodyData)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, jsonBody :Any,
-			destinationURL :URL) {
-		// Store
-		self.destinationURL = destinationURL
-
-		// Do super
-		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-				timeoutInterval: timeoutInterval, jsonBody: jsonBody)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
-			urlEncodedBody :[String : Any], destinationURL :URL) {
-		// Store
-		self.destinationURL = destinationURL
-
-		// Do super
-		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-				timeoutInterval: timeoutInterval, urlEncodedBody: urlEncodedBody)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	init(method :HTTPEndpointMethod = .get, url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval,
-			destinationURL :URL) {
-		// Store
-		self.destinationURL = destinationURL
-
-		// Do super
-		super.init(method: method, url: url, timeoutInterval: timeoutInterval)
+		super.init(method: .get, url: url, timeoutInterval: timeoutInterval, options: options)
 	}
 
 	// MARK: Instance methods

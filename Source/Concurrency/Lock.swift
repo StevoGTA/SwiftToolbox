@@ -64,27 +64,6 @@ public protocol ReadWriteLock {
 // MARK: - ReadPreferringReadWriteLock
 public class ReadPreferringReadWriteLock : ReadWriteLock {
 
-	// MARK: ReadWriteLock implementation
-	//------------------------------------------------------------------------------------------------------------------
-	@discardableResult
-	public func read<T>(_ proc :() throws -> T) rethrows -> T {
-		// Lock
-		pthread_rwlock_rdlock(&self.lock)
-		defer { pthread_rwlock_unlock(&self.lock) }
-
-		return try proc()
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	@discardableResult
-	public func write<T>(_ proc :() throws -> T) rethrows -> T {
-		// Lock
-		pthread_rwlock_wrlock(&self.lock)
-		defer { pthread_rwlock_unlock(&self.lock) }
-
-		return try proc()
-	}
-
 	// MARK: Properties
 	private	var	lock = pthread_rwlock_t()
 
@@ -103,5 +82,26 @@ public class ReadPreferringReadWriteLock : ReadWriteLock {
 	deinit {
 		// Cleanup
 		pthread_rwlock_destroy(&self.lock)
+	}
+
+	// MARK: ReadWriteLock methods
+	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
+	public func read<T>(_ proc :() throws -> T) rethrows -> T {
+		// Lock
+		pthread_rwlock_rdlock(&self.lock)
+		defer { pthread_rwlock_unlock(&self.lock) }
+
+		return try proc()
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
+	public func write<T>(_ proc :() throws -> T) rethrows -> T {
+		// Lock
+		pthread_rwlock_wrlock(&self.lock)
+		defer { pthread_rwlock_unlock(&self.lock) }
+
+		return try proc()
 	}
 }
