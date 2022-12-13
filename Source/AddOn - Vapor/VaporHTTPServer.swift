@@ -78,7 +78,7 @@ fileprivate class ServerResponder : HTTPServerResponder {
 		} catch {
 			// Handle error
 			let	httpEndpointError = error as! HTTPEndpointError
-			let	jsonBody = ["message": httpEndpointError.message]
+			let	jsonBody = ["error": httpEndpointError.message]
 			let	jsonData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
 
 			return worker.eventLoop.newSucceededFuture(

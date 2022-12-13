@@ -32,25 +32,20 @@ public class Lock {
 	public func perform<T>(_ proc :() throws -> T) rethrows -> T {
 		// Lock
 		pthread_mutex_lock(&self.mutex)
+		defer { pthread_mutex_unlock(&self.mutex) }
 
-		// Call proc
-		let	t = try proc()
-
-		// Unlock
-		pthread_mutex_unlock(&self.mutex)
-
-		return t
+		return try proc()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func performIfAvailable(_ proc :() throws -> Void) rethrows {
 		// Try to lock
 		if pthread_mutex_trylock(&self.mutex) == 0 {
+			// Setup
+			defer { pthread_mutex_unlock(&self.mutex) }
+
 			// Call proc
 			try proc()
-
-			// Unlock
-			pthread_mutex_unlock(&self.mutex)
 		}
 	}
 }
@@ -75,14 +70,9 @@ public class ReadPreferringReadWriteLock : ReadWriteLock {
 	public func read<T>(_ proc :() throws -> T) rethrows -> T {
 		// Lock
 		pthread_rwlock_rdlock(&self.lock)
+		defer { pthread_rwlock_unlock(&self.lock) }
 
-		// Call proc
-		let	t = try proc()
-
-		// Unlock
-		pthread_rwlock_unlock(&self.lock)
-
-		return t
+		return try proc()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -90,14 +80,9 @@ public class ReadPreferringReadWriteLock : ReadWriteLock {
 	public func write<T>(_ proc :() throws -> T) rethrows -> T {
 		// Lock
 		pthread_rwlock_wrlock(&self.lock)
+		defer { pthread_rwlock_unlock(&self.lock) }
 
-		// Call proc
-		let	t = try proc()
-
-		// Unlock
-		pthread_rwlock_unlock(&self.lock)
-
-		return t
+		return try proc()
 	}
 
 	// MARK: Properties

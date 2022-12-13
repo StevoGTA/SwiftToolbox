@@ -140,6 +140,9 @@ public class LockingArrayDictionary<T : Hashable, U> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	public func set(_ values :[U], for key :T) { self.lock.write() { self.map[key] = values } }
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func append(_ value :U, for key :T) {
 		// Perform under lock
 		self.lock.write() {
@@ -207,6 +210,20 @@ extension LockingArrayDictionary where U : Equatable {
 				// Have existing array
 				self.map[key] = nil
 				array.removeAll(where: { $0 == value })
+				if !array.isEmpty { self.map[key] = array }
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func remove(_ values :[U], for key :T) {
+		// Perform under lock
+		self.lock.write() {
+			// Check if has existing array
+			if var array = self.map[key] {
+				// Have existing array
+				self.map[key] = nil
+				array.removeAll(where: { values.contains($0) })
 				if !array.isEmpty { self.map[key] = array }
 			}
 		}
