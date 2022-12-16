@@ -220,20 +220,20 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
-			where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil, resultsRowProc :SQLiteResultsRow.Proc)
-			throws {
+			where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil, limit :SQLiteLimit? = nil,
+			resultsRowProc :SQLiteResultsRow.Proc) throws {
 		// Perform
 		try select(columnNames: columnNames(for: tableColumns ?? [.all]), innerJoin: innerJoin, where: sqliteWhere,
-				orderBy: orderBy, resultsRowProc: resultsRowProc)
+				orderBy: orderBy, limit: limit, resultsRowProc: resultsRowProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func select(tableColumns :[(table :SQLiteTable, tableColumn :SQLiteTableColumn)],
 			innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil,
-			resultsRowProc :SQLiteResultsRow.Proc) throws {
+			limit :SQLiteLimit? = nil, resultsRowProc :SQLiteResultsRow.Proc) throws {
 		// Perform
 		try select(columnNames: columnNames(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
-				orderBy: orderBy, resultsRowProc: resultsRowProc)
+				orderBy: orderBy, limit: limit, resultsRowProc: resultsRowProc)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -346,7 +346,7 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	private func select(columnNames :String, innerJoin :SQLiteInnerJoin?, where sqliteWhere :SQLiteWhere?,
-			orderBy :SQLiteOrderBy? = nil, resultsRowProc :SQLiteResultsRow.Proc) throws {
+			orderBy :SQLiteOrderBy? = nil, limit :SQLiteLimit? = nil, resultsRowProc :SQLiteResultsRow.Proc) throws {
 		// Check if we have SQLiteWhere
 		if sqliteWhere != nil {
 			// Iterate all groups in SQLiteWhere
@@ -355,7 +355,7 @@ public struct SQLiteTable {
 				// Compose statement
 				let	statement =
 							"SELECT \(columnNames) FROM `\(self.name)`" + (innerJoin?.string ?? "") + string +
-									(orderBy?.string ?? "")
+									(orderBy?.string ?? "") + (limit?.string ?? "")
 
 				// Run lean
 				try autoreleasepool() {
@@ -368,7 +368,7 @@ public struct SQLiteTable {
 			// No SQLiteWhere
 			let	statement =
 						"SELECT \(columnNames) FROM `\(self.name)`" + (innerJoin?.string ?? "") +
-								(orderBy?.string ?? "")
+								(orderBy?.string ?? "") + (limit?.string ?? "")
 
 			// Run lean
 			try autoreleasepool() {
