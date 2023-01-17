@@ -51,7 +51,11 @@ fileprivate class ServerResponder : HTTPServerResponder {
 
 		// Compose info
 		let	urlComponents = URLComponents(url: request.url, resolvingAgainstBaseURL: false)!
-		let	pathComponents = urlComponents.path.pathComponents
+		let	pathComponents =
+					request.urlString
+							.components(separatedBy: "?")[0]
+							.components(separatedBy: "/")[1...]
+							.map({ $0.removingPercentEncoding! })
 
 		var parameters = Parameters()
 		guard let httpEndpoint = trieRouter.route(path: pathComponents, parameters: &parameters) else {
@@ -67,7 +71,8 @@ fileprivate class ServerResponder : HTTPServerResponder {
 		do {
 			// Perform
 			let	(responseStatus, responseHeaders, responseBody) =
-						try httpEndpoint.perform(urlComponents: urlComponents, headers: headers,
+						try httpEndpoint.perform(
+								performInfo: (pathComponents, urlComponents.queryItemsMap, headers),
 								bodyData: request.body.data)
 
 			return worker.eventLoop.newSucceededFuture(
