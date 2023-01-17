@@ -52,8 +52,8 @@ public class Folder : Equatable {
 	public func file(withSubPath subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func subPath(for folder :Folder) -> String { folder.path.subPath(relativeTo: self.path)! }
+	public func subPath(for folder :Folder) -> String? { folder.path.subPath(relativeTo: self.path) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func subPath(for file :File) -> String { file.path.subPath(relativeTo: self.path)! }
+	public func subPath(for file :File) -> String? { file.path.subPath(relativeTo: self.path) }
 }
