@@ -15,7 +15,7 @@ public class FileReader {
 	// MARK: Properties
 	private	let	file :File
 
-	// Class methods
+	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
 	static public func contentsAsData(of file :File) throws -> Data {
 		// Read as data

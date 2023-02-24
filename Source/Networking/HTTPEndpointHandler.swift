@@ -74,6 +74,7 @@ public enum HTTPEndpointResponseBody {
 public protocol HTTPEndpoint {
 
 	// MARK: Types
+	typealias PerformInfo = (pathComponents :[String], queryItemsMap :[String : Any], headers :[String : String])
 	typealias PerformResult =
 				(status :HTTPEndpointStatus, headers :[(String, String)]?, responseBody :HTTPEndpointResponseBody?)
 
@@ -82,7 +83,7 @@ public protocol HTTPEndpoint {
 	var	path :String { get }
 
 	// MARK: Instance methods
-	func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws -> PerformResult
+	func perform(performInfo :PerformInfo, bodyData :Data?) throws -> PerformResult
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -90,7 +91,7 @@ public protocol HTTPEndpoint {
 public struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
 	// MARK: Types
-	public typealias ValidateProc = (_ urlComponents :URLComponents, _ headers :[String : String]) throws -> T
+	public typealias ValidateProc = (_ performInfo :PerformInfo) throws -> T
 	public typealias PerformProc = (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
@@ -113,10 +114,9 @@ public struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
 	// MARK: HTTPEndpoint implementation
 	//------------------------------------------------------------------------------------------------------------------
-	public func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws ->
-			PerformResult {
+	public func perform(performInfo :PerformInfo, bodyData :Data?) throws -> PerformResult {
 		// Perform
-		let	info = try self.validateProc(urlComponents, headers)
+		let	info = try self.validateProc(performInfo)
 
 		return try self.performProc(info)
 	}
@@ -127,8 +127,7 @@ public struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 public struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
 	// MARK: Types
-	public typealias ValidateProc =
-				(_ urlComponents :URLComponents, _ headers :[String : String], _ bodyData :Data) throws -> T
+	public typealias ValidateProc = (_ performInfo :PerformInfo, _ bodyData :Data) throws -> T
 	public typealias PerformProc = (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
@@ -152,13 +151,12 @@ public struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
 	// MARK: HTTPEndpoint implementation
 	//------------------------------------------------------------------------------------------------------------------
-	public func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws ->
-			PerformResult {
+	public func perform(performInfo :PerformInfo, bodyData :Data?) throws -> PerformResult {
 		// Validate
 		guard bodyData != nil else { throw HTTPEndpointError.missingBody }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, headers, bodyData!)
+		let	info = try self.validateProc(performInfo, bodyData!)
 
 		return try self.performProc(info)
 	}
@@ -169,8 +167,7 @@ public struct DataHTTPEndpoint<T> :HTTPEndpoint {
 public struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 
 	// MARK: Types
-	public typealias ValidateProc =
-				(_ urlComponents :URLComponents, _ headers :[String : String], _ info :T) throws -> U
+	public typealias ValidateProc = (_ performInfo :PerformInfo, _ info :T) throws -> U
 	public typealias PerformProc = (_ info :U) throws -> PerformResult
 
 	// MARK: Properties
@@ -194,15 +191,14 @@ public struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 
 	// MARK: HTTPEndpoint implementation
 	//------------------------------------------------------------------------------------------------------------------
-	public func perform(urlComponents :URLComponents, headers :[String : String], bodyData :Data?) throws ->
-			PerformResult {
+	public func perform(performInfo :PerformInfo, bodyData :Data?) throws -> PerformResult {
 		// Validate
 		guard bodyData != nil else { throw HTTPEndpointError.missingBody }
 		guard let json = try? JSONSerialization.jsonObject(with: bodyData!, options: []) as? T else
 				{ throw HTTPEndpointError.unableToConvertBodyToJSON }
 
 		// Perform
-		let	info = try self.validateProc(urlComponents, headers, json)
+		let	info = try self.validateProc(performInfo, json)
 
 		return try self.performProc(info)
 	}
