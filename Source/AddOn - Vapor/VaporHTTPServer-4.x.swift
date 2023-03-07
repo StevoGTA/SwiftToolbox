@@ -1,9 +1,9 @@
 //
-//  VaporHTTPServer.swift
+//  VaporHTTPServer-4.x.swift
 //  Swift Toolbox
 //
-//  Created by Stevo on 12/3/19.
-//  Copyright © 2019 Stevo Brock. All rights reserved.
+//  Created by Stevo on 2/24/23.
+//  Copyright © 2023 Stevo Brock. All rights reserved.
 //
 
 import Vapor
@@ -36,23 +36,58 @@ extension HTTPEndpointMethod {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - ServerResponder
-fileprivate class ServerResponder : HTTPServerResponder {
+// MARK: - VaporHTTPServer
+public class VaporHTTPServer : HTTPServer, Vapor.Responder {
 
 	// MARK: Properties
 	private	var	trieRouters = [HTTPMethod : TrieRouter<HTTPEndpoint>]()
 
-	// MARK: HTTPServerResponder implementation
+	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-    func respond(to request: HTTPRequest, on worker: Worker) -> Future<HTTPResponse> {
+	required public init(port :Int, maxBodySize :Int) {
+		// Run in the background
+		DispatchQueue.global(qos: .background).async() {
+			// Setup
+			let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+			defer { try! eventLoopGroup.syncShutdownGracefully() }
+
+			let	server =
+						Vapor.HTTPServer(application: Application(), responder: self,
+								configuration: Vapor.HTTPServer.Configuration(port: port),
+								on: eventLoopGroup)
+
+			// Catch errors
+			do {
+				// Start server
+				try server.start()
+			} catch {
+				// Error
+				NSLog("VaporHTTPServer encountered error when starting server: \(error)")
+			}
+
+			do {
+				// Wait for shutdown
+				try server.onShutdown.wait()
+			} catch {
+				// Error
+				NSLog("VaporHTTPServer encountered error when closing server: \(error)")
+			}
+		}
+	}
+
+	// MARK: Vapor.Responder methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func respond(to request :Request) -> EventLoopFuture<Response> {
 		// Get TrieRouter for method
-		guard let trieRouter = self.trieRouters[request.method] else
-				{ return worker.eventLoop.newSucceededFuture(result: HTTPResponse(status: .notFound)) }
+		guard let trieRouter = self.trieRouters[request.method] else {
+			// Method not found
+			return request.eventLoop.future(Response(status: .notFound))
+		}
 
 		// Compose info
-		let	urlComponents = URLComponents(url: request.url, resolvingAgainstBaseURL: false)!
+		let	urlComponents = URLComponents(url: URL(string: request.url.string)!, resolvingAgainstBaseURL: false)!
 		let	pathComponents =
-					request.urlString
+					request.url.string
 							.components(separatedBy: "?")[0]
 							.components(separatedBy: "/")[1...]
 							.map({ $0.removingPercentEncoding! })
@@ -60,7 +95,7 @@ fileprivate class ServerResponder : HTTPServerResponder {
 		var parameters = Parameters()
 		guard let httpEndpoint = trieRouter.route(path: pathComponents, parameters: &parameters) else {
 			// Route not found
-			return worker.eventLoop.newSucceededFuture(result: HTTPResponse(status: .notFound))
+			return request.eventLoop.future(Response(status: .notFound))
 		}
 
 		var	headersIterator = request.headers.makeIterator()
@@ -73,29 +108,29 @@ fileprivate class ServerResponder : HTTPServerResponder {
 			let	(responseStatus, responseHeaders, responseBody) =
 						try httpEndpoint.perform(
 								performInfo: (pathComponents, urlComponents.queryItemsMap, headers),
-								bodyData: request.body.data)
+								bodyData:
+										request.body.data?.getData(at: 0,
+												length: request.body.data?.readableBytes ?? 0))
 
-			return worker.eventLoop.newSucceededFuture(
-					result:
-							HTTPResponse(status: HTTPResponseStatus(statusCode: responseStatus.rawValue),
-									headers: HTTPHeaders(responseHeaders ?? []),
-									body: responseBody?.data ?? HTTPBody()))
+			return request.eventLoop.future(
+					Response(status: HTTPResponseStatus(statusCode: responseStatus.rawValue),
+							headers: HTTPHeaders(responseHeaders ?? []),
+							body: (responseBody != nil) ? Response.Body(data: responseBody!.data) : .empty))
 		} catch {
 			// Handle error
 			let	httpEndpointError = error as! HTTPEndpointError
 			let	jsonBody = ["error": httpEndpointError.message]
 			let	jsonData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
 
-			return worker.eventLoop.newSucceededFuture(
-					result:
-							HTTPResponse(status: HTTPResponseStatus(statusCode: httpEndpointError.status.rawValue),
-									body: jsonData))
+			return request.eventLoop.future(
+					Response(status: HTTPResponseStatus(statusCode: httpEndpointError.status.rawValue),
+							body: Response.Body(data: jsonData)))
 		}
-    }
+	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func register(_ httpEndpoint :HTTPEndpoint) {
+	public func register(_ httpEndpoint :HTTPEndpoint) {
 		// Setup
 		let	pathComponents =
 					httpEndpoint.path.pathComponents.map()
@@ -116,48 +151,6 @@ fileprivate class ServerResponder : HTTPServerResponder {
 		}
 
 		// Register route
-		trieRouter!.register(route: Route(path: pathComponents, output: httpEndpoint))
+		trieRouter!.register(httpEndpoint, at: pathComponents)
 	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - VaporHTTPServer
-public class VaporHTTPServer : HTTPServer {
-
-	// MARK: Properties
-	private	let	serverResponder = ServerResponder()
-
-	// MARK: Lifecycle methods
-	//------------------------------------------------------------------------------------------------------------------
-	required public init(port :Int, maxBodySize :Int) {
-		// Run in the background
-		DispatchQueue.global().async() {
-			// Setup
-			let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-			defer { try! group.syncShutdownGracefully() }
-
-			// Catch errors
-			var	server :Vapor.HTTPServer? = nil
-			do {
-				// Start server
-				server =
-						try Vapor.HTTPServer.start(hostname: "0.0.0.0", port: port, responder: self.serverResponder,
-								maxBodySize: maxBodySize, on: group).wait()
-			} catch {
-				// Error
-				NSLog("VaporHTTPServer encountered error when starting server: \(error)")
-			}
-
-			do {
-				try server?.onClose.wait()
-			} catch {
-				// Error
-				NSLog("VaporHTTPServer encountered error when closing server: \(error)")
-			}
-		}
-	}
-
-	// MARK: Instance methods
-	//------------------------------------------------------------------------------------------------------------------
-	public func register(_ httpEndpoint :HTTPEndpoint) { self.serverResponder.register(httpEndpoint) }
 }
