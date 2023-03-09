@@ -660,7 +660,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 					let	logOptions = strongSelf.logOptions
 					let	className = String(describing: type(of: strongSelf))
 
-					var	urlRequestInfo = "\(urlRequest.url!.host ?? "unknown")"
+					var	urlRequestInfo = "\(urlRequest.url!.scheme!)://\(urlRequest.url!.host ?? "unknown")"
 					if urlRequest.url!.port != nil { urlRequestInfo += ":\(urlRequest.url!.port!)" }
 					urlRequestInfo += "\(urlRequest.url!.path) (\(httpRequestIndex))"
 

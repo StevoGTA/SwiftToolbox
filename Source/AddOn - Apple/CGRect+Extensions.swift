@@ -60,7 +60,7 @@ extension CGRect {
 	//------------------------------------------------------------------------------------------------------------------
 	func offsetBy(dx :CGFloat, dy :CGFloat) -> CGRect {
 		// Return rect
-		return .CGRect(origin: self.origin.offsetBy(dx: dx, dy: dy), size: self.size)
+		return CGRect(origin: self.origin.offsetBy(dx: dx, dy: dy), size: self.size)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
