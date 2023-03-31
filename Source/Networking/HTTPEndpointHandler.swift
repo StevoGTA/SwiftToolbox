@@ -53,7 +53,7 @@ public enum HTTPEndpointResponseBody {
 
 	// MARK: Values
 	case data(_ value :Data)
-	case integer(_ value :Int)
+	case integer(_ value :Int64)
 	case json(_ value :Any)
 	case string(_ value :String)
 

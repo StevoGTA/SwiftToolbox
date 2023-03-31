@@ -84,6 +84,21 @@ public struct SQLiteTable {
 			private			let	statementPerformer :SQLiteStatementPerformer
 
 			private			var	tableColumns :[SQLiteTableColumn]
+			private			var	tableColumnInfos :[String] {
+										self.tableColumns.map() {
+											// Start with create string
+											var	columnInfo = $0.createString
+
+											// Add references if applicable
+											if let tableColumnReference = self.tableColumnReferenceMap[$0.name] {
+												// Add reference
+												columnInfo +=
+														" REFERENCES \(tableColumnReference.referencedTable.name)(\(tableColumnReference.referencedTableColumn.name)) ON UPDATE CASCADE"
+											}
+
+											return columnInfo
+										}
+									}
 			private			var	tableColumnsMap = [String : SQLiteTableColumn]()
 
 	// MARK: Class methods
@@ -127,44 +142,12 @@ public struct SQLiteTable {
 
 	// MARK: Property methods
 	//------------------------------------------------------------------------------------------------------------------
-	public subscript(dynamicMember member :String) -> SQLiteTableColumn { self.tableColumnsMap[member]! }
+	public subscript(dynamicMember member :String) -> SQLiteTableColumn {
+		// Return table column
+		self.tableColumnsMap["\(member)TableColumn"]!
+	}
 
 	// MARK: Instance methods
-	//------------------------------------------------------------------------------------------------------------------
-	public func create(ifNotExists :Bool = true) {
-		// Setup
-		let	columnInfos :[String] =
-					self.tableColumns.map() {
-						// Start with create string
-						var	columnInfo = $0.createString
-
-						// Add references if applicable
-						if let tableColumnReference = self.tableColumnReferenceMap[$0.name] {
-							// Add reference
-							columnInfo +=
-									" REFERENCES \(tableColumnReference.referencedTable.name)(\(tableColumnReference.referencedTableColumn.name)) ON UPDATE CASCADE"
-						}
-
-						return columnInfo
-					}
-
-		// Create
-		let	statement =
-					"CREATE TABLE" + (ifNotExists ? " IF NOT EXISTS" : "") + " `\(self.name)`" +
-							" (" + String(combining: columnInfos) + ")" +
-							(self.options.contains(.withoutRowID) ? " WITHOUT ROWID" : "")
-		self.statementPerformer.addToTransactionOrPerform(statement: statement)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	public mutating func rename(to name :String) {
-		// Perform
-		self.statementPerformer.addToTransactionOrPerform(statement: "ALTER TABLE `\(self.name)` RENAME TO `\(name)`")
-
-		// Update
-		self.name = name
-	}
-
 	//------------------------------------------------------------------------------------------------------------------
 	public mutating func add(_ tableColumn :SQLiteTableColumn) {
 		// Perform
@@ -183,6 +166,52 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func count(innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil) -> Int {
+		// Perform
+		var	count :Int64 = 0
+		try! select(columnNames: type(of: self).countAllTableColumn.name, innerJoin: innerJoin, where: sqliteWhere) {
+			// Query count
+			count = $0.integer(for: type(of: self).countAllTableColumn)!
+		}
+
+		return Int(count)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func create(ifNotExists :Bool = true) {
+		// Create
+		let	statement =
+					"CREATE TABLE" + (ifNotExists ? " IF NOT EXISTS" : "") + " `\(self.name)`" +
+							" (" + String(combining: self.tableColumnInfos) + ")" +
+							(self.options.contains(.withoutRowID) ? " WITHOUT ROWID" : "")
+		self.statementPerformer.addToTransactionOrPerform(statement: statement)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func deleteRow(where sqliteWhere :SQLiteWhere) {
+		// Setup
+		let	statement = "DELETE FROM `\(self.name)`"
+
+		// Perform
+		sqliteWhere.forEachValueGroup(groupSize: Int.max)
+				{ self.statementPerformer.addToTransactionOrPerform(statement: statement + $0, values: $1) }
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func deleteRows(_ tableColumn :SQLiteTableColumn, values :[Any]) {
+		// Perform in chunks of SQLITE_LIMIT_VARIABLE_NUMBER
+		values.forEachChunk(chunkSize: self.statementPerformer.variableNumberLimit) {
+			// Setup
+			let	statement =
+						"DELETE FROM `\(self.name)` WHERE `\(tableColumn.name)` IN (" +
+								String(combining: Array(repeating: "?", count: $0.count), with: ",") + ")"
+
+			// Perform
+			self.statementPerformer.addToTransactionOrPerform(statement: statement, values: $0)
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func drop(triggerNamed name :String) {
 		// Perform
 		self.statementPerformer.addToTransactionOrPerform(statement: "DROP TRIGGER \(name)")
@@ -196,45 +225,6 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func hasRow(where sqliteWhere :SQLiteWhere) -> Bool { count(where: sqliteWhere) > 0 }
-
-	//------------------------------------------------------------------------------------------------------------------
-	public func count(innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil) -> Int {
-		// Perform
-		var	count :Int64 = 0
-		try! select(columnNames: type(of: self).countAllTableColumn.name, innerJoin: innerJoin, where: sqliteWhere) {
-			// Query count
-			count = $0.integer(for: type(of: self).countAllTableColumn)!
-		}
-
-		return Int(count)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	public func rowID(for sqliteWhere :SQLiteWhere) throws -> Int64? {
-		// Query rowID
-		var	rowID :Int64? = nil
-		try select(tableColumns: [.rowID], where: sqliteWhere) { rowID = $0.integer(for: .rowID)! }
-
-		return rowID
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
-			where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil, limit :SQLiteLimit? = nil,
-			resultsRowProc :SQLiteResultsRow.Proc) throws {
-		// Perform
-		try select(columnNames: columnNames(for: tableColumns ?? [.all]), innerJoin: innerJoin, where: sqliteWhere,
-				orderBy: orderBy, limit: limit, resultsRowProc: resultsRowProc)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	public func select(tableColumns :[(table :SQLiteTable, tableColumn :SQLiteTableColumn)],
-			innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil,
-			limit :SQLiteLimit? = nil, resultsRowProc :SQLiteResultsRow.Proc) throws {
-		// Perform
-		try select(columnNames: columnNames(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
-				orderBy: orderBy, limit: limit, resultsRowProc: resultsRowProc)
-	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
@@ -301,6 +291,97 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func migrate(
+			resultsRowMigrationProc :(_ resultsRow :SQLiteResultsRow) throws ->
+					[(tableColumn :SQLiteTableColumn, value :Any)]) throws {
+		// Setup
+		let	tempTableName = UUID().uuidString
+		var	tempTable =
+					SQLiteTable(name: tempTableName, options: self.options, tableColumns: self.tableColumns,
+							references: [], statementPerformer: self.statementPerformer)
+
+		// Create new table
+		tempTable.create()
+
+		// Migrate content
+		let	statement =
+					"INSERT INTO `\(tempTableName)` (" + columnNames(for: self.tableColumns) + ") VALUES (" +
+							String(combining: Array(repeating: "?", count: self.tableColumns.count), with: ",") + ")"
+		self.statementPerformer.performAsTransaction() {
+			// Iterate all existing rows
+			try! select(columnNames: "*", innerJoin: nil, where: nil) {
+				// Get updated info
+				let	info = try! resultsRowMigrationProc($0)
+
+				// Insert
+				self.statementPerformer.addToTransactionOrPerform(statement: statement, values: info.map({ $0.value }),
+						lastInsertRowIDProc: { _ in })
+			}
+
+			return .commit
+		}
+
+		// Drop current table
+		self.drop()
+
+		// Rename temp to current
+		tempTable.rename(to: self.name)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public mutating func rename(to name :String) {
+		// Perform
+		self.statementPerformer.addToTransactionOrPerform(statement: "ALTER TABLE `\(self.name)` RENAME TO `\(name)`")
+
+		// Update
+		self.name = name
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func rowID(for sqliteWhere :SQLiteWhere) throws -> Int64? {
+		// Query rowID
+		var	rowID :Int64? = nil
+		try select(tableColumns: [.rowID], where: sqliteWhere) { rowID = $0.integer(for: .rowID)! }
+
+		return rowID
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func select(tableColumns :[SQLiteTableColumn]? = nil, innerJoin :SQLiteInnerJoin? = nil,
+			where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil, limit :SQLiteLimit? = nil,
+			resultsRowProc :SQLiteResultsRow.Proc) throws {
+		// Perform
+		try select(columnNames: columnNames(for: tableColumns ?? [.all]), innerJoin: innerJoin, where: sqliteWhere,
+				orderBy: orderBy, limit: limit, resultsRowProc: resultsRowProc)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func select(tableColumns :[(table :SQLiteTable, tableColumn :SQLiteTableColumn)],
+			innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil, orderBy :SQLiteOrderBy? = nil,
+			limit :SQLiteLimit? = nil, resultsRowProc :SQLiteResultsRow.Proc) throws {
+		// Perform
+		try select(columnNames: columnNames(for: tableColumns), innerJoin: innerJoin, where: sqliteWhere,
+				orderBy: orderBy, limit: limit, resultsRowProc: resultsRowProc)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func sum(tableColumn :SQLiteTableColumn, innerJoin :SQLiteInnerJoin? = nil,
+			where sqliteWhere :SQLiteWhere? = nil) throws -> Int64 {
+		// Perform
+		let	sumTableColumn = SQLiteTableColumn.sum(for: tableColumn)
+		var	result :Int64 = 0
+		try select(columnNames: sumTableColumn.name, innerJoin: innerJoin, where: sqliteWhere) {
+			//
+			result = $0.integer(for: sumTableColumn)!
+		}
+
+		return result
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func tableColumn(for name :String) -> SQLiteTableColumn { self.tableColumnsMap["\(name)TableColumn"]! }
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func update(_ info :[(tableColumn :SQLiteTableColumn, value :Any)], where sqliteWhere :SQLiteWhere) {
 		// Iterate all groups in SQLiteWhere
 		let	groupSize = self.statementPerformer.variableNumberLimit - info.count
@@ -313,20 +394,6 @@ public struct SQLiteTable {
 
 			// Perform
 			self.statementPerformer.addToTransactionOrPerform(statement: statement, values: combinedValues)
-		}
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	public func deleteRows(_ tableColumn :SQLiteTableColumn, values :[Any]) {
-		// Perform in chunks of SQLITE_LIMIT_VARIABLE_NUMBER
-		values.forEachChunk(chunkSize: self.statementPerformer.variableNumberLimit) {
-			// Setup
-			let	statement =
-						"DELETE FROM `\(self.name)` WHERE `\(tableColumn.name)` IN (" +
-								String(combining: Array(repeating: "?", count: $0.count), with: ",") + ")"
-
-			// Perform
-			self.statementPerformer.addToTransactionOrPerform(statement: statement, values: $0)
 		}
 	}
 

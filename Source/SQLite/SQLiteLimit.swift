@@ -17,6 +17,6 @@ public class SQLiteLimit {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(limit :Int, offset :Int? = nil) {
 		// Setup
-		self.string = "LIMIT \(limit)" + ((offset != nil) ? " OFFSET \(offset!)" : "")
+		self.string = " LIMIT \(limit)" + ((offset != nil) ? " OFFSET \(offset!)" : "")
 	}
 }

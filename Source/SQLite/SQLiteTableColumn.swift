@@ -107,6 +107,12 @@ public struct SQLiteTableColumn : Equatable {
 				"strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime')")
 	}
 
+	//------------------------------------------------------------------------------------------------------------------
+	static func sum(for tableColumn :SQLiteTableColumn) -> SQLiteTableColumn {
+		// Return table column
+		return SQLiteTableColumn("SUM(`\(tableColumn.name)`)", .integer)
+	}
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(_ name :String, _ kind :Kind, _ options :[Options] = [], _ defaultValue :Any? = nil) {
