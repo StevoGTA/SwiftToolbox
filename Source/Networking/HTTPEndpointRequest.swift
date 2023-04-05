@@ -100,7 +100,8 @@ public class HTTPEndpointRequest {
 		self.timeoutInterval = timeoutInterval
 		self.options = options
 
-		self.headers = headers
+		self.headers = headers ?? [:]
+		self.headers!["Content-Type"] = "application/octet-stream"
 		adjustHeaders()
 	}
 
@@ -108,10 +109,6 @@ public class HTTPEndpointRequest {
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
 			jsonBody :Any, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
-		// Setup
-		var	headersUse = headers ?? [:]
-		headersUse["Content-Type"] = "application/json"
-
 		// Store
 		self.method = method
 		self.path = path
@@ -121,7 +118,8 @@ public class HTTPEndpointRequest {
 		self.timeoutInterval = timeoutInterval
 		self.options = options
 
-		self.headers = headersUse
+		self.headers = headers ?? [:]
+		self.headers!["Content-Type"] = "application/json"
 		adjustHeaders()
 	}
 
@@ -129,10 +127,6 @@ public class HTTPEndpointRequest {
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
 			xmlBody :Data, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
-		// Setup
-		var	headersUse = headers ?? [:]
-		headersUse["Content-Type"] = "application/xml"
-
 		// Store
 		self.method = method
 		self.path = path
@@ -142,7 +136,8 @@ public class HTTPEndpointRequest {
 		self.timeoutInterval = timeoutInterval
 		self.options = options
 
-		self.headers = headersUse
+		self.headers = headers ?? [:]
+		self.headers!["Content-Type"] = "application/xml"
 		adjustHeaders()
 	}
 
@@ -151,10 +146,6 @@ public class HTTPEndpointRequest {
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
 			urlEncodedBody :[String : Any], timeoutInterval :TimeInterval = defaultTimeoutInterval,
 			options :Options = []) {
-		// Setup
-		var	headersUse = headers ?? [:]
-		headersUse["Content-Type"] = "application/x-www-form-urlencoded"
-
 		// Store
 		self.method = method
 		self.path = path
@@ -167,7 +158,8 @@ public class HTTPEndpointRequest {
 		self.timeoutInterval = timeoutInterval
 		self.options = options
 
-		self.headers = headersUse
+		self.headers = headers ?? [:]
+		self.headers!["Content-Type"] = "application/x-www-form-urlencoded"
 		adjustHeaders()
 	}
 

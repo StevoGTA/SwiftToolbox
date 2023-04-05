@@ -17,12 +17,11 @@ public class File : Equatable, Hashable {
 
 	// MARK: Properties
 	public					var	name :String { self.url.lastPathComponent }
+	public					var	`extension` :String? { self.url.pathExtension }
 	public					var	path :String { self.url.path }
 	public					var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
 
 	public	private(set)	var	url :URL
-
-							var	`extension` :String? { self.url.pathExtension }
 
 							var	size :Int64? { self.url.fileSize }
 							var	creationDate :Date { self.url.creationDate! }
