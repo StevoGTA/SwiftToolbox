@@ -370,12 +370,27 @@ public struct SQLiteTable {
 		// Perform
 		let	sumTableColumn = SQLiteTableColumn.sum(for: tableColumn)
 		var	result :Int64 = 0
-		try select(columnNames: sumTableColumn.name, innerJoin: innerJoin, where: sqliteWhere) {
-			//
-			result = $0.integer(for: sumTableColumn)!
-		}
+		try select(columnNames: sumTableColumn.name, innerJoin: innerJoin, where: sqliteWhere)
+			{ result = $0.integer(for: sumTableColumn)! }
 
 		return result
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func sum(tableColumns :[SQLiteTableColumn], innerJoin :SQLiteInnerJoin? = nil,
+			where sqliteWhere :SQLiteWhere? = nil) throws -> [String : Int64] {
+		// Perform
+		let	sumTableColumnsByTableColumnName =
+					Dictionary(tableColumns.map({ ($0.name, SQLiteTableColumn.sum(for: $0)) }))
+		var	results = [String : Int64]()
+		try select(
+				columnNames: String(combining: sumTableColumnsByTableColumnName.values.map({ $0.name }), with: ","),
+				innerJoin: innerJoin, where: sqliteWhere) { resultsRow in
+					// Update results
+					sumTableColumnsByTableColumnName.forEach() { results[$0.key] = resultsRow.integer(for: $0.value)! }
+				}
+
+		return results
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

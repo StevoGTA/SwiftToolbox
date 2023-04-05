@@ -59,11 +59,22 @@ fileprivate extension HTTPEndpointRequest {
 		} else {
 			// Compose URLRequests
 			let	queryComponents =
-						self.queryComponents?.map() {
-							// Return string
-							"\($0.key)=\($0.value)"
-									.urlQueryEncoded(encodePlus: options.contains(.percentEncodePlusCharacter))
-						}
+						self.queryComponents?
+								.flatMap({ key, value in
+									// Check type
+									if let array = value as? [String] {
+										// Array of Strings
+										return array.map({ (key, $0) })
+									} else {
+										// String
+										return [(key, "\(value)")]
+									}
+								})
+								.map({
+									"\($0.0)=\($0.1)"
+											.urlQueryEncoded(
+													encodePlus: options.contains(.percentEncodePlusCharacter))
+								})
 			let	queryString = String(combining: queryComponents ?? [], with: "&")
 			let	hasQuery = !queryString.isEmpty || (self.multiValueQueryComponent != nil)
 			let	urlRoot = serverPrefix + self.path + (hasQuery ? "?" : "") + queryString
