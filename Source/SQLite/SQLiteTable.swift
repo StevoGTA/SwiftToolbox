@@ -144,7 +144,7 @@ public struct SQLiteTable {
 	//------------------------------------------------------------------------------------------------------------------
 	public subscript(dynamicMember member :String) -> SQLiteTableColumn {
 		// Return table column
-		self.tableColumnsMap["\(member)TableColumn"]!
+		self.tableColumnsMap[member]!
 	}
 
 	// MARK: Instance methods
