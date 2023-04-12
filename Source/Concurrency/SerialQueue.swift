@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SerialQueue
-public class SerialQueue<T> : ConcurrentQueue<T> {
+public class SerialQueue<T> : ProcConcurrentQueue<T> {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------

@@ -19,6 +19,7 @@ public class File : Equatable, Hashable {
 	public					var	name :String { self.url.lastPathComponent }
 	public					var	`extension` :String? { self.url.pathExtension }
 	public					var	path :String { self.url.path }
+	public					var	isHidden :Bool { self.name.hasPrefix(".") }
 	public					var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
 
 	public	private(set)	var	url :URL
