@@ -44,8 +44,8 @@ open class Progress {
 						}
 					}
 
-			var	messageUpdatedProc :(_ message :String) -> Void = { _ in }
-			var	valueUpdatedProc :(_ value :Float?) -> Void = { _ in }
+	public	var	messageUpdatedProc :(_ message :String) -> Void = { _ in }
+	public	var	valueUpdatedProc :(_ value :Float?) -> Void = { _ in }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
