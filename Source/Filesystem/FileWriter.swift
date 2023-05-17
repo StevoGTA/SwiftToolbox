@@ -42,6 +42,12 @@ extension FileWriterError : CustomStringConvertible, LocalizedError {
 // MARK: - FileWriter
 public class FileWriter {
 
+	// MARK: Mode
+	public enum Mode {
+		case overwrite
+		case append
+	}
+
 	// MARK: Properties
 	private	let	file :File
 
@@ -87,12 +93,13 @@ public class FileWriter {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func open() throws {
+	public func open(mode :Mode = .overwrite) throws {
 		// Preflight
 		guard self.fd == -1 else { return }
 
 		// Open
-		self.fd = Darwin.open(self.file.path, O_WRONLY | O_CREAT, S_IRUSR + S_IRGRP + S_IROTH)
+		let	oflag :Int32 = (mode == .overwrite) ? O_RDWR | O_CREAT | O_EXCL : O_RDWR | O_APPEND | O_EXLOCK
+		self.fd = Darwin.open(self.file.path, oflag, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH)
 		guard self.fd != -1 else { throw FileWriterError(type: .couldNotOpen, file: self.file, errno: errno) }
 	}
 
