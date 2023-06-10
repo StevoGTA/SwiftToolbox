@@ -9,7 +9,13 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: FileManager extension
+// MARK: Local procs
+#if os(Linux)
+	func autoreleasepool<Result>(invoking body: () throws -> Result) rethrows -> Result { try body() }
+#endif
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - FileManager extension
 extension FileManager {
 
 	// MARK: Types
