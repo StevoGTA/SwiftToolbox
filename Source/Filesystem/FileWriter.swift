@@ -56,9 +56,9 @@ public class FileWriter {
 	// Class methods
 	//------------------------------------------------------------------------------------------------------------------
 	static public func setContents(of file :File, to data :Data, creationDate :Date? = nil,
-			modificationDate :Date? = nil) throws {
+			modificationDate :Date? = nil, options :Data.WritingOptions = []) throws {
 		// Write data
-		try data.write(to: file.url)
+		try data.write(to: file.url, options: options)
 		if creationDate != nil {
 			// Set
 			try file.set(creationDate: creationDate!)
@@ -70,15 +70,19 @@ public class FileWriter {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static public func setContents(of file :File, to string :String) throws {
+	static public func setContents(of file :File, to string :String, creationDate :Date? = nil,
+			modificationDate :Date? = nil, options :Data.WritingOptions = []) throws {
 		// Set content
-		try setContents(of: file, to: string.data(using: .utf8)!)
+		try setContents(of: file, to: string.data(using: .utf8)!, creationDate: creationDate,
+				modificationDate: modificationDate, options: options)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	static public func setJSONContents<T>(of file :File, to t :T) throws {
+	static public func setJSONContents<T>(of file :File, to t :T, creationDate :Date? = nil,
+			modificationDate :Date? = nil, options :Data.WritingOptions = []) throws {
 		// Set content
-		try setContents(of: file, to: try JSONSerialization.data(withJSONObject: t, options: []))
+		try setContents(of: file, to: try JSONSerialization.data(withJSONObject: t, options: []),
+				creationDate: creationDate, modificationDate: modificationDate, options: options)
 	}
 
 	// MARK: Lifecycle methods
