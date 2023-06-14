@@ -21,12 +21,12 @@ public class File : Equatable, Hashable {
 	public					var	path :String { self.url.path }
 	public					var	isHidden :Bool { self.name.hasPrefix(".") }
 	public					var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
+	public					var	modificationDate :Date { self.url.contentModificationDate! }
 
 	public	private(set)	var	url :URL
 
 							var	size :Int64? { self.url.fileSize }
 							var	creationDate :Date { self.url.creationDate! }
-							var	modificationDate :Date { self.url.contentModificationDate! }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------

@@ -144,6 +144,10 @@ extension Array {
 		// Must have at least 2 elements
 		guard self.count > 1 else { return }
 
+#if os(Linux)
+		func autoreleasepool<Result>(invoking body: () throws -> Result) rethrows -> Result { try body() }
+#endif
+
 		// Create map
 		var	map :[MapItem<T, Element>] =
 					try autoreleasepool()
