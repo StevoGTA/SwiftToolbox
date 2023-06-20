@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: URL extension
-extension URL {
+public extension URL {
 
 	// MARK: Properties
 	var	fileSize :Int64? {
