@@ -19,9 +19,6 @@ public enum HTTPEndpointMethod {
 	case patch
 	case post
 	case put
-
-	// Properties
-	var	supportsBodyData :Bool { (self == .patch) || (self == .post) || (self == .put) }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

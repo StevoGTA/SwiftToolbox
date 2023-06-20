@@ -696,16 +696,14 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 							// Log headers
 							logMessages.append("    Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
 						}
-						if logOptions.contains(.requestBody) {
+						if logOptions.contains(.requestBody), let httpBody = urlRequest.httpBody {
 							// Log body
 							logMessages.append(
-									"    Body: \(String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) ?? "unable to decode")")
+									"    Body: \(String(data: httpBody, encoding: .utf8) ?? "unable to decode")")
 						}
-						if logOptions.contains(.requestBodySize) &&
-								httpEndpointRequestPerformInfo.httpEndpointRequest.method.supportsBodyData {
+						if logOptions.contains(.requestBodySize), let httpBody = urlRequest.httpBody {
 							// Log body size
-							logMessages.append(
-									"    Body size: \((urlRequest.httpBody ?? Data()).count) bytes")
+							logMessages.append("    Body size: \(httpBody.count) bytes")
 						}
 						HTTPEndpointClient.logProc(logMessages)
 					}
