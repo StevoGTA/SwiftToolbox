@@ -81,7 +81,13 @@ public class ConcurrentQueue<T> {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func wait() { while !self.itemsLock.perform({ self.queuedItems.isEmpty }) { self.activeItemsCount.wait() } }
+	public func wait() {
+		// While there are still queued items, wait on the active items count
+		while !self.itemsLock.perform({ self.queuedItems.isEmpty }) { self.activeItemsCount.wait() }
+
+		// Now that there are no more queued items, wait on the active items count one last time
+		self.activeItemsCount.wait()
+	}
 
 	// MARK: Subclass methods
 	//------------------------------------------------------------------------------------------------------------------
