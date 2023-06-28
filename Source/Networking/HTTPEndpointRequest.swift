@@ -248,54 +248,6 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	private	let	destinationURL :URL
 
 	// MARK: Lifecycle methods
-//	//------------------------------------------------------------------------------------------------------------------
-//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
-//			destinationURL :URL) {
-//		// Store
-//		self.destinationURL = destinationURL
-//
-//		// Do super
-//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-//				timeoutInterval: timeoutInterval)
-//	}
-//
-//	//------------------------------------------------------------------------------------------------------------------
-//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			headers :[String : String]? = nil, bodyData :Data? = nil,
-//			timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
-//		// Store
-//		self.destinationURL = destinationURL
-//
-//		// Do super
-//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-//				bodyData: bodyData, timeoutInterval: timeoutInterval, options: options)
-//	}
-//
-//	//------------------------------------------------------------------------------------------------------------------
-//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			headers :[String : String]? = nil, jsonBody :Any, timeoutInterval :TimeInterval = defaultTimeoutInterval,
-//			options :Options = [], destinationURL :URL) {
-//		// Store
-//		self.destinationURL = destinationURL
-//
-//		// Do super
-//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-//				jsonBody: jsonBody, timeoutInterval: timeoutInterval, options: options)
-//	}
-//
-//	//------------------------------------------------------------------------------------------------------------------
-//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			headers :[String : String]? = nil, urlEncodedBody :[String : Any],
-//			timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
-//		// Store
-//		self.destinationURL = destinationURL
-//
-//		// Do super
-//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-//				urlEncodedBody: urlEncodedBody, timeoutInterval: timeoutInterval, options: options)
-//	}
-
 	//------------------------------------------------------------------------------------------------------------------
 	init(url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
 		// Store
@@ -474,6 +426,19 @@ extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessMultiResults {
 			}
 		}
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - StreamHTTPEndpointRequest
+public class StreamHTTPEndpointRequest : HTTPEndpointRequest {
+
+	// MARK: Types
+	public	typealias DataProc = (_ data :Data) -> Void
+	public	typealias CompletionProc = (_ error :Error?) -> Void
+
+	// MARK: Properties
+	public	var	dataProc :DataProc = { _ in }
+	public	var	completionProc :CompletionProc = { _ in }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
