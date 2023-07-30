@@ -34,6 +34,28 @@ public extension Dictionary {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	func removingValues(forKeys keys :[Key]) -> Self {
+		// Setup
+		var dictionary = self
+
+		// Remove values
+		keys.forEach() { dictionary[$0] = nil }
+
+		return dictionary
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func removingValues(forKeys keys :Set<Key>) -> Self {
+		// Setup
+		var dictionary = self
+
+		// Remove values
+		keys.forEach() { dictionary[$0] = nil }
+
+		return dictionary
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	mutating func removeValues(forKeys keys :[Key]) { keys.forEach() { self[$0] = nil } }
 }
 
