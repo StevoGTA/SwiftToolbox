@@ -24,13 +24,15 @@ public extension URL {
 				}
 			}
 	var	isDirectory :Bool { (try? resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false }
+	var	isFolder :Bool { self.isDirectory }
+	var	isFile :Bool { (try? resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile ?? false }
 	var	creationDate :Date? { (try? resourceValues(forKeys: [.creationDateKey]))?.creationDate }
 	var	contentModificationDate :Date?
 				{ (try? resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
-	static public func from(path :String?) -> URL? { (path != nil) ? URL(fileURLWithPath: path!) : nil }
+	static func from(path :String?) -> URL? { (path != nil) ? URL(fileURLWithPath: path!) : nil }
 
 	//------------------------------------------------------------------------------------------------------------------
 	static func from(string :String?) -> URL? { (string != nil) ? URL(string: string!) : nil }

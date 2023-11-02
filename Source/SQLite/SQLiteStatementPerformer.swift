@@ -143,13 +143,13 @@ class SQLiteStatementPerformer {
 					SQLiteStatement(statement: string, values: values, lastInsertRowIDProc: lastInsertRowIDProc)
 
 		// Check for transaction
-		if var sqliteStatements = self.transactionsMapLock.read({ self.transactionsMap[Thread.current] }) {
+		if var sqliteStatements = self.transactionsMapLock.read({ self.transactionsMap[.current] }) {
 			// In transaction
 			self.transactionsMapLock.write() {
 				// Add sqlite statement
-				self.transactionsMap[Thread.current] = nil
+				self.transactionsMap[.current] = nil
 				sqliteStatements.append(sqliteStatement)
-				self.transactionsMap[Thread.current] = sqliteStatements
+				self.transactionsMap[.current] = sqliteStatements
 			}
 		} else {
 			// Perform
@@ -173,14 +173,14 @@ class SQLiteStatementPerformer {
 	//------------------------------------------------------------------------------------------------------------------
 	func performAsTransaction(_ proc :() -> TransactionResult) {
 		// Internals check
-		guard self.transactionsMapLock.read({ self.transactionsMap[Thread.current] }) == nil else {
+		guard self.transactionsMapLock.read({ self.transactionsMap[.current] }) == nil else {
 			// Error
 			fatalError("SQLiteStatementPerformer performAsTransaction() called while already in transaction")
 		}
 
 		// Start transaction
 		self.transactionsMapLock.write()
-				{ self.transactionsMap[Thread.current] = [SQLiteStatement(statement: "BEGIN TRANSACTION")] }
+				{ self.transactionsMap[.current] = [SQLiteStatement(statement: "BEGIN TRANSACTION")] }
 
 		// Call proc and check result
 		if proc() == .commit {
@@ -188,8 +188,8 @@ class SQLiteStatementPerformer {
 			var	sqliteStatements = [SQLiteStatement]()
 			self.transactionsMapLock.write() {
 				// Retrieve sqlite statements
-				sqliteStatements = self.transactionsMap[Thread.current]!
-				self.transactionsMap[Thread.current] = nil
+				sqliteStatements = self.transactionsMap[.current]!
+				self.transactionsMap[.current] = nil
 			}
 
 			// Check for empty transaction
@@ -202,7 +202,7 @@ class SQLiteStatementPerformer {
 			self.lock.perform() { sqliteStatements.forEach() { _ = try! $0.perform(with: self.database) } }
 		} else {
 			// No longer in transaction
-			self.transactionsMapLock.write() { self.transactionsMap[Thread.current] = nil }
+			self.transactionsMapLock.write() { self.transactionsMap[.current] = nil }
 		}
 	}
 }

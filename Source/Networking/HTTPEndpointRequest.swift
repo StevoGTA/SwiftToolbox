@@ -463,6 +463,19 @@ extension JSONHTTPEndpointRequest : HTTPEndpointRequestProcessMultiResults {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// MARK: - StreamHTTPEndpointRequest
+public class StreamHTTPEndpointRequest : HTTPEndpointRequest {
+
+	// MARK: Types
+	public	typealias DataProc = (_ data :Data) -> Void
+	public	typealias CompletionProc = (_ error :Error?) -> Void
+
+	// MARK: Properties
+	public	var	dataProc :DataProc = { _ in }
+	public	var	completionProc :CompletionProc = { _ in }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // MARK: - StringHTTPEndpointRequest
 public class StringHTTPEndpointRequest : HTTPEndpointRequest {
 

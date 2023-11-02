@@ -156,7 +156,7 @@ fileprivate extension HTTPEndpointRequest {
 // MARK: - HTTPEndpointClient
 open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
-	// MARK: Types
+	// MARK: Options
 	public struct Options : OptionSet {
 
 		// MARK: Properties
@@ -169,11 +169,13 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 		public init(rawValue :Int) { self.rawValue = rawValue }
 	}
 
+	// MARK: Priority
 	public enum Priority : Int {
 		case normal
 		case background
 	}
 
+	// MARK: LogOptions
 	public struct LogOptions : OptionSet {
 
 		// MARK: Properties
@@ -191,6 +193,8 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 		public init(rawValue :Int) { self.rawValue = rawValue }
 	}
 
+	//------------------------------------------------------------------------------------------------------------------
+	// MARK: HTTPEndpointRequestInfo
 	private class HTTPEndpointRequestInfo {
 
 		// MARK: Properties
@@ -229,6 +233,11 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 									// Process results
 									fileHTTPEndpointRequest.processResults(response: $0, url: $1, error: $2)
 								}) })
+			} else if let streamHTTPEndpointRequest = self.httpEndpointRequest as? StreamHTTPEndpointRequest {
+				// StreamHTTPEndpointRequest
+				return urlRequests
+						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
+								urlCompletionProc: { streamHTTPEndpointRequest.completionProc($2) }) })
 			} else if let httpEndpointRequestProcessResults =
 					self.httpEndpointRequest as? HTTPEndpointRequestProcessResults {
 				// Will only ever be a single URLRequest
@@ -270,6 +279,8 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 		}
 	}
 
+	//------------------------------------------------------------------------------------------------------------------
+	// MARK: HTTPEndpointRequestPerformInfo
 	private class HTTPEndpointRequestPerformInfo {
 
 		// MARK: Types
@@ -372,9 +383,13 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 		}
 	}
 
-	private	class URLSessionDelegate :NSObject, Foundation.URLSessionDelegate, URLSessionDownloadDelegate {
+	//------------------------------------------------------------------------------------------------------------------
+	// MARK: URLSessionDelegate
+	private class URLSessionDelegate : NSObject, Foundation.URLSessionDelegate, URLSessionDataDelegate,
+			URLSessionDownloadDelegate {
 
 		// MARK: Types
+		typealias DataProc = (_ data :Data) -> Void
 		typealias ProgressProc = (_ progress :Double) -> Void
 		typealias CompletionProc = (_ response :HTTPURLResponse?, _ url :URL?, _ error :Error?) -> Void
 
@@ -382,6 +397,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 		private struct Info {
 
 			// MARK: Properties
+			let	dataProc :DataProc
 			let	progressProc :ProgressProc
 			let	completionProc :CompletionProc
 		}
@@ -399,6 +415,16 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 				// Cleanup
 				self.taskMap.remove(task)
+			}
+		}
+
+		// MARK: URLSessionDataDelegate methods
+		//--------------------------------------------------------------------------------------------------------------
+		func urlSession(_ session :URLSession, dataTask :URLSessionDataTask, didReceive data :Data) {
+			// Retrieve info
+			if let info = self.taskMap.value(for: dataTask) {
+				// Call proc
+				info.dataProc(data)
 			}
 		}
 
@@ -428,10 +454,11 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 		// MARK: Instance methods
 		//--------------------------------------------------------------------------------------------------------------
-		fileprivate func register(downloadTask :URLSessionDownloadTask, progressProc :@escaping ProgressProc,
-				completionProc :@escaping CompletionProc) {
+		fileprivate func register(task :URLSessionTask, dataProc :@escaping DataProc = { _ in },
+				progressProc :@escaping ProgressProc = { _ in }, completionProc :@escaping CompletionProc) {
 			// Add to map
-			self.taskMap.set(Info(progressProc: progressProc, completionProc: completionProc), for: downloadTask)
+			self.taskMap.set(Info(dataProc: dataProc, progressProc: progressProc, completionProc: completionProc),
+					for: task)
 		}
 	}
 
@@ -589,6 +616,16 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func queue(_ streamHTTPEndpointRequest :StreamHTTPEndpointRequest, identifier :String = "",
+			priority :Priority = .normal, completionProc :@escaping StreamHTTPEndpointRequest.CompletionProc) {
+		// Setup
+		streamHTTPEndpointRequest.completionProc = completionProc
+
+		// Queue
+		queue(streamHTTPEndpointRequest, identifier: identifier, priority: priority)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ stringHTTPEndpointRequest :StringHTTPEndpointRequest, identifier :String = "",
 			priority :Priority = .normal, completionProc :@escaping StringHTTPEndpointRequest.CompletionProc) {
 		// Setup
@@ -723,7 +760,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 						let	urlSessionDownloadTask = strongSelf.urlSession.downloadTask(with: urlRequest)
 
 						// Register with URLSessionDelegate
-						self?.urlSessionDelegate?.register(downloadTask: urlSessionDownloadTask,
+						self?.urlSessionDelegate?.register(task: urlSessionDownloadTask,
 								progressProc: fileHTTPEndpointRequest.progressProc,
 								completionProc: {
 									// Log
@@ -763,6 +800,52 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 						// Resume
 						urlSessionDownloadTask.resume()
+					} else if let streamHTTPEndpointRequest =
+							httpEndpointRequestPerformInfo.httpEndpointRequest as? StreamHTTPEndpointRequest {
+						// StreamHTTPEndpointRequest
+						let	urlSessionDataTask = strongSelf.urlSession.dataTask(with: urlRequest)
+
+						// Register with URLSessionDelegate
+						self?.urlSessionDelegate?.register(task: urlSessionDataTask,
+								dataProc: streamHTTPEndpointRequest.dataProc,
+								completionProc: {
+									// Log
+									if logOptions.contains(.requestAndResponse) {
+										// Setup
+										let	deltaTime = Date().timeIntervalSince(startDate)
+										var	logMessages = [String]()
+
+										// Log response
+										if $0 != nil {
+											// Success
+											logMessages.append(
+													"    \(className) received status \($0!.statusCode) for \(urlRequestInfo) in \(String(format: "%0.3f", deltaTime))s")
+											if logOptions.contains(.responseHeaders) {
+												// Log headers
+												logMessages.append("        Headers: \($0!.allHeaderFields)")
+											}
+										} else {
+											// Error
+											logMessages.append("    \(className) received error \($2!) for \(urlRequestInfo)")
+										}
+										HTTPEndpointClient.logProc(logMessages)
+									}
+
+									// Transition to finished
+									httpEndpointRequestPerformInfo.transition(to: .finished)
+
+									// Check if cancelled
+									if !httpEndpointRequestPerformInfo.isCancelled {
+										// Process results
+										httpEndpointRequestPerformInfo.processResults(response: $0, url: $1, error: $2)
+									}
+
+									// Update
+									strongSelf.updateHTTPEndpointRequestPerformInfos()
+								})
+
+						// Resume
+						urlSessionDataTask.resume()
 					} else {
 						// Other
 						strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
