@@ -248,58 +248,44 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	private	let	destinationURL :URL
 
 	// MARK: Lifecycle methods
-//	//------------------------------------------------------------------------------------------------------------------
-//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
-//			destinationURL :URL) {
-//		// Store
-//		self.destinationURL = destinationURL
-//
-//		// Do super
-//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-//				timeoutInterval: timeoutInterval)
-//	}
-//
-//	//------------------------------------------------------------------------------------------------------------------
-//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			headers :[String : String]? = nil, bodyData :Data? = nil,
-//			timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
-//		// Store
-//		self.destinationURL = destinationURL
-//
-//		// Do super
-//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-//				bodyData: bodyData, timeoutInterval: timeoutInterval, options: options)
-//	}
-//
-//	//------------------------------------------------------------------------------------------------------------------
-//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			headers :[String : String]? = nil, jsonBody :Any, timeoutInterval :TimeInterval = defaultTimeoutInterval,
-//			options :Options = [], destinationURL :URL) {
-//		// Store
-//		self.destinationURL = destinationURL
-//
-//		// Do super
-//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-//				jsonBody: jsonBody, timeoutInterval: timeoutInterval, options: options)
-//	}
-//
-//	//------------------------------------------------------------------------------------------------------------------
-//	init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			headers :[String : String]? = nil, urlEncodedBody :[String : Any],
-//			timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
-//		// Store
-//		self.destinationURL = destinationURL
-//
-//		// Do super
-//		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
-//				urlEncodedBody: urlEncodedBody, timeoutInterval: timeoutInterval, options: options)
-//	}
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod = .get, path :String, queryComponents :[String : Any]? = nil,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			destinationURL :URL) {
+		// Store
+		self.destinationURL = destinationURL
+
+		// Do super
+		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
+				timeoutInterval: timeoutInterval)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(method :HTTPEndpointMethod = .get, path :String, queryComponents :[String : Any]? = nil,
+			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			destinationFile :File) {
+		// Store
+		self.destinationURL = destinationFile.url
+
+		// Do super
+		super.init(method: method, path: path, queryComponents: queryComponents, headers: headers,
+				timeoutInterval: timeoutInterval)
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	init(url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
+
+		// Do super
+		super.init(method: .get, url: url, timeoutInterval: timeoutInterval, options: options)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init(url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [],
+			destinationFile :File) {
+		// Store
+		self.destinationURL = destinationFile.url
 
 		// Do super
 		super.init(method: .get, url: url, timeoutInterval: timeoutInterval, options: options)

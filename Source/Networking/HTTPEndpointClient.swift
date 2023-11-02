@@ -534,7 +534,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ fileHTTPEndpointRequest :FileHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, progressProc :@escaping FileHTTPEndpointRequest.ProgressProc,
+			priority :Priority = .normal, progressProc :@escaping FileHTTPEndpointRequest.ProgressProc = { _ in },
 			completionProc :@escaping FileHTTPEndpointRequest.CompletionProc) {
 		// Setup
 		fileHTTPEndpointRequest.progressProc = progressProc
@@ -698,8 +698,15 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 						}
 						if logOptions.contains(.requestBody), let httpBody = urlRequest.httpBody {
 							// Log body
-							logMessages.append(
-									"    Body: \(String(data: httpBody, encoding: .utf8) ?? "unable to decode")")
+							if httpEndpointRequestPerformInfo.httpEndpointRequest.options.contains(
+									.queryContainsSecureInfo) {
+								// Redact secure info
+								logMessages.append("    Body: <redacted>")
+							} else {
+								// Proceed as usual
+								logMessages.append(
+										"    Body: \(String(data: httpBody, encoding: .utf8) ?? "unable to decode")")
+							}
 						}
 						if logOptions.contains(.requestBodySize), let httpBody = urlRequest.httpBody {
 							// Log body size
