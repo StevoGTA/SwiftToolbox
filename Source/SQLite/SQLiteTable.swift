@@ -84,22 +84,7 @@ public struct SQLiteTable {
 			private			let	statementPerformer :SQLiteStatementPerformer
 
 			private			var	tableColumns :[SQLiteTableColumn]
-			private			var	tableColumnInfos :[String] {
-										self.tableColumns.map() {
-											// Start with create string
-											var	columnInfo = $0.createString
-
-											// Add references if applicable
-											if let tableColumnReference = self.tableColumnReferenceMap[$0.name] {
-												// Add reference
-												columnInfo +=
-														" REFERENCES \(tableColumnReference.referencedTable.name)(\(tableColumnReference.referencedTableColumn.name)) ON UPDATE CASCADE"
-											}
-
-											return columnInfo
-										}
-									}
-			private			var	tableColumnsMap = [String : SQLiteTableColumn]()
+			private			var	tableColumnByDynamicMember = [String : SQLiteTableColumn]()
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -126,7 +111,7 @@ public struct SQLiteTable {
 		self.statementPerformer = statementPerformer
 
 		// Setup
-		tableColumns.forEach() { self.tableColumnsMap["\($0.name)TableColumn"] = $0 }
+		tableColumns.forEach() { self.tableColumnByDynamicMember["\($0.name)TableColumn"] = $0 }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -142,10 +127,7 @@ public struct SQLiteTable {
 
 	// MARK: Property methods
 	//------------------------------------------------------------------------------------------------------------------
-	public subscript(dynamicMember member :String) -> SQLiteTableColumn {
-		// Return table column
-		self.tableColumnsMap[member]!
-	}
+	public subscript(dynamicMember member :String) -> SQLiteTableColumn { self.tableColumnByDynamicMember[member]! }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -156,7 +138,7 @@ public struct SQLiteTable {
 
 		// Update
 		self.tableColumns.append(tableColumn)
-		self.tableColumnsMap["\(tableColumn.name)TableColumn"] = tableColumn
+		self.tableColumnByDynamicMember["\(tableColumn.name)TableColumn"] = tableColumn
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -179,10 +161,26 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func create(ifNotExists :Bool = true) {
+		// Setup
+		let	tableColumnInfos :[String] =
+					self.tableColumns.map() {
+						// Start with create string
+						var	tableColumnInfo = $0.createString
+
+						// Add references if applicable
+						if let tableColumnReference = self.tableColumnReferenceMap[$0.name] {
+							// Add reference
+							tableColumnInfo +=
+									" REFERENCES \(tableColumnReference.referencedTable.name)(\(tableColumnReference.referencedTableColumn.name)) ON UPDATE CASCADE"
+						}
+
+						return tableColumnInfo
+					}
+
 		// Create
 		let	statement =
 					"CREATE TABLE" + (ifNotExists ? " IF NOT EXISTS" : "") + " `\(self.name)`" +
-							" (" + String(combining: self.tableColumnInfos) + ")" +
+							" (" + String(combining: tableColumnInfos) + ")" +
 							(self.options.contains(.withoutRowID) ? " WITHOUT ROWID" : "")
 		self.statementPerformer.addToTransactionOrPerform(statement: statement)
 	}
@@ -193,7 +191,7 @@ public struct SQLiteTable {
 		let	statement = "DELETE FROM `\(self.name)`"
 
 		// Perform
-		sqliteWhere.forEachValueGroup(groupSize: Int.max)
+		sqliteWhere.forEachValueGroup(groupSize: self.statementPerformer.variableNumberLimit)
 				{ self.statementPerformer.addToTransactionOrPerform(statement: statement + $0, values: $1) }
 	}
 
@@ -309,7 +307,7 @@ public struct SQLiteTable {
 							String(combining: Array(repeating: "?", count: self.tableColumns.count), with: ",") + ")"
 		self.statementPerformer.performAsTransaction() {
 			// Iterate all existing rows
-			try! select(columnNames: "*", innerJoin: nil, where: nil) {
+			try! select(columnNames: "*") {
 				// Get updated info
 				let	info = try! resultsRowMigrationProc($0)
 
@@ -394,7 +392,10 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func tableColumn(for name :String) -> SQLiteTableColumn { self.tableColumnsMap["\(name)TableColumn"]! }
+	public func tableColumn(for name :String) -> SQLiteTableColumn {
+		// Return table column
+		self.tableColumnByDynamicMember["\(name)TableColumn"]!
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func update(_ info :[(tableColumn :SQLiteTableColumn, value :Any)], where sqliteWhere :SQLiteWhere) {
@@ -427,13 +428,13 @@ public struct SQLiteTable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	private func select(columnNames :String, innerJoin :SQLiteInnerJoin?, where sqliteWhere :SQLiteWhere?,
+	private func select(columnNames :String, innerJoin :SQLiteInnerJoin? = nil, where sqliteWhere :SQLiteWhere? = nil,
 			orderBy :SQLiteOrderBy? = nil, limit :SQLiteLimit? = nil, resultsRowProc :SQLiteResultsRow.Proc) throws {
 		// Check if we have SQLiteWhere
 		if sqliteWhere != nil {
 			// Iterate all groups in SQLiteWhere
-			let	variableNumberLimit = self.statementPerformer.variableNumberLimit
-			try sqliteWhere!.forEachValueGroup(groupSize: variableNumberLimit) { string, values in
+			let	groupSize = self.statementPerformer.variableNumberLimit
+			try sqliteWhere!.forEachValueGroup(groupSize: groupSize) { string, values in
 				// Compose statement
 				let	statement =
 							"SELECT \(columnNames) FROM `\(self.name)`" + (innerJoin?.string ?? "") + string +

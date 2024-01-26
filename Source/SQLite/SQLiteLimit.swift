@@ -15,8 +15,14 @@ public class SQLiteLimit {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(limit :Int, offset :Int? = nil) {
+	public init(limit :Int?, offset :Int) {
 		// Setup
-		self.string = " LIMIT \(limit)" + ((offset != nil) ? " OFFSET \(offset!)" : "")
+		self.string = " LIMIT \(limit ?? -1) OFFSET \(offset)"
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public init(limit :Int?) {
+		// Setup
+		self.string = " LIMIT \(limit ?? -1)"
 	}
 }
