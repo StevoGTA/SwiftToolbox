@@ -10,7 +10,12 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: DateFormatter extensions
-extension DateFormatter {
+public extension DateFormatter {
+
+	// MARK: Properties
+	static	let	iso8601 :DateFormatter = DateFormatter(dateFormat: "yyyy-MM-dd'T'HH:mm:ssZ")
+	static	let	rfc3339 :DateFormatter = DateFormatter(dateFormat: "yyyy-MM-dd'T'HH:mm:ssZ")
+	static	let	rfc3339Extended :DateFormatter = DateFormatter(dateFormat: "yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
