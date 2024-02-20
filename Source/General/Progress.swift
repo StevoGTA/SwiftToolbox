@@ -92,6 +92,7 @@ public class SizeProgress : Progress {
 	// MARK: Properties
 	public	var	totalSize :Int64 { didSet { updateValue() } }
 	public	var	currentSize :Int64 = 0 { didSet { updateValue() } }
+	public	var	remainingSize :Int64 { self.totalSize - self.currentSize }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
