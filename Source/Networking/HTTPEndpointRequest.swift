@@ -36,6 +36,7 @@ public class HTTPEndpointRequest {
 
 		// MARK: Properties
 		static	public	let	queryContainsSecureInfo = Options(rawValue: 1 << 0)
+		static	public	let	deferBodyUntilRedirect = Options(rawValue: 1 << 1)
 
 				public	let	rawValue :Int
 
@@ -176,6 +177,7 @@ public class HTTPEndpointRequest {
 		self.options = options
 
 		self.headers = headers
+		self.headers!["Content-Type"] = "application/octet-stream"
 		adjustHeaders()
 	}
 

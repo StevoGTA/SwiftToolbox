@@ -25,9 +25,6 @@ open class Progress {
 					}
 	public	var	value :Double? = nil {
 						didSet {
-							// Setup
-							let	value = self.value
-
 							// Call updated proc
 							callUpdatedProc()
 						}
