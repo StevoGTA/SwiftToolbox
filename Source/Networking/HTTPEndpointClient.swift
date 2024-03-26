@@ -873,7 +873,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 									redirectBody:
 											httpEndpointRequest.options.contains(.deferBodyUntilRedirect) ?
 													httpEndpointRequest.bodyData : nil,
-									dataProc: { data = $0 },
+									dataProc: { data = (data != nil) ? data! + $0 : $0 },
 									completionProc: {
 										// Log
 										completionLogProc($0, $2, data)
