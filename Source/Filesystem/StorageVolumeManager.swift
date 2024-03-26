@@ -55,7 +55,8 @@ public class StorageVolumeManager {
 							}
 		public		var	usedCapacity :Int64? {
 								// Get info
-								if let availableCapacity = self.availableCapacity, let totalCapacity = self.totalCapacity {
+								if let availableCapacity = self.availableCapacity,
+										let totalCapacity = self.totalCapacity {
 									// Have info
 									return totalCapacity - availableCapacity
 								} else {
@@ -65,22 +66,26 @@ public class StorageVolumeManager {
 							}
 
 		fileprivate	var	lockedMessage :String? {
-								// Check situation
-								if let id = self.messageByLockID.keys.first {
-									// Have at least one lock
-									return self.messageByLockID.value(for: id)
-								} else if (self.lastMessageRemovalDate != nil) &&
-										(Date().timeIntervalSince(self.lastMessageRemovalDate!) < 5.0) {
-									// Last message was removed recently.  Let's give it a bit to ensure a new message
-									//	doesn't appearbefore we're ready.
-									return self.lastMessage
-								} else {
-									// No message
-									return nil
+								// Play nice
+								return self.infoLock.read() {
+									// Check situation
+									if let message = self.messageByLockID.first?.value {
+										// Have at least one lock
+										return message
+									} else if (self.lastMessageRemovalDate != nil) &&
+											(Date().timeIntervalSince(self.lastMessageRemovalDate!) < 5.0) {
+										// Last message was removed recently.  Let's give it a bit to ensure a new
+										//	message doesn't appear before we're ready.
+										return self.lastMessage
+									} else {
+										// No message
+										return nil
+									}
 								}
 							}
 
-		private		let	messageByLockID = LockingDictionary<String, String>()
+		private		let	infoLock = ReadPreferringReadWriteLock()
+		private		var	messageByLockID = [String : String]()
 		private		var	lastMessage :String?
 		private		var	lastMessageRemovalDate :Date?
 
@@ -104,7 +109,7 @@ public class StorageVolumeManager {
 			let	id = UUID().base64EncodedString
 
 			// Store
-			self.messageByLockID.set(message, for: id)
+			self.infoLock.write() { self.messageByLockID[id] = message }
 
 			return id
 		}
@@ -112,11 +117,14 @@ public class StorageVolumeManager {
 		//--------------------------------------------------------------------------------------------------------------
 		public func removeLock(id :String) {
 			// Update
-			self.lastMessage = self.messageByLockID.value(for: id)
-			self.lastMessageRemovalDate = Date()
+			self.infoLock.write() {
+				// Update
+				self.lastMessage = self.messageByLockID[id]
+				self.lastMessageRemovalDate = Date()
 
-			// Remove
-			self.messageByLockID.remove(id)
+				// Remove
+				self.messageByLockID[id] = nil
+			}
 		}
 	}
 
