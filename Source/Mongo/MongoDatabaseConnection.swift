@@ -53,15 +53,15 @@ public class MongoDatabaseConnection {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func documents(in name :String) async throws -> MongoCursor<BSONDocument> {
+	public func documents(in name :String, filter :BSONDocument = [:]) async throws -> MongoCursor<BSONDocument> {
 		// Return documents
-		return try await self.mongoDatabase.collection(name).find()
+		return try await self.mongoDatabase.collection(name).find(filter)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func document(in name :String, matching :BSONDocument) async throws -> BSONDocument? {
+	public func document(in name :String, filter :BSONDocument) async throws -> BSONDocument? {
 		// Return document
-		return try await self.mongoDatabase.collection(name).findOne(matching)
+		return try await self.mongoDatabase.collection(name).findOne(filter)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -73,10 +73,26 @@ public class MongoDatabaseConnection {
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
+	public func update(filter :BSONDocument, with update :BSONDocument, in name :String) async throws ->
+			UpdateResult {
+		// Update
+		try await self.mongoDatabase.collection(name).updateOne(filter: filter, update: update)!
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
 	public func update(document :BSONDocument, with update :BSONDocument, in name :String) async throws ->
 			UpdateResult {
 		// Update
-		try await self.mongoDatabase.collection(name).updateOne(filter: document, update: update)!
+		try await self.update(filter: ["_id": document["_id"]!], with: update, in: name)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
+	public func update(filter :BSONDocument, with update :BSONDocument, in name :String) throws ->
+			UpdateResult {
+		// Update
+		try self.mongoDatabase.collection(name).updateOne(filter: filter, update: update).wait()!
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -84,6 +100,6 @@ public class MongoDatabaseConnection {
 	public func update(document :BSONDocument, with update :BSONDocument, in name :String) throws ->
 			UpdateResult {
 		// Update
-		try self.mongoDatabase.collection(name).updateOne(filter: document, update: update).wait()!
+		try self.update(filter: ["_id": document["_id"]!], with: update, in: name)
 	}
 }
