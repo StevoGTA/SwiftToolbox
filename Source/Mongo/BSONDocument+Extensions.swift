@@ -29,12 +29,18 @@ public extension BSONDocument {
 							case .array(let array):
 								// Array
 								if array is [String] {
+									// [String]
 									return ($0, array.map({ $0.stringValue! }))
+								} else if array is [BSONDocument] {
+									// [BSONDocument]
+									return ($0, array.map({ $0.documentValue!.dictionary }))
 								} else {
-									return nil
+									// ???
+									fatalError("Unknown value type for \($1)")
 								}
 
-							default:						return nil
+							default:
+								fatalError("Unknown value type for \($1)")
 						}
 					}))
 			}
@@ -83,6 +89,9 @@ public extension BSONDocument {
 				self[key] = BSON(string)
 			} else if let array = value as? [String] {
 				// [String]
+				self[key] = BSON(array)
+			} else if let array = value as? [[String : Any]] {
+				// [[String : Any]]
 				self[key] = BSON(array)
 			} else if let dict = value as? [String : Any] {
 				// [String : Any]

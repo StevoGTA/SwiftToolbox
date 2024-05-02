@@ -44,5 +44,8 @@ public extension BSON {
 	init(_ value :[String]) { self = .array(value.map({ BSON($0) })) }
 
 	//------------------------------------------------------------------------------------------------------------------
+	init(_ value :[[String : Any]]) { self = .array(value.map({ BSON($0) })) }
+
+	//------------------------------------------------------------------------------------------------------------------
 	init(_ value :[String : Any]) { self = .document(BSONDocument(value)) }
 }
