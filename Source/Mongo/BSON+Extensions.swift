@@ -12,6 +12,23 @@ import SwiftBSON
 // MARK: BSON extension
 public extension BSON {
 
+	// MARK: Properties
+	var	value: Any {
+				// Check type
+				switch self.type {
+					case .document:	return self.documentValue!.dictionary
+					case .int32:	return self.int32Value!
+					case .int64:	return self.int64Value!
+					case .array:	return self.arrayValue!.map({ $0.value })
+					case .bool:		return self.boolValue!
+					case .datetime:	return self.dateValue!
+					case .double:	return self.doubleValue!
+					case .string:	return self.stringValue!
+					default:
+						fatalError("Unhandled type: \(self.type)")
+				}
+			}
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(_ value :Bool) { self = .bool(value) }

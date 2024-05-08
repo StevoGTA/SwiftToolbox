@@ -13,37 +13,7 @@ import SwiftBSON
 public extension BSONDocument {
 
 	// MARK: Properties
-	var	dictionary :[String : Any] {
-				// Return as dictionary
-				Dictionary(
-					self.compactMap({
-						// Check value type
-						switch $1 {
-							case .document(let document):	return ($0, document.dictionary)
-							case .int32(let int32):			return ($0, int32)
-							case .int64(let int64):			return ($0, int64)
-							case .bool(let bool):			return ($0, bool)
-							case .double(let double):		return ($0, double)
-							case .string(let string):		return ($0, string)
-
-							case .array(let array):
-								// Array
-								if array is [String] {
-									// [String]
-									return ($0, array.map({ $0.stringValue! }))
-								} else if array is [BSONDocument] {
-									// [BSONDocument]
-									return ($0, array.map({ $0.documentValue!.dictionary }))
-								} else {
-									// ???
-									fatalError("Unknown value type for \($1)")
-								}
-
-							default:
-								fatalError("Unknown value type for \($1)")
-						}
-					}))
-			}
+	var	dictionary :[String : Any] { Dictionary(self.compactMap({ return ($0, $1.value) })) }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
