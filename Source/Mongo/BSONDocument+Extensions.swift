@@ -17,7 +17,7 @@ public extension BSONDocument {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(_ keyValuePairs :[String : Any?]) {
+	init(_ keyValuePairs :[String : Any]) {
 		// Init
 		self.init()
 
@@ -42,6 +42,9 @@ public extension BSONDocument {
 			} else if let array = value as? [BSONObjectID] {
 				// [BSONObjectID]
 				self[key] = BSON(array)
+			} else if let float = value as? Float {
+				// Float
+				self[key] = BSON(Double(float))
 			} else if let double = value as? Double {
 				// Double
 				self[key] = BSON(double)
@@ -66,9 +69,9 @@ public extension BSONDocument {
 			} else if let dict = value as? [String : Any] {
 				// [String : Any]
 				self[key] = BSON(dict)
-			} else if value != nil {
+			} else {
 				// ???
-				fatalError("Unknown value type for \(value!)")
+				fatalError("Unknown value type for \(value)")
 			}
 		}
 	}
