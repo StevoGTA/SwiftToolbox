@@ -12,6 +12,20 @@ import Foundation
 // MARK: String General extension
 extension String {
 
+	// MARK: RandomCharacterOptions
+	public struct RandomCharacterOptions : OptionSet {
+
+		// MARK: Properties
+		static	public	let	lowercaseLetters = RandomCharacterOptions(rawValue: 1 << 0)
+		static	public	let	uppercaseLetters = RandomCharacterOptions(rawValue: 1 << 1)
+		static	public	let	numbers = RandomCharacterOptions(rawValue: 1 << 2)
+
+				public	let	rawValue :Int
+
+		// MARK: Lifecycle methods
+		public init(rawValue :Int) { self.rawValue = rawValue }
+	}
+
 	// MARK: Properties
 	static	let	`nil` :String? = nil
 
@@ -47,6 +61,18 @@ extension String {
 		}
 
 		self.init(string)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public init(randomCharactersOfLength length :Int,
+			options :RandomCharacterOptions = [.lowercaseLetters, .uppercaseLetters, .numbers]) {
+		// Setup
+		var	characters = ""
+		if options.contains(.lowercaseLetters) { characters += "abcdefghijklmnopqrstuvwxyz" }
+		if options.contains(.uppercaseLetters) { characters += "ABCDEFGHIJKLMNOPQRSTUVWXYZ" }
+		if options.contains(.numbers) { characters += "0123456789" }
+
+		self.init((0..<length).map{ _ in characters.randomElement()! })
 	}
 
 	// MARK: Instance methods
