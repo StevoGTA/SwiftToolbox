@@ -9,22 +9,7 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: String extension
-fileprivate extension String {
-
-	// MARK: Instance methods
-	//------------------------------------------------------------------------------------------------------------------
-	func urlQueryEncoded(encodePlus :Bool) -> String {
-		// Return encoded string
-		return encodePlus ?
-				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
-						.replacingOccurrences(of: "+", with: "%2B") :
-				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
-	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - HTTPEndpointRequest extension
+// MARK: HTTPEndpointRequest extension
 fileprivate extension HTTPEndpointRequest {
 
 	// MARK: Instance methods
@@ -728,11 +713,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 					// Log
 					let	logOptions = strongSelf.logOptions
 					let	className = String(describing: type(of: strongSelf))
-
-					var	urlRequestInfo = "\(urlRequest.url!.scheme!)://\(urlRequest.url!.host ?? "unknown")"
-					if urlRequest.url!.port != nil { urlRequestInfo += ":\(urlRequest.url!.port!)" }
-					urlRequestInfo += "\(urlRequest.url!.path) (\(httpRequestIndex))"
-
+					let	urlRequestInfo = "\(urlRequest.url!) (\(httpRequestIndex))"
 					if logOptions.contains(.requestAndResponse) {
 						// Setup
 						var	logMessages = [String]()
