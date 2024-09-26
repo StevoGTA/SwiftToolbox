@@ -713,7 +713,10 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 					// Log
 					let	logOptions = strongSelf.logOptions
 					let	className = String(describing: type(of: strongSelf))
-					let	urlRequestInfo = "\(urlRequest.url!) (\(httpRequestIndex))"
+
+					let	url = urlRequest.url!
+					let	port = (url.port != nil) ? ":\(url.port!)" : ""
+					let	urlRequestInfo = "\(url.scheme!)://\(url.host!)\(port)\(url.path) (\(httpRequestIndex))"
 					if logOptions.contains(.requestAndResponse) {
 						// Setup
 						var	logMessages = [String]()
