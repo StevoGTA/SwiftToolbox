@@ -34,28 +34,6 @@ extension Date {
 	// MARK: Properties
 	static	public	let	`nil` :Date? = nil
 
-	static	public	let	iso8601DateFormatter :DateFormatter = {
-								// Setup
-								let	dateFormatter = DateFormatter()
-								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-
-								return dateFormatter
-							}()
-	static			let	rfc3339DateFormatter :DateFormatter = {
-								// Setup
-								let	dateFormatter = DateFormatter()
-								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-
-								return dateFormatter
-							}()
-	static	public	let	rfc3339ExtendedDateFormatter :DateFormatter = {
-								// Setup
-								let	dateFormatter = DateFormatter()
-								dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-
-								return dateFormatter
-							}()
-
 					var	beginningOfDay :Date
 							{ Calendar.current.date(from: Calendar.current.dateComponents([.year, .month, .day],
 									from: self))! }
@@ -68,9 +46,9 @@ extension Date {
 								return Calendar.current.date(byAdding: dateComponents, to: self.beginningOfDay)!
 							}
 
-			public	var	iso8601 :String { Date.iso8601DateFormatter.string(from: self) }
-			public	var	rfc3339 :String { Date.rfc3339DateFormatter.string(from: self) }
-			public	var	rfc3339Extended :String { Date.rfc3339ExtendedDateFormatter.string(from: self) }
+			public	var	iso8601String :String { DateFormatter.iso8601.string(from: self) }
+			public	var	rfc3339String :String { DateFormatter.rfc3339.string(from: self) }
+			public	var	rfc3339ExtendedString :String { DateFormatter.rfc3339Extended.string(from: self) }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -86,7 +64,7 @@ extension Date {
 		guard string != nil else { return nil }
 
 		// Setup
-		if let date = type(of: self).iso8601DateFormatter.date(from: string!) {
+		if let date = DateFormatter.iso8601.date(from: string!) {
 			// Got date
 			self.init(timeIntervalSinceNow: date.timeIntervalSinceNow)
 		} else {
@@ -101,7 +79,7 @@ extension Date {
 		guard string != nil else { return nil }
 
 		// Setup
-		if let date = type(of: self).rfc3339DateFormatter.date(from: string!) {
+		if let date = DateFormatter.rfc3339.date(from: string!) {
 			// Got date
 			self.init(timeIntervalSinceNow: date.timeIntervalSinceNow)
 		} else {
@@ -116,7 +94,7 @@ extension Date {
 		guard string != nil else { return nil }
 
 		// Setup
-		if let date = type(of: self).rfc3339ExtendedDateFormatter.date(from: string!) {
+		if let date = DateFormatter.rfc3339Extended.date(from: string!) {
 			// Got date
 			self.init(timeIntervalSinceNow: date.timeIntervalSinceNow)
 		} else {
@@ -151,7 +129,7 @@ public extension Dictionary where Key == String, Value == Data {
 
 	// Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func date(for key :String, dateFormatter :DateFormatter = Date.rfc3339ExtendedDateFormatter) -> Date? {
+	func date(for key :String, dateFormatter :DateFormatter = .rfc3339Extended) -> Date? {
 		// Try to get data
 		guard let data = self[key] else { return nil }
 		guard let string = String(data: data, encoding: .utf8) else { return nil }

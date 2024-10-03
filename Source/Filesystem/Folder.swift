@@ -27,6 +27,7 @@ public class Folder : Equatable {
 			public	let	url :URL
 
 			public	var	name :String { self.url.lastPathComponent }
+			public	var	`extension` :String? { self.url.pathExtension }
 			public	var	path :String { self.url.path }
 
 	// MARK: Equatable methods

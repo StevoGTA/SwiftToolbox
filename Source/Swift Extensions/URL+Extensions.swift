@@ -13,16 +13,7 @@ import Foundation
 public extension URL {
 
 	// MARK: Properties
-	var	fileSize :Int64? {
-				// Try to get file size
-				if let fileSize = (try? resourceValues(forKeys: [.fileSizeKey]))?.fileSize {
-					// Have size
-					return Int64(fileSize)
-				} else {
-					// Can't get size
-					return nil
-				}
-			}
+	var	fileSize :Int64? { Int64((try? self.resourceValues(forKeys: [.fileSizeKey]))?.fileSize) }
 	var	isDirectory :Bool { (try? resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false }
 	var	isFolder :Bool { self.isDirectory }
 	var	isFile :Bool { (try? resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile ?? false }

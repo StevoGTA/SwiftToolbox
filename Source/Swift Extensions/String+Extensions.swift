@@ -9,8 +9,34 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: String General extension
+// MARK: Currency Extension
+extension String {
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init(currencyValueInCents value :Int, addDollarSign :Bool = true) {
+		// Init with format
+		self.init(format: addDollarSign ? "$%d.%02d" : "%d.%02d", value / 100, value % 100)
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - General extension
 public extension String {
+
+	// MARK: RandomCharacterOptions
+	struct RandomCharacterOptions : OptionSet {
+
+		// MARK: Properties
+		static	public	let	lowercaseLetters = RandomCharacterOptions(rawValue: 1 << 0)
+		static	public	let	uppercaseLetters = RandomCharacterOptions(rawValue: 1 << 1)
+		static	public	let	numbers = RandomCharacterOptions(rawValue: 1 << 2)
+
+				public	let	rawValue :Int
+
+		// MARK: Lifecycle methods
+		public init(rawValue :Int) { self.rawValue = rawValue }
+	}
 
 	// MARK: Properties
 	static	let	`nil` :String? = nil
@@ -49,6 +75,18 @@ public extension String {
 		self.init(string)
 	}
 
+	//------------------------------------------------------------------------------------------------------------------
+	init(randomCharactersOfLength length :Int,
+			options :RandomCharacterOptions = [.lowercaseLetters, .uppercaseLetters, .numbers]) {
+		// Setup
+		var	characters = ""
+		if options.contains(.lowercaseLetters) { characters += "abcdefghijklmnopqrstuvwxyz" }
+		if options.contains(.uppercaseLetters) { characters += "ABCDEFGHIJKLMNOPQRSTUVWXYZ" }
+		if options.contains(.numbers) { characters += "0123456789" }
+
+		self.init((0..<length).map{ _ in characters.randomElement()! })
+	}
+
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func filtered(by characterSet :CharacterSet) -> String {
@@ -79,37 +117,28 @@ public extension String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - String Substring Extension
-extension String {
+// MARK: - HTTPRequest/HTTPResponse extension
+public extension String {
 
-	// MARK: Instance methods
-	//------------------------------------------------------------------------------------------------------------------
-	public func hasPrefix(from strings :Set<String>) -> Bool { strings.first(where: { self.hasPrefix($0) }) != nil }
+	// MARK: Properties
+	var	httpRequestRange :(start :Int64, length :Int64)? {
+				// Examples:
+				//	bytes=0-499
+				let	components = self.components(separatedBy: "=")
+				guard components.count == 2 else { return nil }
+				guard components[0] == "bytes" else { return nil }
 
-	//------------------------------------------------------------------------------------------------------------------
-	public func substring(toCharacterIndex index :Int) -> String {
-		// Return string
-		return String(self[..<self.index(self.startIndex, offsetBy: index)])
-	}
+				let parts = components[1].components(separatedBy: "-")
+				guard parts.count == 2 else { return nil }
+				guard let start = Int64(parts[0]) else { return nil }
+				guard let end = Int64(parts[1]) else { return nil }
 
-	//------------------------------------------------------------------------------------------------------------------
-	public func substring(fromCharacterIndex index :Int) -> String {
-		// Return string
-		return String(self[self.index(self.startIndex, offsetBy: index)...])
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func substring(fromCharacterIndex fromIndex :Int, toCharacterIndex toIndex :Int) -> String {
-		// Setup
-		let	startIndex = self.index(self.startIndex, offsetBy: fromIndex)
-		let	endIndex = self.index(self.startIndex, offsetBy: toIndex)
-
-		return String(self[startIndex..<endIndex])
-	}
+				return (start, end - start + 1)
+			}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - String Path Extension
+// MARK: - Path Extension
 public extension String {
 
 	// MARK: Properties
@@ -224,7 +253,37 @@ public extension String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - String Time extension
+// MARK: - Substring Extension
+extension String {
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func hasPrefix(from strings :Set<String>) -> Bool { strings.first(where: { self.hasPrefix($0) }) != nil }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func substring(toCharacterIndex index :Int) -> String {
+		// Return string
+		return String(self[..<self.index(self.startIndex, offsetBy: index)])
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func substring(fromCharacterIndex index :Int) -> String {
+		// Return string
+		return String(self[self.index(self.startIndex, offsetBy: index)...])
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func substring(fromCharacterIndex fromIndex :Int, toCharacterIndex toIndex :Int) -> String {
+		// Setup
+		let	startIndex = self.index(self.startIndex, offsetBy: fromIndex)
+		let	endIndex = self.index(self.startIndex, offsetBy: toIndex)
+
+		return String(self[startIndex..<endIndex])
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Time extension
 enum TimeFormat {
 	case minutesSeconds			// 00:00
 	case hoursMinutesSeconds	// 00:00:00
@@ -258,19 +317,7 @@ extension String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - String Currency Extension
-extension String {
-
-	// MARK: Lifecycle methods
-	//------------------------------------------------------------------------------------------------------------------
-	public init(currencyValueInCents value :Int, addDollarSign :Bool = true) {
-		// Init with format
-		self.init(format: addDollarSign ? "$%d.%02d" : "%d.%02d", value / 100, value % 100)
-	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - String Phone Number Extension
+// MARK: - Phone Number Extension
 extension String {
 
 	// MARK: Properties
@@ -303,22 +350,22 @@ extension String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: - String HTTPRequest/HTTPResponse extension
+// MARK: - URL extension
 public extension String {
 
 	// MARK: Properties
-	var	httpRequestRange :(start :Int64, length :Int64)? {
-				// Examples:
-				//	bytes=0-499
-				let	components = self.components(separatedBy: "=")
-				guard components.count == 2 else { return nil }
-				guard components[0] == "bytes" else { return nil }
+	static	private	let	pathTransformCharacterSet = CharacterSet(charactersIn: "/").inverted
 
-				let parts = components[1].components(separatedBy: "-")
-				guard parts.count == 2 else { return nil }
-				guard let start = Int64(parts[0]) else { return nil }
-				guard let end = Int64(parts[1]) else { return nil }
+					var	urlPathEncoded :String
+							{ self.addingPercentEncoding(withAllowedCharacters: Self.pathTransformCharacterSet)! }
 
-				return (start, end - start + 1)
-			}
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func urlQueryEncoded(encodePlus :Bool) -> String {
+		// Return encoded string
+		return encodePlus ?
+				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+						.replacingOccurrences(of: "+", with: "%2B") :
+				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+	}
 }
