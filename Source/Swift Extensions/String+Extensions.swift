@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: String General extension
-extension String {
+public extension String {
 
 	// MARK: Properties
 	static	let	`nil` :String? = nil
@@ -18,8 +18,8 @@ extension String {
 			var	capitalizingFirstLetter :String { self.prefix(1).capitalized + self.dropFirst() }
 			var	removingLeadingAndTrailingQuotes :String {
 						// Check for leading and trailing quotes
-						let	hasLeadingQuote = hasPrefix("\"") || hasPrefix("'")
-						let	hasTrailingQuote = hasSuffix("\"") || hasSuffix("'")
+						let	hasLeadingQuote = hasPrefix("\"") || hasPrefix("'") || hasPrefix("“")
+						let	hasTrailingQuote = hasSuffix("\"") || hasSuffix("'") || hasSuffix("”")
 
 						return (hasLeadingQuote || hasTrailingQuote) ?
 								substring(fromCharacterIndex: hasLeadingQuote ? 1 : 0,
@@ -30,7 +30,7 @@ extension String {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init<T : ExpressibleByStringInterpolation>(combining components :[T], with separator :String = ", ") {
+	init<T : ExpressibleByStringInterpolation>(combining components :[T], with separator :String = ", ") {
 		// Setup
 		var	string = ""
 

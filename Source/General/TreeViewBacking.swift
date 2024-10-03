@@ -15,16 +15,16 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: TreeViewBacking
-class TreeViewBacking {
+public class TreeViewBacking : NSObject {
 
 	// MARK: Types
-	typealias ChildTreeItemsProc = (_ treeItem :TreeItem) -> [TreeItem]
+	public typealias ChildTreeItemsProc = (_ treeItem :TreeItem) -> [TreeItem]
 
-	typealias HasChildTreeItemsProc = (_ treeItem :TreeItem) -> Bool
-	typealias LoadChildTreeItemsProc =
+	public typealias HasChildTreeItemsProc = (_ treeItem :TreeItem) -> Bool
+	public typealias LoadChildTreeItemsProc =
 				(_ treeItem :TreeItem, _ completionProc :(_ treeItems :[TreeItem]) -> Void) -> Void
 
-	typealias CompareTreeItemsProc = (_ treeItem1 :TreeItem, _ treeItem2 :TreeItem) -> Bool
+	public typealias CompareTreeItemsProc = (_ treeItem1 :TreeItem, _ treeItem2 :TreeItem) -> Bool
 
 	// MARK: Info
 	private class Info {
@@ -37,7 +37,7 @@ class TreeViewBacking {
 
 		var	compareTreeItemsProc :CompareTreeItemsProc = { _,_ in false }
 
-		var	removeViewItemIDsProc :(_ viewItemIDs :[String]) -> Void = { _ in }
+		var	removeItemIDsProc :(_ itemIDs :[String]) -> Void = { _ in }
 		var	noteItemsProc :(_ items :[Item]) -> Void = { _ in }
 	}
 
@@ -46,13 +46,13 @@ class TreeViewBacking {
 
 		// MARK: Properties
 						let	treeItem :TreeItem
-						let	viewItemID :String
+						let	id :String
 
 #if os(iOS)
 						let	indentationLevel :Int
 #endif
 
-		private(set)	var	childViewItemIDs = [String]()
+		private(set)	var	childItemIDs = [String]()
 
 		private			let	info :Info
 
@@ -62,20 +62,20 @@ class TreeViewBacking {
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
 #if os(iOS)
-		init(treeItem :TreeItem, viewItemID :String = UUID().base64EncodedString, indentationLevel :Int, info :Info) {
+		init(treeItem :TreeItem, id :String = UUID().base64EncodedString, indentationLevel :Int, info :Info) {
 			// Store
 			self.indentationLevel = indentationLevel
 
 			self.treeItem = treeItem
-			self.viewItemID = viewItemID
+			self.id = id
 
 			self.info = info
 		}
 #else
-		init(treeItem :TreeItem, viewItemID :String = UUID().base64EncodedString, info :Info) {
+		init(treeItem :TreeItem, id :String = UUID().base64EncodedString, info :Info) {
 			// Store
 			self.treeItem = treeItem
-			self.viewItemID = viewItemID
+			self.id = id
 
 			self.info = info
 		}
@@ -92,8 +92,8 @@ class TreeViewBacking {
 			self.reloadInProgress = true
 
 			// Remove existing items
-			self.info.removeViewItemIDsProc(self.childViewItemIDs)
-			self.childViewItemIDs.removeAll()
+			self.info.removeItemIDsProc(self.childItemIDs)
+			self.childItemIDs.removeAll()
 
 			// Check how to reload child items
 			if let childTreeItemsProc = self.info.childTreeItemsProc {
@@ -107,7 +107,7 @@ class TreeViewBacking {
 				let	childItems = childTreeItems.map({ Item(treeItem: $0, info: self.info) })
 #endif
 				self.info.noteItemsProc(childItems)
-				self.childViewItemIDs = childItems.map({ $0.viewItemID })
+				self.childItemIDs = childItems.map({ $0.id })
 
 				// Done
 				self.needsReload = false
@@ -119,68 +119,72 @@ class TreeViewBacking {
 	}
 
 	// MARK: Properties
-	static			let	rootViewItemID = "ROOT"
+	static	public	let	rootItemID = "ROOT"
 
-					var	childTreeItemsProc :ChildTreeItemsProc? {
+			public	var	rootTreeItem :TreeItem? { self.rootItem?.treeItem }
+			public	var	loadedTreeItems :[TreeItem] { self.itemByID.values.map({ $0.treeItem }) }
+
+			public	var	childTreeItemsProc :ChildTreeItemsProc? {
 								get { self.info.childTreeItemsProc }
 								set { self.info.childTreeItemsProc = newValue }
 							}
 
-					var	hasChildTreeItemsProc :HasChildTreeItemsProc? {
+			public	var	hasChildTreeItemsProc :HasChildTreeItemsProc? {
 								get { self.info.hasChildTreeItemsProc }
 								set { self.info.hasChildTreeItemsProc = newValue }
 							}
-					var	loadChildTreeItemsProc :LoadChildTreeItemsProc? {
+			public	var	loadChildTreeItemsProc :LoadChildTreeItemsProc? {
 								get { self.info.loadChildTreeItemsProc }
 								set { self.info.loadChildTreeItemsProc = newValue }
 							}
 
-					var	compareTreeItemsProc :CompareTreeItemsProc {
+			public	var	compareTreeItemsProc :CompareTreeItemsProc {
 								get { self.info.compareTreeItemsProc }
 								set { self.info.compareTreeItemsProc = newValue }
 							}
 
 			private	let	info = Info()
 
-			private	var	itemMap = [/* viewItemID */ String : Item]()
-			private	var	topLevelViewItemIDs = [String]()
+			private	var	itemByID = [String : Item]()
+			private	var	topLevelItemIDs = [String]()
 
-			private	var	rootItem :Item? { self.itemMap[type(of: self).rootViewItemID] }
+			private	var	rootItem :Item? { self.itemByID[type(of: self).rootItemID] }
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init() {
+	override init() {
+		// Do super
+		super.init()
+
 		// Setup
-		self.info.removeViewItemIDsProc = { [unowned self] in self.itemMap.removeValues(forKeys: $0) }
-		self.info.noteItemsProc = { [unowned self] in $0.forEach() { self.itemMap[$0.viewItemID] = $0 } }
+		self.info.removeItemIDsProc = { [unowned self] in self.itemByID.removeValues(forKeys: $0) }
+		self.info.noteItemsProc = { [unowned self] in $0.forEach() { self.itemByID[$0.id] = $0 } }
 	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func set(rootTreeItem :TreeItem) {
+	public func set(rootTreeItem :TreeItem) {
 		// Setup
 #if os(iOS)
-		let	item =
-					Item(treeItem: rootTreeItem, viewItemID: type(of: self).rootViewItemID, indentationLevel: -1,
-							info: self.info)
+		let	item = Item(treeItem: rootTreeItem, id: type(of: self).rootItemID, indentationLevel: -1, info: self.info)
 #else
-		let	item = Item(treeItem: rootTreeItem, viewItemID: type(of: self).rootViewItemID, info: self.info)
+		let	item = Item(treeItem: rootTreeItem, id: type(of: self).rootItemID, info: self.info)
 #endif
-		self.itemMap = [item.viewItemID : item]
-		self.topLevelViewItemIDs.removeAll()
+		self.itemByID = [item.id : item]
+		self.topLevelItemIDs.removeAll()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func set(topLevelTreeItems :[TreeItem]) {
+	public func set(topLevelTreeItems :[TreeItem]) {
 		// Setup
-		self.itemMap.removeAll()
-		self.topLevelViewItemIDs.removeAll()
+		self.itemByID.removeAll()
+		self.topLevelItemIDs.removeAll()
 
 		add(topLevelTreeItems: topLevelTreeItems)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func add(topLevelTreeItems :[TreeItem]) {
+	public func add(topLevelTreeItems :[TreeItem]) {
 		// Iterate
 		topLevelTreeItems.forEach() {
 			// Setup
@@ -191,24 +195,24 @@ class TreeViewBacking {
 #endif
 
 			// Store
-			self.itemMap[item.viewItemID] = item
-			self.topLevelViewItemIDs.append(item.viewItemID)
+			self.itemByID[item.id] = item
+			self.topLevelItemIDs.append(item.id)
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func topLevelTreeItems() -> [TreeItem] { self.topLevelViewItemIDs.map({ self.itemMap[$0]!.treeItem }) }
+	public func topLevelTreeItems() -> [TreeItem] { self.topLevelItemIDs.map({ self.itemByID[$0]!.treeItem }) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func treeItem(for viewItemID :String) -> TreeItem { self.itemMap[viewItemID]!.treeItem }
+	public func treeItem(for itemID :String) -> TreeItem { self.itemByID[itemID]!.treeItem }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func treeItems(for viewItemIDs :[String]) -> [TreeItem] { viewItemIDs.map({ self.itemMap[$0]!.treeItem }) }
+	public func treeItems(for itemIDs :[String]) -> [TreeItem] { itemIDs.map({ self.itemByID[$0]!.treeItem }) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	func hasChildren(for viewItemID :String) -> Bool {
+	public func hasChildren(of itemID :String) -> Bool {
 		// Setup
-		let	item = self.itemMap[viewItemID]!
+		let	item = self.itemByID[itemID]!
 
 		// Check if have proc
 		if let hasChildTreeItemsProc = self.hasChildTreeItemsProc {
@@ -218,73 +222,69 @@ class TreeViewBacking {
 			// Reload
 			item.reloadChildItems()
 
-			return !item.childViewItemIDs.isEmpty
+			return !item.childItemIDs.isEmpty
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func childCount(for viewItemID :String) -> Int {
+	public func childCount(of itemID :String) -> Int {
 		// Setup
-		let	item = self.itemMap[viewItemID]
+		let	item = self.itemByID[itemID]
 
 		// Check situation
-		if (viewItemID == type(of: self).rootViewItemID) && (item == nil) {
+		if (itemID == type(of: self).rootItemID) && (item == nil) {
 			// Requesting root item, but no root item
-			return self.topLevelViewItemIDs.count
+			return self.topLevelItemIDs.count
 		} else {
 			// Reload
 			item!.reloadChildItems()
 
-			return item!.childViewItemIDs.count
+			return item!.childItemIDs.count
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func childViewItemID(for viewItemID :String, index :Int) -> String {
-		// Return child view itme ID
-		self.itemMap[viewItemID]!.childViewItemIDs[index]
-	}
+	public func childItemID(of itemID :String, index :Int) -> String { self.itemByID[itemID]!.childItemIDs[index] }
 
 #if os(iOS)
 	//------------------------------------------------------------------------------------------------------------------
-	func viewItemIDs(with expandedViewItemIDs :Set<String>) -> [String] {
-		// Return view item IDs
+	public func itemIDs(with expandedItemIDs :Set<String>) -> [String] {
+		// Return item IDs
 		if let rootItem = self.rootItem {
 			// Have root item
 			rootItem.reloadChildItems()
 
 			return rootItem
-					.childViewItemIDs
-					.flatMap({ self.childViewItemIDsDeep(for: self.itemMap[$0]!, with: expandedViewItemIDs) })
+					.childItemIDs
+					.flatMap({ self.childItemIDsDeep(for: self.itemByID[$0]!, with: expandedItemIDs) })
 		} else {
 			// Have top-level items
-			return self.topLevelViewItemIDs
-					.flatMap({ self.childViewItemIDsDeep(for: self.itemMap[$0]!, with: expandedViewItemIDs) })
+			return self.topLevelItemIDs
+					.flatMap({ self.childItemIDsDeep(for: self.itemByID[$0]!, with: expandedItemIDs) })
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func indentationLevel(for viewItemID :String) -> Int { self.itemMap[viewItemID]!.indentationLevel }
+	public func indentationLevel(for itemID :String) -> Int { self.itemByID[itemID]!.indentationLevel }
 #endif
 
 	//------------------------------------------------------------------------------------------------------------------
-	func noteNeedsReload(viewItemID :String) { self.itemMap[viewItemID]!.noteNeedsReload() }
+	public func noteNeedsReload(itemID :String) { self.itemByID[itemID]!.noteNeedsReload() }
 
 	// MARK: Private methods
 #if os(iOS)
 	//--------------------------------------------------------------------------------------------------------------
-	private func childViewItemIDsDeep(for item :Item, with expandedViewItemIDs :Set<String>) -> [String] {
+	private func childItemIDsDeep(of item :Item, with expandedItemIDs :Set<String>) -> [String] {
 		// Check if expanded
-		if expandedViewItemIDs.contains(item.viewItemID) {
+		if expandedItemIDs.contains(item.id) {
 			// Reload
 			item.reloadChildItems()
 
-			return [item.viewItemID] +
-					item.childViewItemIDs.flatMap(
-							{ self.childViewItemIDsDeep(for: self.itemMap[$0]!, with: expandedViewItemIDs) })
+			return [item.id] +
+					item.childItemIDs.flatMap({ self.childItemIDsDeep(for: self.itemByID[$0]!, with: expandedItemIDs) })
 		} else {
 			// Just this level
-			return [item.viewItemID]
+			return [item.id]
 		}
 	}
 #endif
