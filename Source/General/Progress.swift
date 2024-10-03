@@ -71,7 +71,7 @@ open class Progress {
 			self.lastUpdatedDate = date
 
 			// Check thread
-			if Thread.current == Thread.main {
+			if Thread.isMainThread {
 				// On main thread
 				self.updatedProc(self)
 			} else {

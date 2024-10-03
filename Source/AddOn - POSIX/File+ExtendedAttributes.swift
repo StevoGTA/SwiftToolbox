@@ -8,6 +8,10 @@
 
 import Foundation
 
+#if os(Linux)
+	import System
+#endif
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: File extended attribute extension
 public extension File {
@@ -16,12 +20,21 @@ public extension File {
 	//------------------------------------------------------------------------------------------------------------------
 	func extendedAttributeNames() throws -> Set<String> {
 		// Query size
-		let	size = listxattr(self.path, nil, 0, 0)
+#if os(macOS)
+		var	size = listxattr(self.path, nil, 0, 0)
+#elseif os(Linux)
+		var	size = listxattr(self.path, nil, 0)
+#endif
 		guard size != -1 else { throw POSIXError.general(errno) }
 
 		// Read data
 		let	buffer = UnsafeMutablePointer<Int8>.allocate(capacity: size)
-		if listxattr(self.path, buffer, size, 0) != -1 {
+#if os(macOS)
+		size = listxattr(self.path, buffer, size, 0)
+#elseif os(Linux)
+		size = listxattr(self.path, buffer, size)
+#endif
+		if size != -1 {
 			// Success
 			let	string = String(bytes: Data(bytes: buffer, count: size), encoding: .utf8)!
 
@@ -47,12 +60,21 @@ public extension File {
 	//------------------------------------------------------------------------------------------------------------------
 	func data(forExtendedAttributeNamed name :String) throws -> Data? {
 		// Query size
-		let	size = getxattr(self.path, name, nil, 0, 0, 0)
+#if os(macOS)
+		var	size = getxattr(self.path, name, nil, 0, 0, 0)
+#elseif os(Linux)
+		var	size = getxattr(self.path, name, nil, 0)
+#endif
 		guard size != -1 else { return nil }
 
 		// Read data
 		let	buffer = malloc(size)!
-		if getxattr(self.path, name, buffer, size, 0, 0) != -1 {
+#if os(macOS)
+		size = getxattr(self.path, name, buffer, size, 0, 0)
+#elseif os(Linux)
+		size = getxattr(self.path, name, buffer, size)
+#endif
+		if size != -1 {
 			// Success
 			return Data(bytes: buffer, count: size)
 		} else {
@@ -87,7 +109,13 @@ public extension File {
 	func set(_ data :Data, forExtendedAttributeNamed name :String) throws {
 		// Write data
 		let	result :Int32 = data.withUnsafeBytes()
-					{ setxattr(self.path, name, $0.bindMemory(to: UInt8.self).baseAddress!, data.count, 0, 0) }
+					{
+#if os(macOS)
+						setxattr(self.path, name, $0.bindMemory(to: UInt8.self).baseAddress!, data.count, 0, 0)
+#elseif os(Linux)
+						setxattr(self.path, name, $0.bindMemory(to: UInt8.self).baseAddress!, data.count, 0)
+#endif
+					}
 		guard result != -1 else {  throw POSIXError.general(errno) }
 	}
 
@@ -106,7 +134,12 @@ public extension File {
 	//------------------------------------------------------------------------------------------------------------------
 	func remove(extendedAttributeNamed name :String) throws {
 		// Try to remove
-		if removexattr(self.path, name, 0) == -1 {
+#if os(macOS)
+	let	result = removexattr(self.path, name, 0)
+#elseif os(Linux)
+	let	result = removexattr(self.path, name)
+#endif
+		if result == -1 {
 			// Error
 			throw POSIXError.general(errno)
 		}
