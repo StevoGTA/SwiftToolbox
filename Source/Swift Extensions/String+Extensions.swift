@@ -22,10 +22,10 @@ extension String {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - General extension
-extension String {
+public extension String {
 
 	// MARK: RandomCharacterOptions
-	public struct RandomCharacterOptions : OptionSet {
+	struct RandomCharacterOptions : OptionSet {
 
 		// MARK: Properties
 		static	public	let	lowercaseLetters = RandomCharacterOptions(rawValue: 1 << 0)
@@ -44,8 +44,8 @@ extension String {
 			var	capitalizingFirstLetter :String { self.prefix(1).capitalized + self.dropFirst() }
 			var	removingLeadingAndTrailingQuotes :String {
 						// Check for leading and trailing quotes
-						let	hasLeadingQuote = hasPrefix("\"") || hasPrefix("'")
-						let	hasTrailingQuote = hasSuffix("\"") || hasSuffix("'")
+						let	hasLeadingQuote = hasPrefix("\"") || hasPrefix("'") || hasPrefix("“")
+						let	hasTrailingQuote = hasSuffix("\"") || hasSuffix("'") || hasSuffix("”")
 
 						return (hasLeadingQuote || hasTrailingQuote) ?
 								substring(fromCharacterIndex: hasLeadingQuote ? 1 : 0,
@@ -56,7 +56,7 @@ extension String {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init<T : ExpressibleByStringInterpolation>(combining components :[T], with separator :String = ", ") {
+	init<T : ExpressibleByStringInterpolation>(combining components :[T], with separator :String = ", ") {
 		// Setup
 		var	string = ""
 
@@ -76,7 +76,7 @@ extension String {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public init(randomCharactersOfLength length :Int,
+	init(randomCharactersOfLength length :Int,
 			options :RandomCharacterOptions = [.lowercaseLetters, .uppercaseLetters, .numbers]) {
 		// Setup
 		var	characters = ""

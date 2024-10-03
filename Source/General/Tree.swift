@@ -7,16 +7,12 @@
 //
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: TreeGroup
-protocol TreeGroup : TreeItem {}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - TreeBuilder
-class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
+// MARK: TreeBuilder
+public class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
 
 	// MARK: Types
-	typealias CreateGroupProc = (_ subPath :String, _ info :GInfo?, _ groups :[G]?, _ items :[I]?) -> G
-	typealias CreateItemProc = (_ subPath :String, _ info :IInfo?) -> I
+	public typealias CreateGroupProc = (_ subPath :String, _ info :GInfo?, _ groups :[G]?, _ items :[I]?) -> G
+	public typealias CreateItemProc = (_ subPath :String, _ info :IInfo?) -> I
 
 	// MARK: Tracker
 	private class GroupTracker {
@@ -67,7 +63,7 @@ class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
 	}
 
 	// MARK: Properties
-			var	rootGroup :G { self.groupTrackerMap[""]!.createGroup(self.createGroupProc, self.createItemProc) }
+	public	var	rootGroup :G { self.groupTrackerMap[""]!.createGroup(self.createGroupProc, self.createItemProc) }
 
 	private	let	createGroupProc :CreateGroupProc
 	private	let	createItemProc :CreateItemProc?
@@ -76,7 +72,7 @@ class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(createGroupProc :@escaping CreateGroupProc, createItemProc :CreateItemProc? = nil) {
+	public init(createGroupProc :@escaping CreateGroupProc, createItemProc :CreateItemProc? = nil) {
 		// Store
 		self.createGroupProc = createGroupProc
 		self.createItemProc = createItemProc
@@ -87,7 +83,7 @@ class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func addGroup(at subPath :String, with info :GInfo? = nil) {
+	public func addGroup(at subPath :String, with info :GInfo? = nil) {
 		// Check if already have a GroupTracker
 		if let groupTracker = self.groupTrackerMap[subPath] {
 			// Have GroupTracker
@@ -112,7 +108,7 @@ class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func addItem(at path :String, with info :IInfo? = nil) {
+	public func addItem(at path :String, with info :IInfo? = nil) {
 		// Add item to parent group tracker
 		self.groupTrackerMap[path.deletingLastPathComponent]!.add(path.lastPathComponent!, with: info)
 	}

@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: File extended attribute extension
-extension File {
+public extension File {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -30,6 +30,18 @@ extension File {
 			// Error
 			throw POSIXError.general(errno)
 		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func extendedAttributeDataByName() throws -> [String : Data] {
+		// Compose the map
+		var	dataByExtendedAttributeName = [String : Data]()
+		try extendedAttributeNames().forEach() {
+			// Store
+			dataByExtendedAttributeName[$0] = try data(forExtendedAttributeNamed: $0)
+		}
+
+		return dataByExtendedAttributeName
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -63,6 +75,12 @@ extension File {
 		guard let data = try data(forExtendedAttributeNamed: name) else { return nil }
 
 		return data.withUnsafeBytes {$0.load(as: TimeInterval.self) }
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func set(extendedAttributeData :[String : Data]) throws {
+		// Iterate
+		try extendedAttributeData.forEach() { try set($0.value, forExtendedAttributeNamed: $0.key) }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
