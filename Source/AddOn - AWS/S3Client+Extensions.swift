@@ -12,6 +12,9 @@ import SmithyIdentity
 // MARK: S3Client extensions
 public extension S3Client {
 
+	// MARK: Properties
+	static	var	availableRegions :[AWSRegion] { AWSRegion.all }
+
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
 	static func bucketsByRegion(for credentialIdentity :AWSCredentialIdentity,

@@ -1,5 +1,5 @@
 //
-//  AWSCredentialIdentity.swift
+//  AWSCredentialIdentity+Extensions.swift
 //  Swift Toolbox
 //
 //  Created by Stevo on 8/15/24.
