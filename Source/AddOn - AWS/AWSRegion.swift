@@ -7,7 +7,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: AWSRegion
-public struct AWSRegion {
+public struct AWSRegion : Hashable {
 
 	// MARK: Properties
 	static	public	let	afSouth1 = AWSRegion(tag: "af-south-1", name: "Africa (Cape Town)")
@@ -95,6 +95,13 @@ public struct AWSRegion {
 									usEast2,
 									usGovEast1,
 									usGovWest1,
+									usWest1,
+									usWest2,
+								]
+	static	public	let	common =
+								[
+									usEast1,
+									usEast2,
 									usWest1,
 									usWest2,
 								]
