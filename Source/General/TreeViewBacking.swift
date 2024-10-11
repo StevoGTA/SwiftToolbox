@@ -256,11 +256,11 @@ public class TreeViewBacking : NSObject {
 
 			return rootItem
 					.childItemIDs
-					.flatMap({ self.childItemIDsDeep(for: self.itemByID[$0]!, with: expandedItemIDs) })
+					.flatMap({ self.childItemIDsDeep(of: self.itemByID[$0]!, with: expandedItemIDs) })
 		} else {
 			// Have top-level items
 			return self.topLevelItemIDs
-					.flatMap({ self.childItemIDsDeep(for: self.itemByID[$0]!, with: expandedItemIDs) })
+					.flatMap({ self.childItemIDsDeep(of: self.itemByID[$0]!, with: expandedItemIDs) })
 		}
 	}
 
@@ -281,7 +281,7 @@ public class TreeViewBacking : NSObject {
 			item.reloadChildItems()
 
 			return [item.id] +
-					item.childItemIDs.flatMap({ self.childItemIDsDeep(for: self.itemByID[$0]!, with: expandedItemIDs) })
+					item.childItemIDs.flatMap({ self.childItemIDsDeep(of: self.itemByID[$0]!, with: expandedItemIDs) })
 		} else {
 			// Just this level
 			return [item.id]
