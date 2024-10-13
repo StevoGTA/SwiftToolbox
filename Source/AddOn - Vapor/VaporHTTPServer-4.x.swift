@@ -10,7 +10,7 @@ import Vapor
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPMethod extension
-extension HTTPMethod : Hashable {
+extension HTTPMethod : @retroactive Hashable {
 
 	// MARK: Hashable implementation
 	//------------------------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ extension HTTPEndpointMethod {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - VaporHTTPServer
-public class VaporHTTPServer : HTTPServer, Vapor.Responder {
+public final class VaporHTTPServer : HTTPServer, Vapor.Responder, @unchecked Sendable {
 
 	// MARK: Properties
 	private	var	trieRouters = [HTTPMethod : TrieRouter<HTTPEndpoint>]()

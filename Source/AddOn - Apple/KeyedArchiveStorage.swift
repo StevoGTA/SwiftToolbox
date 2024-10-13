@@ -85,7 +85,7 @@ class KeyedArchiveStorage {
 	//------------------------------------------------------------------------------------------------------------------
 	deinit {
 		// Clean up
-		NotificationCenter.default.removeObserver(self.notificationObserver)
+		NotificationCenter.default.removeObserver(self.notificationObserver!)
 	}
 
 	// MARK: Instance methods

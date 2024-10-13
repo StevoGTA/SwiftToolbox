@@ -20,7 +20,7 @@ public extension File {
 	//------------------------------------------------------------------------------------------------------------------
 	func extendedAttributeNames() throws -> Set<String> {
 		// Query size
-#if os(macOS)
+#if os(macOS) || os(tvOS)
 		var	size = listxattr(self.path, nil, 0, 0)
 #elseif os(Linux)
 		var	size = listxattr(self.path, nil, 0)
@@ -29,7 +29,7 @@ public extension File {
 
 		// Read data
 		let	buffer = UnsafeMutablePointer<Int8>.allocate(capacity: size)
-#if os(macOS)
+#if os(macOS) || os(tvOS)
 		size = listxattr(self.path, buffer, size, 0)
 #elseif os(Linux)
 		size = listxattr(self.path, buffer, size)
@@ -60,7 +60,7 @@ public extension File {
 	//------------------------------------------------------------------------------------------------------------------
 	func data(forExtendedAttributeNamed name :String) throws -> Data? {
 		// Query size
-#if os(macOS)
+#if os(macOS) || os(tvOS)
 		var	size = getxattr(self.path, name, nil, 0, 0, 0)
 #elseif os(Linux)
 		var	size = getxattr(self.path, name, nil, 0)
@@ -69,7 +69,7 @@ public extension File {
 
 		// Read data
 		let	buffer = malloc(size)!
-#if os(macOS)
+#if os(macOS) || os(tvOS)
 		size = getxattr(self.path, name, buffer, size, 0, 0)
 #elseif os(Linux)
 		size = getxattr(self.path, name, buffer, size)
@@ -110,7 +110,7 @@ public extension File {
 		// Write data
 		let	result :Int32 = data.withUnsafeBytes()
 					{
-#if os(macOS)
+#if os(macOS) || os(tvOS)
 						setxattr(self.path, name, $0.bindMemory(to: UInt8.self).baseAddress!, data.count, 0, 0)
 #elseif os(Linux)
 						setxattr(self.path, name, $0.bindMemory(to: UInt8.self).baseAddress!, data.count, 0)
@@ -134,7 +134,7 @@ public extension File {
 	//------------------------------------------------------------------------------------------------------------------
 	func remove(extendedAttributeNamed name :String) throws {
 		// Try to remove
-#if os(macOS)
+#if os(macOS) || os(tvOS)
 	let	result = removexattr(self.path, name, 0)
 #elseif os(Linux)
 	let	result = removexattr(self.path, name)
