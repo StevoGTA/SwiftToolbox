@@ -37,7 +37,7 @@ extension HTTPEndpointMethod {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - VaporHTTPServer
-public final class VaporHTTPServer : HTTPServer, Vapor.Responder, @unchecked Sendable {
+public class VaporHTTPServer : HTTPServer, Vapor.Responder, @unchecked Sendable {
 
 	// MARK: Properties
 	private	var	trieRouters = [HTTPMethod : TrieRouter<HTTPEndpoint>]()
