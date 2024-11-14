@@ -49,8 +49,8 @@ public extension MongoClient {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	convenience init(_ connectionInfo :ConnectionInfo, using eventLoopGroup :EventLoopGroup) {
+	convenience init(_ connectionInfo :ConnectionInfo, using eventLoopGroup :EventLoopGroup) throws {
 		// Do init knowing we won't fail as we control the connection string
-		try! self.init(connectionInfo.connectionString, using: eventLoopGroup)
+		try self.init(connectionInfo.connectionString, using: eventLoopGroup)
 	}
 }
