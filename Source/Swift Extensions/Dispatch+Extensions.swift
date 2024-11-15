@@ -64,6 +64,7 @@ extension DispatchQueue {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
 	static public func performBlocking<T>(proc :(_ completionProc :@escaping (_ t :T) -> Void) -> Void) -> T {
 		// Setup
 		let	dispatchGroup = DispatchGroup()
