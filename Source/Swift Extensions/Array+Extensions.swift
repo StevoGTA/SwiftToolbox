@@ -19,14 +19,14 @@ fileprivate struct MapItem<T, U> {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - Array Extension
-extension Array {
+public extension Array {
 
 	// MARK: Properties
-	static	public	var	`nil` :Array? { nil }
+	static	var	`nil` :Array? { nil }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	public func collate<T, U>() -> (ts :[T], us :[U]) {
+	func collated<T, U>() -> (ts :[T], us :[U]) {
 		// Setup
 		var	ts = [T]()
 		var	us = [U]()
@@ -47,7 +47,7 @@ extension Array {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func collate(proc :(_ element :Element) -> Bool) -> (bucket1 :[Element], bucket2 :[Element]) {
+	func collated(proc :(_ element :Element) -> Bool) -> (bucket1 :[Element], bucket2 :[Element]) {
 		// Setup
 		var	bucket1 = [Element]()
 		var	bucket2 = [Element]()
@@ -68,7 +68,7 @@ extension Array {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func chunk(by chunkSize :Int) -> [[Element]] {
+	func chunked(by chunkSize :Int) -> [[Element]] {
 		// Check count
 		if self.count == 0 {
 			// Empty
@@ -88,7 +88,7 @@ extension Array {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func forEachChunk(chunkSize :Int, proc :(_ elements :[Element]) throws -> Void) rethrows {
+	func forEachChunk(chunkSize :Int, proc :(_ elements :[Element]) throws -> Void) rethrows {
 		// Check count
 		if self.count == 0 {
 			// Nothing to do
@@ -109,7 +109,7 @@ extension Array {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public mutating func remove(for indexSet :IndexSet) {
+	mutating func remove(for indexSet :IndexSet) {
 		// From https://stackoverflow.com/questions/26173565/removeobjectsatindexes-for-swift-arrays
 		// Preflight
 		guard var i = indexSet.first, i < count else { return }
@@ -159,4 +159,13 @@ extension Array {
 		// Reconstruct sorted sequence
 		self = Array(autoreleasepool() { map.map({ $0.element }) })
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Array Extension
+extension Array where Element : Hashable {
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func uniqued() -> Self { Self(Set<Element>(self) ) }
 }
