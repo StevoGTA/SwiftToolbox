@@ -20,7 +20,7 @@ open class Progress {
 							self.messageInternal.set(newValue)
 
 							// Call updated proc
-							callUpdatedProc()
+							callUpdatedProc(force: true)
 						}
 					}
 	public	var	value :Double? = nil {
@@ -58,7 +58,11 @@ open class Progress {
 	public func update(to current :UInt, of total :UInt) { self.value = Double(current) / Double(total) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func complete() { self.value = 1.0 }
+	public func complete() {
+		// Force update
+		self.lastUpdatedDate = nil
+		self.value = 1.0
+	}
 
 	// MARK: Private methods
 	//------------------------------------------------------------------------------------------------------------------

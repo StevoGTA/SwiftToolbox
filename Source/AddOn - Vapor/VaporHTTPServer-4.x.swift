@@ -9,15 +9,6 @@
 import Vapor
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: HTTPMethod extension
-extension HTTPMethod : @retroactive Hashable {
-
-	// MARK: Hashable implementation
-	//------------------------------------------------------------------------------------------------------------------
-	public func hash(into hasher :inout Hasher) { hasher.combine("\(self)") }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpoint.Method extension
 extension HTTPEndpointMethod {
 
@@ -37,94 +28,28 @@ extension HTTPEndpointMethod {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - VaporHTTPServer
-public class VaporHTTPServer : HTTPServer, Vapor.Responder, @unchecked Sendable {
+public class VaporHTTPServer : HTTPServer, @unchecked Sendable {
 
 	// MARK: Properties
-	private	var	trieRouters = [HTTPMethod : TrieRouter<HTTPEndpoint>]()
+	private	let	application = Application()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	required public init(port :Int, maxBodySize :Int) {
-		// Run in the background
-		DispatchQueue.global(qos: .background).async() {
-			// Setup
-			let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-			defer { try! eventLoopGroup.syncShutdownGracefully() }
+		// Complete application configuration
+		self.application.http.server.configuration.port = port
+		self.application.routes.defaultMaxBodySize = ByteCount(value: maxBodySize)
 
-			let	server =
-						Vapor.HTTPServer(application: Application(), responder: self,
-								configuration: Vapor.HTTPServer.Configuration(port: port),
-								on: eventLoopGroup)
-
+		// Run in task
+		Task {
 			// Catch errors
 			do {
-				// Start server
-				try server.start()
+				// Execute application
+				try await self.application.execute()
 			} catch {
 				// Error
-				NSLog("VaporHTTPServer encountered error when starting server: \(error)")
+				NSLog("VaporHTTPServer encountered error when executing application: \(error)")
 			}
-
-			do {
-				// Wait for shutdown
-				try server.onShutdown.wait()
-			} catch {
-				// Error
-				NSLog("VaporHTTPServer encountered error when closing server: \(error)")
-			}
-		}
-	}
-
-	// MARK: Vapor.Responder methods
-	//------------------------------------------------------------------------------------------------------------------
-	public func respond(to request :Request) -> EventLoopFuture<Response> {
-		// Get TrieRouter for method
-		guard let trieRouter = self.trieRouters[request.method] else {
-			// Method not found
-			return request.eventLoop.future(Response(status: .notFound))
-		}
-
-		// Compose info
-		let	urlComponents = URLComponents(url: URL(string: request.url.string)!, resolvingAgainstBaseURL: false)!
-		let	pathComponents =
-					request.url.string
-							.components(separatedBy: "?")[0]
-							.components(separatedBy: "/")[1...]
-							.map({ $0.removingPercentEncoding! })
-
-		var parameters = Parameters()
-		guard let httpEndpoint = trieRouter.route(path: pathComponents, parameters: &parameters) else {
-			// Route not found
-			return request.eventLoop.future(Response(status: .notFound))
-		}
-
-		var	headersIterator = request.headers.makeIterator()
-		var	headers = [String : String]()
-		while let header = headersIterator.next() { headers[header.name] = header.value }
-
-		// Catch errors
-		do {
-			// Perform
-			let	(responseStatus, responseHeaders, responseBody) =
-						try httpEndpoint.perform(
-								performInfo: (pathComponents, urlComponents.queryItemsMap, headers),
-								bodyData:
-										request.body.data?.getData(at: 0,
-												length: request.body.data?.readableBytes ?? 0))
-
-			return request.eventLoop.future(
-					Response(status: HTTPResponseStatus(statusCode: responseStatus.rawValue),
-							headers: HTTPHeaders(responseHeaders ?? []),
-							body: (responseBody != nil) ? Response.Body(data: responseBody!.data) : .empty))
-		} catch {
-			// Handle error
-			let	httpEndpointError = error as! HTTPEndpointError
-			let	jsonBody = ["error": httpEndpointError.message]
-			let	jsonData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
-
-			return request.eventLoop.future(
-					Response(status: HTTPResponseStatus(statusCode: httpEndpointError.status.rawValue),
-							body: Response.Body(data: jsonData)))
 		}
 	}
 
@@ -141,16 +66,55 @@ public class VaporHTTPServer : HTTPServer, Vapor.Responder, @unchecked Sendable 
 										PathComponent.parameter($0.substring(fromCharacterIndex: 1))
 							}
 
-		// Retrieve/Create TrieRouter
-		let	httpMethod = httpEndpoint.method.httpMethod
-		var	trieRouter = self.trieRouters[httpMethod]
-		if trieRouter == nil {
-			// Create new TrieRouter for this method
-			trieRouter = TrieRouter<HTTPEndpoint>()
-			self.trieRouters[httpMethod] = trieRouter
-		}
-
 		// Register route
-		trieRouter!.register(httpEndpoint, at: pathComponents)
+		self.application.on(httpEndpoint.method.httpMethod, pathComponents)
+				{ [unowned self] in await self.perform(request: $0, httpEndpoint: httpEndpoint) }
+	}
+
+	// MARK: Private methods
+	//------------------------------------------------------------------------------------------------------------------
+	private func perform(request :Request, httpEndpoint :HTTPEndpoint) async -> Response {
+		// Compose info
+		let	urlComponents = URLComponents(url: URL(string: request.url.string)!, resolvingAgainstBaseURL: false)!
+		let	pathComponents =
+					request.url.string
+							.components(separatedBy: "?")[0]
+							.components(separatedBy: "/")[1...]
+							.map({ $0.removingPercentEncoding! })
+
+		var	headersIterator = request.headers.makeIterator()
+		var	headers = [String : String]()
+		while let header = headersIterator.next() { headers[header.name] = header.value }
+
+		// Catch errors
+		do {
+			// Get body data
+			var	byteBuffer :ByteBuffer? = request.body.data
+			if byteBuffer == nil {
+				// Try to load
+				byteBuffer = try? await request.body.collect(upTo: Int.max)
+			}
+
+			// Get data
+			let	bodyData = byteBuffer?.getData(at: 0, length: byteBuffer?.readableBytes ?? 0)
+
+			// Perform
+			let	(responseStatus, responseHeaders, responseBody) =
+						try httpEndpoint.perform(
+								performInfo: (pathComponents, urlComponents.queryItemsMap, headers),
+								bodyData: bodyData)
+
+			return Response(status: HTTPResponseStatus(statusCode: responseStatus.rawValue),
+					headers: HTTPHeaders(responseHeaders ?? []),
+					body: (responseBody != nil) ? Response.Body(data: responseBody!.data) : .empty)
+		} catch {
+			// Handle error
+			let	httpEndpointError = error as! HTTPEndpointError
+			let	jsonBody = ["error": httpEndpointError.message]
+			let	jsonData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
+
+			return Response(status: HTTPResponseStatus(statusCode: httpEndpointError.status.rawValue),
+					body: Response.Body(data: jsonData))
+		}
 	}
 }
