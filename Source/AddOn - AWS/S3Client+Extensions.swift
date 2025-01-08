@@ -55,30 +55,68 @@ public extension S3Client {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func retrieveObjects(bucket :S3ClientTypes.Bucket, prefix :String? = nil,
-			objectProc :@escaping (_ objects :[AWSS3Object]) -> Void) async throws {
-		// Loop "forever"
-		var	continuationToken :String? = nil
-		repeat {
-			// Make the call
-			let	input =
-						ListObjectsV2Input(bucket: bucket.name, continuationToken: continuationToken,
-								encodingType: .url, prefix: prefix)
-			let output = try await self.listObjectsV2(input: input)
+	func listObjects(bucket :S3ClientTypes.Bucket,
+			filterProc :@escaping (_ object :AWSS3Object) -> Bool = { _ in true }) ->
+			AsyncThrowingStream<AWSS3Object, Error> {
+		// Setup
+		.init() { continuation in
+			// Setup
+			var	proc :(_ prefix :String?) async throws -> Void = { _ in }
+			proc = { prefix in
+				// Loop "forever"
+				var	continuationToken :String? = nil
+				while true {
+					// List objects at this level
+					let	input =
+								ListObjectsV2Input(bucket: bucket.name, continuationToken: continuationToken,
+										delimiter: "/", encodingType: .url, prefix: prefix)
+					let output = try await self.listObjectsV2(input: input)
 
-			// Handle results
-			if let contents = output.contents {
-				// Call proc
-				objectProc(contents.map({ AWSS3Object($0) }))
+					// Handle results
+					if let contents = output.contents {
+						// Call proc
+						contents
+								.map({ AWSS3Object($0) })
+								.filter({ filterProc($0) })
+								.forEach({ continuation.yield($0) })
+					}
+
+					if let commonPrefixes = output.commonPrefixes?.compactMap({ $0.prefix }) {
+						// Initiate listing at next level
+						try await withThrowingTaskGroup(of: Void.self) { group in
+							// Iterate folders
+							commonPrefixes.forEach() { commonPrefix in
+								// Add task for this folder
+								group.addTask() { try await proc(commonPrefix) }
+							}
+							try await group.waitForAll()
+						}
+					}
+
+					if output.nextContinuationToken != nil {
+						// More to go
+						continuationToken = output.nextContinuationToken
+					} else {
+						// All done
+						break
+					}
+				}
 			}
 
-			if output.nextContinuationToken != nil {
-				// More to go
-				continuationToken = output.nextContinuationToken
-			} else {
-				// All done
-				break
+			// Create task
+			Task.detached() {
+				// Catch errors
+				do {
+					// Start at the root
+					try await proc(nil)
+
+					// All done
+					continuation.finish()
+				} catch {
+					// Error
+					continuation.finish(throwing: error)
+				}
 			}
-		} while true
+		}
 	}
 }
