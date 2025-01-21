@@ -5,6 +5,7 @@
 //  Created by Stevo on 8/28/24.
 //
 
+import ClientRuntime
 import AWSS3
 import SmithyIdentity
 
