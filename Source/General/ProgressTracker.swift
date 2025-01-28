@@ -74,7 +74,6 @@ public class SizeProgressTracker {
 			self.transferRate += Double(timeDeltaInfo.deltaSize) / timeDeltaInfo.deltaTimeInterval
 			self.count += 1
 		}
-
 	}
 
 	// MARK: Properties
@@ -111,6 +110,7 @@ public class SizeProgressTracker {
 			(averageTransferRate :Double, estimatedTimeIntervalRemaining :TimeInterval?) {
 		// Compose info
 		let	count = Double(self.timeSliceInfos.count)
+		guard count > 0.0 else { return (0.0, nil) }
 
 		let	averageTransferRate = self.timeSliceInfos.reduce(0.0, { $0 + $1.transferRate }) / count
 
@@ -118,7 +118,7 @@ public class SizeProgressTracker {
 		let	estimatedTimeIntervalRemaining :TimeInterval?
 		if remainingSize == 0 {
 			// Nothing to do, will take no time!
-			estimatedTimeIntervalRemaining = 0.0
+			estimatedTimeIntervalRemaining = nil
 		} else if (averageTransferRatePerItem > 0.0) && (parallelItems > 0) {
 			// Have info to calculate
 			estimatedTimeIntervalRemaining = Double(remainingSize) / averageTransferRatePerItem / Double(parallelItems)
