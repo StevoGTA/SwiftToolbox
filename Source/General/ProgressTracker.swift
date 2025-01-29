@@ -106,7 +106,7 @@ public class SizeProgressTracker {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func info(for remainingSize :Int64, parallelItems :Int) ->
+	public func info(for remainingSize :Int64, remainingItems :Int, parallelItems :Int) ->
 			(averageTransferRate :Double, estimatedTimeIntervalRemaining :TimeInterval?) {
 		// Compose info
 		let	count = Double(self.timeSliceInfos.count)
@@ -116,14 +116,12 @@ public class SizeProgressTracker {
 
 		let	averageTransferRatePerItem = self.timeSliceInfos.reduce(0.0, { $0 + $1.transferRatePerItem }) / count
 		let	estimatedTimeIntervalRemaining :TimeInterval?
-		if remainingSize == 0 {
-			// Nothing to do, will take no time!
-			estimatedTimeIntervalRemaining = nil
-		} else if (averageTransferRatePerItem > 0.0) && (parallelItems > 0) {
+		if (remainingSize > 0) && (averageTransferRatePerItem > 0.0) && (parallelItems > 0) {
 			// Have info to calculate
-			estimatedTimeIntervalRemaining = Double(remainingSize) / averageTransferRatePerItem / Double(parallelItems)
+			estimatedTimeIntervalRemaining =
+					Double(remainingSize) / averageTransferRatePerItem / Double(min(remainingItems, parallelItems))
 		} else {
-			// Can't calculate
+			// Nothing to do or no way to do it
 			estimatedTimeIntervalRemaining = nil
 		}
 
