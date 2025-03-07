@@ -31,7 +31,7 @@ extension HTTPEndpointMethod {
 public class VaporHTTPServer : HTTPServer, @unchecked Sendable {
 
 	// MARK: Properties
-	private	let	application = Application()
+	private	let	application = Application(Environment(name: "", arguments: ["serve"]))
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
