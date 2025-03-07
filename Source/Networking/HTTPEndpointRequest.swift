@@ -72,25 +72,8 @@ public class HTTPEndpointRequest {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-//	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-//			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
-//			timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
-//		// Store
-//		self.method = method
-//		self.path = path
-//		self.queryComponents = queryComponents
-//		self.multiValueQueryComponent = multiValueQueryComponent
-//		self.bodyData = nil
-//		self.timeoutInterval = timeoutInterval
-//		self.options = options
-//
-//		self.headers = headers
-//		adjustHeaders()
-//	}
-//
-	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
+			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String] = [:],
 			bodyData :Data? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
 		// Store
 		self.method = method
@@ -101,14 +84,14 @@ public class HTTPEndpointRequest {
 		self.timeoutInterval = timeoutInterval
 		self.options = options
 
-		self.headers = headers ?? [:]
+		self.headers = headers
 		self.headers!["Content-Type"] = "application/octet-stream"
 		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
+			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String] = [:],
 			jsonBody :Any, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
 		// Store
 		self.method = method
@@ -119,14 +102,14 @@ public class HTTPEndpointRequest {
 		self.timeoutInterval = timeoutInterval
 		self.options = options
 
-		self.headers = headers ?? [:]
+		self.headers = headers
 		self.headers!["Content-Type"] = "application/json"
 		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
+			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String] = [:],
 			xmlBody :Data, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
 		// Store
 		self.method = method
@@ -137,14 +120,14 @@ public class HTTPEndpointRequest {
 		self.timeoutInterval = timeoutInterval
 		self.options = options
 
-		self.headers = headers ?? [:]
+		self.headers = headers
 		self.headers!["Content-Type"] = "application/xml"
 		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
-			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String]? = nil,
+			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String] = [:],
 			urlEncodedBody :[String : Any], timeoutInterval :TimeInterval = defaultTimeoutInterval,
 			options :Options = []) {
 		// Store
@@ -159,13 +142,13 @@ public class HTTPEndpointRequest {
 		self.timeoutInterval = timeoutInterval
 		self.options = options
 
-		self.headers = headers ?? [:]
+		self.headers = headers
 		self.headers!["Content-Type"] = "application/x-www-form-urlencoded"
 		adjustHeaders()
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public init(method :HTTPEndpointMethod = .get, url :URL, headers :[String : String]? = nil,
+	public init(method :HTTPEndpointMethod = .get, url :URL, headers :[String : String] = [:],
 			bodyData :Data? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
 		// Store
 		self.method = method
@@ -252,7 +235,7 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod = .get, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			headers :[String : String] = [:], timeoutInterval :TimeInterval = defaultTimeoutInterval,
 			destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
@@ -264,7 +247,7 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod = .get, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String]? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			headers :[String : String] = [:], timeoutInterval :TimeInterval = defaultTimeoutInterval,
 			destinationFile :File) {
 		// Store
 		self.destinationURL = destinationFile.url
