@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: FourCharCode extension
-extension FourCharCode {
+public extension FourCharCode {
 
 	// MARK: Properties
 	var	description :String {

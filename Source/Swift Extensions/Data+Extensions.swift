@@ -13,6 +13,37 @@ import Foundation
 public extension Data {
 
 	// MARK: Properties
+	var	asOSType :OSType? {
+				// Check count
+				guard self.count == MemoryLayout<OSType>.size else { return nil }
+
+				return OSType(bigEndian: self.withUnsafeBytes({ $0.load(as: OSType.self) }))
+			}
+	var	asUInt32BE :UInt32? {
+				// Check count
+				guard self.count == MemoryLayout<UInt32>.size else { return nil }
+
+				return UInt32(bigEndian: self.withUnsafeBytes({ $0.load(as: UInt32.self) }))
+			}
+	var	asUInt32LE :UInt32? {
+				// Check count
+				guard self.count == MemoryLayout<UInt32>.size else { return nil }
+
+				return UInt32(littleEndian: self.withUnsafeBytes({ $0.load(as: UInt32.self) }))
+			}
+	var	asUInt64BE :UInt64? {
+				// Check count
+				guard self.count == MemoryLayout<UInt64>.size else { return nil }
+
+				return UInt64(bigEndian: self.withUnsafeBytes({ $0.load(as: UInt64.self) }))
+			}
+	var	asUInt64LE :UInt64? {
+				// Check count
+				guard self.count == MemoryLayout<UInt64>.size else { return nil }
+
+				return UInt64(littleEndian: self.withUnsafeBytes({ $0.load(as: UInt64.self) }))
+			}
+
 	var	hexEncodedString :String { map({ String(format: "%02hhx", $0) }).joined() }
 
 	// MARK: Lifecycle methods
