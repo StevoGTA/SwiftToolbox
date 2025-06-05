@@ -21,7 +21,7 @@ public class FileReader {
 	// MARK: Error
 	struct Error : Swift.Error {
 
-		// Error Kind
+		// MARK: Kind
 		enum Kind {
 			case couldNotOpen
 			case alreadyOpen
@@ -31,7 +31,7 @@ public class FileReader {
 			case seekFailed
 		}
 
-		// Properties
+		// MARK: Properties
 		let kind: Kind
 		let	file :File
 		let	errno :Int32?
@@ -125,6 +125,21 @@ public class FileReader {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	func read(byteCount :Int) throws -> Data {
+		// Preflight
+		guard self.fd != -1 else { throw Error(kind: .notOpen, file: self.file) }
+
+		// Read
+		let ptr = UnsafeMutablePointer<UInt8>.allocate(capacity: byteCount)
+		defer { ptr.deallocate() }
+		switch Darwin.read(self.fd, ptr, byteCount) {
+			case byteCount:	return Data(bytes: ptr, count: byteCount)
+			case -1:		throw Error(kind: .readFailed, file: self.file, errno: errno)
+			default:		throw Error(kind: .endOfFile, file: self.file)
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	func read<T>(_: T.Type) throws -> T {
 		// Preflight
 		guard self.fd != -1 else { throw Error(kind: .notOpen, file: self.file) }
@@ -135,21 +150,6 @@ public class FileReader {
 		defer { ptr.deallocate() }
 		switch Darwin.read(self.fd, ptr, byteCount) {
 			case byteCount:	return ptr.pointee
-			case -1:		throw Error(kind: .readFailed, file: self.file, errno: errno)
-			default:		throw Error(kind: .endOfFile, file: self.file)
-		}
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	func read(byteCount :Int) throws -> Data {
-		// Preflight
-		guard self.fd != -1 else { throw Error(kind: .notOpen, file: self.file) }
-
-		// Read
-		let ptr = UnsafeMutablePointer<UInt8>.allocate(capacity: byteCount)
-		defer { ptr.deallocate() }
-		switch Darwin.read(self.fd, ptr, byteCount) {
-			case byteCount:	return Data(bytes: ptr, count: byteCount)
 			case -1:		throw Error(kind: .readFailed, file: self.file, errno: errno)
 			default:		throw Error(kind: .endOfFile, file: self.file)
 		}

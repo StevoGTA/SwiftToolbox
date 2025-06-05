@@ -8,14 +8,14 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Int extension
-extension Int {
+public extension Int {
 
 	// MARK: Properties
 	static	let	`nil` :Int? = nil
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init?(_ int32 :Int32?) {
+	init?(_ int32 :Int32?) {
 		// Check if string is nil
 		guard int32 != nil else { return nil }
 
@@ -23,7 +23,7 @@ extension Int {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public init?(_ int64 :Int64?) {
+	init?(_ int64 :Int64?) {
 		// Check if string is nil
 		guard int64 != nil else { return nil }
 
@@ -31,7 +31,7 @@ extension Int {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public init?(_ string :String?) {
+	init?(_ string :String?) {
 		// Check if string is nil
 		guard string != nil else { return nil }
 
@@ -39,7 +39,7 @@ extension Int {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public init?(_ uint32 :UInt32?) {
+	init?(_ uint32 :UInt32?) {
 		// Check if string is nil
 		guard uint32 != nil else { return nil }
 
@@ -47,7 +47,7 @@ extension Int {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public init?(_ uint64 :UInt64?) {
+	init?(_ uint64 :UInt64?) {
 		// Check if string is nil
 		guard uint64 != nil else { return nil }
 

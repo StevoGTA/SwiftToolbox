@@ -25,24 +25,27 @@ public extension FourCharCode {
 				return String(utf16CodeUnits: utf16, count: 4)
 			}
 
-	// MARK: Lifecycle methods
-	//------------------------------------------------------------------------------------------------------------------
-	init(string :String) {
-		// Integrity check
-		assert(string.count == 4, "String length must be 4")
-
-		// Iterate characters
-		var fourCharCode : FourCharCode = 0
-		for char in string.utf8 {
-			// Shift and add
-			fourCharCode = (fourCharCode << 8) + FourCharCode(char)
-		}
-
-		// Call default initializer
-		self.init(fourCharCode)
-	}
-
 	// MARK: methods
 	//------------------------------------------------------------------------------------------------------------------
 	func toString() -> String { self.description }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: FourCharCode extension
+extension UInt32: @retroactive ExpressibleByExtendedGraphemeClusterLiteral {}
+extension UInt32: @retroactive ExpressibleByUnicodeScalarLiteral {}
+extension FourCharCode : @retroactive ExpressibleByStringLiteral {
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	public init(stringLiteral value :StringLiteralType) {
+		// Check conditions
+		if let data = value.data(using: .macOSRoman), data.count == 4 {
+			// Have 4 character string literal
+			self = data.reduce(0, { $0 << 8 + Self($1) })
+		} else {
+			// Do not have four character string literal
+			self = 0
+		}
+	}
 }
