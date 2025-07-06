@@ -197,7 +197,7 @@ extension FileReader.Error : CustomStringConvertible, LocalizedError {
 							case .notOpen:		return "File \(self.file.path) is not open"
 							case .endOfFile:	return "Found unexpected EOF for file \(self.file.path)"
 							case .readFailed:
-									return "Read failed for file \(self.file.path) with errno \(self.errno!), after reading \(bytesRead?.byteCountString(format: .bytesDecimal) ?? "unknown bytes")"
+									return "Read failed for file \(self.file.path) with errno \(self.errno!)"
 							case .seekFailed:
 									return "Seek failed for file \(self.file.path) with errno \(self.errno!)"
 						}
