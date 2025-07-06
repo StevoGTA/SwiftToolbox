@@ -41,7 +41,7 @@ public class VaporHTTPServer : HTTPServer, @unchecked Sendable {
 		self.application.routes.defaultMaxBodySize = ByteCount(value: maxBodySize)
 
 		// Run in task
-		Task {
+		Task.detached() {
 			// Catch errors
 			do {
 				// Execute application

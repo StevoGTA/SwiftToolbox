@@ -14,4 +14,11 @@ extension Bundle {
 
 	// MARK: Properties
 	var	bundleName :String { Bundle.main.infoDictionary![kCFBundleNameKey as String] as! String }
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func localizedString(forKey key :String, table :String) -> String {
+		// Return loclaized string
+		return localizedString(forKey: key, value: nil, table: table)
+	}
 }
