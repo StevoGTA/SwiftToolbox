@@ -40,7 +40,7 @@ public class File : Equatable, Hashable {
 
 	// MARK: Equatable methods
 	//------------------------------------------------------------------------------------------------------------------
-	public static func ==(lhs :File, rhs :File) -> Bool { lhs.url == rhs.url }
+	static public func ==(lhs :File, rhs :File) -> Bool { lhs.url == rhs.url }
 
 	// MARK: Hashable methods
 	//------------------------------------------------------------------------------------------------------------------

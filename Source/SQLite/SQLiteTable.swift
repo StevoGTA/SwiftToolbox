@@ -376,7 +376,7 @@ public struct SQLiteTable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func sum(tableColumns :[SQLiteTableColumn], innerJoin :SQLiteInnerJoin? = nil,
-			where sqliteWhere :SQLiteWhere? = nil) throws -> [String : Int64] {
+			where sqliteWhere :SQLiteWhere? = nil, includeCount :Bool = false) throws -> [String : Int64] {
 		// Perform
 		let	sumTableColumnsByTableColumnName =
 					Dictionary(tableColumns.map({ ($0.name, SQLiteTableColumn.sum(for: $0)) }))
@@ -387,6 +387,12 @@ public struct SQLiteTable {
 					// Update results
 					sumTableColumnsByTableColumnName.forEach() { results[$0.key] = resultsRow.integer(for: $0.value)! }
 				}
+
+		// Check if including count
+		if includeCount {
+			// Add count
+			results["count"] = Int64(count(where: sqliteWhere))
+		}
 
 		return results
 	}

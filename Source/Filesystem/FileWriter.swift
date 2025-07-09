@@ -9,43 +9,47 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: FileWriterError
-struct FileWriterError : Error {
-
-	// Error Type
-	enum ErrorType {
-		case couldNotOpen
-		case notOpen
-		case writeFailed
-	}
-
-	// Properties
-	let type: ErrorType
-	let	file :File
-	let	errno :Int32?
-}
-
-extension FileWriterError : CustomStringConvertible, LocalizedError {
-
-	// MARK: Properties
-	public 	var	description :String { self.localizedDescription }
-	public	var	errorDescription :String? {
-						switch self.type {
-							case .couldNotOpen: return "Could not open file \(self.file.path)"
-							case .notOpen: return "File \(self.file.path) is not open"
-							case .writeFailed: return "Write failed for file \(self.file.path)"
-						}
-					}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - FileWriter
+// MARK: FileWriter
 public class FileWriter {
 
 	// MARK: Mode
 	public enum Mode {
 		case overwrite
 		case append
+	}
+
+	// MARK: Error
+	struct Error : Swift.Error {
+
+		// MARK: Kind
+		enum Kind {
+			case couldNotOpen
+			case alreadyOpen
+			case notOpen
+			case writeFailed
+		}
+
+		// MARK: Properties
+		let kind: Kind
+		let	file :File
+		let	errno :Int32?
+
+		// MARK: Lifecycle methods
+		//--------------------------------------------------------------------------------------------------------------
+		init(kind :Kind, file :File, errno :Int32) {
+			// Store
+			self.kind = kind
+			self.file = file
+			self.errno = errno
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		init(kind :Kind, file :File) {
+			// Store
+			self.kind = kind
+			self.file = file
+			self.errno = nil
+		}
 	}
 
 	// MARK: Properties
@@ -99,25 +103,31 @@ public class FileWriter {
 	//------------------------------------------------------------------------------------------------------------------
 	public func open(mode :Mode = .overwrite) throws {
 		// Preflight
-		guard self.fd == -1 else { return }
+		guard self.fd == -1 else { throw Error(kind: .alreadyOpen, file: self.file) }
+
+		// Setup
+		let	oflag :Int32
+		switch mode {
+			case .overwrite:	oflag = O_RDWR | O_CREAT | O_EXCL
+			case .append:		oflag = O_RDWR | O_APPEND | O_EXLOCK
+		}
 
 		// Open
-		let	oflag :Int32 = (mode == .overwrite) ? O_RDWR | O_CREAT | O_EXCL : O_RDWR | O_APPEND | O_EXLOCK
 		self.fd = Darwin.open(self.file.path, oflag, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH)
-		guard self.fd != -1 else { throw FileWriterError(type: .couldNotOpen, file: self.file, errno: errno) }
+		guard self.fd != -1 else { throw Error(kind: .couldNotOpen, file: self.file, errno: errno) }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func write(_ data :Data) throws {
 		// Preflight
-		guard self.fd != -1 else { throw FileWriterError(type: .notOpen, file: self.file, errno: nil) }
+		guard self.fd != -1 else { throw Error(kind: .notOpen, file: self.file) }
 
 		// Write
 		try data.withUnsafeBytes() {
 			// Write
 			if Darwin.write(self.fd, $0.baseAddress, $0.count) != $0.count {
 				// Error
-				throw FileWriterError(type: .writeFailed, file: self.file, errno: errno)
+				throw Error(kind: .writeFailed, file: self.file, errno: errno)
 			}
 		}
 	}
@@ -134,4 +144,20 @@ public class FileWriter {
 		Darwin.close(self.fd)
 		self.fd = -1
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//MARK: - FileWriter.Error extension
+extension FileWriter.Error : CustomStringConvertible, LocalizedError {
+
+	// MARK: Properties
+	public 	var	description :String { self.localizedDescription }
+	public	var	errorDescription :String? {
+						switch self.kind {
+							case .couldNotOpen:	return "Could not open file \(self.file.path)"
+							case .alreadyOpen:	return "File \(self.file.path) is already open"
+							case .notOpen:		return "File \(self.file.path) is not open"
+							case .writeFailed:	return "Write failed for file \(self.file.path)"
+						}
+					}
 }

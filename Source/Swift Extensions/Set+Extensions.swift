@@ -14,18 +14,6 @@ extension Set {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	@discardableResult
-	mutating func insert(_ newMembers :[Set.Element]) -> [(inserted :Bool, memberAfterInsert :Set.Element)] {
-		// Setup
-		var	info = [(inserted :Bool, memberAfterInsert :Set.Element)]()
-
-		// Iterate all
-		newMembers.forEach() { info.append(insert($0)) }
-
-		return info
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
 	public func chunk(by chunkSize :Int) -> [Set<Element>] {
 		// Check count
 		if self.count == 0 {
@@ -68,5 +56,20 @@ extension Set {
 				try proc(Set<Element>(array[$0..<$0.advanced(by: endIndex)]))
 			}
 		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func map<U>(_ transform: (Element) -> U) -> Set<U> { Set<U>(self.lazy.map(transform)) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	@discardableResult
+	mutating func insert(_ newMembers :[Set.Element]) -> [(inserted :Bool, memberAfterInsert :Set.Element)] {
+		// Setup
+		var	info = [(inserted :Bool, memberAfterInsert :Set.Element)]()
+
+		// Iterate all
+		newMembers.forEach() { info.append(insert($0)) }
+
+		return info
 	}
 }

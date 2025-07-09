@@ -52,6 +52,7 @@ public extension String {
 										toCharacterIndex: hasTrailingQuote ? (self.count - 1) : self.count) :
 								self
 					}
+			var	addingQuotes :String { "\"\(self)\"" }
 			var	asDouble :Double? { NumberFormatter().number(from: self)?.doubleValue }
 
 	// MARK: Lifecycle methods

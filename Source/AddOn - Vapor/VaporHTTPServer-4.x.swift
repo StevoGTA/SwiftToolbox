@@ -31,7 +31,7 @@ extension HTTPEndpointMethod {
 public class VaporHTTPServer : HTTPServer, @unchecked Sendable {
 
 	// MARK: Properties
-	private	let	application = Application()
+	private	let	application = Application(Environment(name: "", arguments: ["serve"]))
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ public class VaporHTTPServer : HTTPServer, @unchecked Sendable {
 		self.application.routes.defaultMaxBodySize = ByteCount(value: maxBodySize)
 
 		// Run in task
-		Task {
+		Task.detached() {
 			// Catch errors
 			do {
 				// Execute application
