@@ -132,5 +132,6 @@ public class FileWriter {
 
 		// Close
 		Darwin.close(self.fd)
+		self.fd = -1
 	}
 }

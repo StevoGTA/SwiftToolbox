@@ -109,6 +109,10 @@ public struct AWSRegion : Hashable {
 			public	let	tag :String
 			public	let	name :String
 
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static public func `for`(tag: String) -> AWSRegion? { self.all.first(where: { $0.tag == tag }) }
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(tag :String, name :String) {
