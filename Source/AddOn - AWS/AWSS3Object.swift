@@ -9,7 +9,7 @@ import AWSS3
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: AWSS3Object
-public struct AWSS3Object {
+public struct AWSS3Object : TreeItem {
 
 	// MARK: Properties
 	public	let	key	:String

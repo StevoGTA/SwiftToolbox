@@ -12,6 +12,13 @@ import Foundation
 // MARK: Dictionary extension for convenience initializers
 public extension Dictionary {
 
+	// MARK: Class methods
+	//------------------------------------------------------------------------------------------------------------------
+	static func +(lhs: Self, rhs: Self) -> Self { lhs.merging(rhs, uniquingKeysWith: { $1 }) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	static func +=(lhs: inout Self, rhs: Self) { lhs.merge(rhs, uniquingKeysWith: { $1 }) }
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(_ pairs :[Element]) { self.init(pairs, uniquingKeysWith: { $1 }) }

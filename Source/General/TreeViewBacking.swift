@@ -35,10 +35,9 @@ public class TreeViewBacking : NSObject {
 		var	hasChildTreeItemsProc :HasChildTreeItemsProc?
 		var	loadChildTreeItemsProc :LoadChildTreeItemsProc?
 
-		var	compareTreeItemsProc :CompareTreeItemsProc = { _,_ in false }
-
-		var	removeItemIDsProc :(_ itemIDs :[String]) -> Void = { _ in }
 		var	noteItemsProc :(_ items :[Item]) -> Void = { _ in }
+		var	removeItemIDsProc :(_ itemIDs :[String]) -> Void = { _ in }
+		var	sortItemIDsProc :(_ itemIDs :[String]) -> [String] = { _ in [] }
 	}
 
 	// MARK: Item
@@ -98,7 +97,7 @@ public class TreeViewBacking : NSObject {
 			// Check how to reload child items
 			if let childTreeItemsProc = self.info.childTreeItemsProc {
 				// Get child tree items
-				let	childTreeItems = childTreeItemsProc(self.treeItem).sorted(by: self.info.compareTreeItemsProc)
+				let	childTreeItems = childTreeItemsProc(self.treeItem)
 #if os(iOS)
 				let	childItems =
 							childTreeItems.map({
@@ -107,7 +106,7 @@ public class TreeViewBacking : NSObject {
 				let	childItems = childTreeItems.map({ Item(treeItem: $0, info: self.info) })
 #endif
 				self.info.noteItemsProc(childItems)
-				self.childItemIDs = childItems.map({ $0.id })
+				self.childItemIDs = self.info.sortItemIDsProc(childItems.map({ $0.id }))
 
 				// Done
 				self.needsReload = false
@@ -116,6 +115,17 @@ public class TreeViewBacking : NSObject {
 				// Load child tree items
 			}
 		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		func resort() { self.childItemIDs = self.info.sortItemIDsProc(self.childItemIDs) }
+	}
+
+	// MARK: SortItem
+	private struct SortItem {
+
+		// MARK: Properties
+		let	id :String
+		let	treeItem :TreeItem
 	}
 
 	// MARK: Properties
@@ -138,10 +148,7 @@ public class TreeViewBacking : NSObject {
 								set { self.info.loadChildTreeItemsProc = newValue }
 							}
 
-			public	var	compareTreeItemsProc :CompareTreeItemsProc {
-								get { self.info.compareTreeItemsProc }
-								set { self.info.compareTreeItemsProc = newValue }
-							}
+			public	var	compareTreeItemsProc :CompareTreeItemsProc = { _,_ in false }
 
 			private	let	info = Info()
 
@@ -157,8 +164,27 @@ public class TreeViewBacking : NSObject {
 		super.init()
 
 		// Setup
-		self.info.removeItemIDsProc = { [unowned self] in self.itemByID.removeValues(forKeys: $0) }
 		self.info.noteItemsProc = { [unowned self] in $0.forEach() { self.itemByID[$0.id] = $0 } }
+		self.info.removeItemIDsProc = { [unowned self] in self.itemByID.removeValues(forKeys: $0) }
+		self.info.sortItemIDsProc = { [unowned self] in
+			// Setup
+			var	sortItems = [SortItem]()
+			$0.forEach() {
+				// Get item
+				let	item = self.itemByID[$0]!
+
+				// Add SortItem
+				sortItems.append(SortItem(id: $0, treeItem: item.treeItem))
+
+				// Sort item
+				item.resort()
+			}
+
+			// Sort items
+			return sortItems
+					.sorted(by: { self.compareTreeItemsProc($0.treeItem, $1.treeItem) })
+					.map({ $0.id })
+		}
 	}
 
 	// MARK: Instance methods
@@ -270,6 +296,15 @@ public class TreeViewBacking : NSObject {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func noteNeedsReload(itemID :String) { self.itemByID[itemID]!.noteNeedsReload() }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func noteSortingChanged() {
+		// Sort top level items
+		self.topLevelItemIDs = self.info.sortItemIDsProc(self.topLevelItemIDs)
+
+		// Sort root item
+		self.rootItem?.resort()
+	}
 
 	// MARK: Private methods
 #if os(iOS)
