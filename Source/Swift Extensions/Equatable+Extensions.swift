@@ -17,20 +17,26 @@ fileprivate extension Equatable {
 
 // MARK: - Global functions
 //----------------------------------------------------------------------------------------------------------------------
-func ==<T>(lhs: T?, rhs: T?) -> Bool where T: Any {
-	// Ensure we have values
-	guard let lhs, let rhs else { return (lhs == nil) && (rhs == nil) }
+// Normally would be coalesced into following function, but separate function needed for Xcode 13.4.1
+func ==<T : Equatable>(lhs :T?, rhs :T?) -> Bool {
+    // Ensure we have values
+    guard let lhs = lhs, let rhs = rhs else { return (lhs == nil) && (rhs == nil) }
 
-	// Check types - plain, Array, AnyHashable
-	if let isEqual = (lhs as? any Equatable)?.isEqual {
-		// Plain check
-		return isEqual(rhs)
-	} else if let lhs = (lhs as? [Any]), let rhs = (rhs as? [Any]), lhs.count == rhs.count {
+    return lhs.isEqual(to: rhs)
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+func ==<T>(lhs: T?, rhs: T?) -> Bool where T: Any {
+	// Ensure we have values (coded to work in Xcode 13.4.1
+	guard let lhs = lhs, let rhs = rhs else { return (lhs == nil) && (rhs == nil) }
+
+	// Check types - Array, [AnyHashable : String]
+    if let lhs = (lhs as? [Any]), let rhs = (rhs as? [Any]) {
 		// Array check
-		return lhs.elementsEqual(rhs, by: ==)
-	} else if let lhs = (lhs as? [AnyHashable: Any]), let rhs = (rhs as? [AnyHashable: Any]), lhs.count == rhs.count {
+        return (lhs.count == rhs.count) && lhs.elementsEqual(rhs, by: ==)
+	} else if let lhs = (lhs as? [AnyHashable: Any]), let rhs = (rhs as? [AnyHashable: Any]) {
 		// AnyHashable check
-		return lhs.allSatisfy({ $1 == rhs[$0] })
+		return (lhs.count == rhs.count) && lhs.allSatisfy({ $1 == rhs[$0] })
 	} else {
 		// Don't know how to check
 		return false
