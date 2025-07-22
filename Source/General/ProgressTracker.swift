@@ -8,6 +8,17 @@
 
 import Foundation
 
+/*
+	Notes:
+		The desired usage scenario is to have the SizeProgress objects be able to report peroidic progress while the
+			work is being accomplshed.  This allows the ProgressTracker to provide the most accurate per-second values
+			for informing the User.
+		However, there are scenarios where the SizeProgress cannot provide periodic progress, and can only report total
+			size and total time when completed.  This makes composing per-second info very challenging.  To that end,
+			there are some checks and safety nets in the attempt to provide the most useful info in situations where,
+			not only is this the case, but the info is coming in sporadically.
+*/
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SizeProgressTracker
 public class SizeProgressTracker {
@@ -90,6 +101,9 @@ public class SizeProgressTracker {
 	private	var	timeSliceInfos = [TimeSliceInfo]()
 	private	var	timer :Timer!
 
+	private	var	lastKnownAverageRate = 0.0
+	private	var	lastKnownAverageRatePerItem = 0.0
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(with interval :TimeInterval = 1.0) {
@@ -130,9 +144,18 @@ public class SizeProgressTracker {
 		let	count = Double(self.timeSliceInfos.count)
 		guard count > 0.0 else { return (0.0, nil) }
 
-		let	averageRate = self.timeSliceInfos.reduce(0.0, { $0 + $1.rate }) / count
+		var	averageRate = self.timeSliceInfos.reduce(0.0, { $0 + $1.rate }) / count
+		var	averageRatePerItem = self.timeSliceInfos.reduce(0.0, { $0 + $1.ratePerItem }) / count
+		if averageRate > 0.0 {
+			// Have actual values
+			self.lastKnownAverageRate = averageRate
+			self.lastKnownAverageRatePerItem = averageRatePerItem
+		} else {
+			// No recent snapshots, so use last known info
+			averageRate = self.lastKnownAverageRate
+			averageRatePerItem = self.lastKnownAverageRatePerItem
+		}
 
-		let	averageRatePerItem = self.timeSliceInfos.reduce(0.0, { $0 + $1.ratePerItem }) / count
 		let	estimatedTimeIntervalRemaining :TimeInterval?
 		if (remainingSize > 0) && (averageRatePerItem > 0.0) && (parallelItems > 0) {
 			// Have info to calculate
