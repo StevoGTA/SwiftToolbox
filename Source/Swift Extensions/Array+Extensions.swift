@@ -163,7 +163,7 @@ public extension Array {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - Array Extension
-extension Array where Element : Hashable {
+public extension Array where Element : Hashable {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
