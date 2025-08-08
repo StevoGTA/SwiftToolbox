@@ -19,20 +19,20 @@ class AnimationTimer : ObservableObject {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init(framerate :Double) {
+	init(frameRate :Double) {
 		// Setup
 		self.timer =
-				Timer.scheduledTimer(withTimeInterval: 1.0 / framerate, repeats: true) { [unowned self] _ in
+				Timer.scheduledTimer(withTimeInterval: 1.0 / frameRate, repeats: true) { [unowned self] _ in
 					// Update value
 					self.frameIndex += 1
 				}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(framerate :Double, completionFrameIndex :Int, completionProc :@escaping () -> Void) {
+	init(frameRate :Double, completionFrameIndex :Int, completionProc :@escaping () -> Void) {
 		// Setup
 		self.timer =
-				Timer.scheduledTimer(withTimeInterval: 1.0 / framerate, repeats: true) { [unowned self] in
+				Timer.scheduledTimer(withTimeInterval: 1.0 / frameRate, repeats: true) { [unowned self] in
 					// Update value
 					self.frameIndex += 1
 
