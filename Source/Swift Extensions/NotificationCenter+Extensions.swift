@@ -10,17 +10,23 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: NotificationCenter extension
-extension NotificationCenter {
+public extension NotificationCenter {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func addObserver(forName name :Notification.Name, object :Any? = nil,
+	func addObserver(forName name :Notification.Name, object :Any? = nil,
 			using :@escaping (_ notification :Notification) -> Void) -> NSObjectProtocol {
 		// Add observer
 		return addObserver(forName: name, object: object, queue: nil, using: using)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func post(name :NSNotification.Name) { post(name: name, object: nil) }
+	func post(name :NSNotification.Name, userInfo :[AnyHashable : Any]) {
+		// Post
+		post(name: name, object: nil, userInfo: userInfo)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func post(name :NSNotification.Name) { post(name: name, object: nil) }
 }
