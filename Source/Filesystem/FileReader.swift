@@ -9,7 +9,19 @@
 import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: FileReader
+// MARK: Local procs
+#if os(macOS)
+	fileprivate func _open(_ path :UnsafePointer<CChar>, _ oflag :Int32) -> Int32 { Darwin.open(path, oflag) }
+	fileprivate	func _read(_ fd: Int32, _ buf :UnsafeMutableRawPointer!, _ count :Int) -> Int { Darwin.read(fd, buf, count) }
+	fileprivate func _close(_ fd :Int32) -> Int32 { Darwin.close(fd) }
+#elseif os(Linux)
+	fileprivate func _open(_ path :UnsafePointer<CChar>, _ oflag :Int32) -> Int32 { Glibc.open(path, oflag) }
+	fileprivate	func _read(_ fd: Int32, _ buf :UnsafeMutableRawPointer!, _ count :Int) -> Int { Glibc.read(fd, buf, count) }
+	fileprivate func _close(_ fd :Int32) -> Int32 { Glibc.close(fd) }
+#endif
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - FileReader
 public class FileReader {
 
 	// MARK: Mode
@@ -108,10 +120,10 @@ public class FileReader {
 		}
 
 		// Open
-		self.fd = Darwin.open(self.file.path, oflag)
+		self.fd = _open(self.file.path, oflag)
 		if self.fd == -1 {
 			// Under some circumstances, the first open may fail while a second will succeed
-			self.fd = Darwin.open(self.file.path, oflag)
+			self.fd = _open(self.file.path, oflag)
 		}
 		guard self.fd != -1 else { throw Error(kind: .couldNotOpen, file: self.file, errno: errno) }
 
@@ -132,7 +144,7 @@ public class FileReader {
 		// Read
 		let ptr = UnsafeMutablePointer<UInt8>.allocate(capacity: byteCount)
 		defer { ptr.deallocate() }
-		switch Darwin.read(self.fd, ptr, byteCount) {
+		switch _read(self.fd, ptr, byteCount) {
 			case byteCount:	return Data(bytes: ptr, count: byteCount)
 			case -1:		throw Error(kind: .readFailed, file: self.file, errno: errno)
 			default:		throw Error(kind: .endOfFile, file: self.file)
@@ -148,7 +160,7 @@ public class FileReader {
 		let	byteCount = MemoryLayout<T>.size
 		let ptr = UnsafeMutablePointer<T>.allocate(capacity: 1)
 		defer { ptr.deallocate() }
-		switch Darwin.read(self.fd, ptr, byteCount) {
+		switch _read(self.fd, ptr, byteCount) {
 			case byteCount:	return ptr.pointee
 			case -1:		throw Error(kind: .readFailed, file: self.file, errno: errno)
 			default:		throw Error(kind: .endOfFile, file: self.file)
@@ -171,7 +183,7 @@ public class FileReader {
 		// Preflight
 		guard self.fd != -1 else { throw Error(kind: .notOpen, file: self.file) }
 
-		return lseek(self.fd, 0, SEEK_CUR)
+		return Int64(lseek(self.fd, 0, SEEK_CUR))
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -180,7 +192,7 @@ public class FileReader {
 		guard self.fd != -1 else { return }
 
 		// Close
-		Darwin.close(self.fd)
+		_ = _close(self.fd)
 	}
 }
 

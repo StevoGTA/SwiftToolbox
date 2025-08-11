@@ -49,12 +49,14 @@ public extension Data {
 
 				return UInt16(littleEndian: self.withUnsafeBytes({ $0.load(as: UInt16.self) }))
 			}
+#if os(macOS)
 	var	asOSType :OSType? {
 				// Check count
 				guard self.count == MemoryLayout<OSType>.size else { return nil }
 
 				return OSType(bigEndian: self.withUnsafeBytes({ $0.load(as: OSType.self) }))
 			}
+#endif
 	var	asInt32BE :Int32? {
 				// Check count
 				guard self.count == MemoryLayout<Int32>.size else { return nil }
