@@ -30,19 +30,14 @@ extension SQLiteDatabaseError : CustomStringConvertible, LocalizedError {
 // MARK: - SQLiteDatabase
 public class SQLiteDatabase {
 
-	// MARK: Types
-	public	struct Options : OptionSet {
+	// MARK: Options
+	public enum Options {
+		case walMode
+		case cacheSize(kibibytes :UInt64)
+		case vacuum
+	}
 
-				// MARK: Properties
-				static	public	let	walMode = Options(rawValue: 1 << 0)
-
-						public	let	rawValue :Int
-
-				// MARK: Lifecycle methods
-				public init(rawValue :Int) { self.rawValue = rawValue }
-			}
-
-	// MARK: Enums
+	// MARK: TransactionResult
 	public enum TransactionResult {
 		case commit
 		case rollback
@@ -64,7 +59,7 @@ public class SQLiteDatabase {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init (with file :File, options :Options = [.walMode]) throws {
+	public init (with file :File, options :[Options] = [.walMode]) throws {
 		// Open
 		var	database :OpaquePointer? = nil
 		let	result = sqlite3_open(file.path, &database)
@@ -79,14 +74,26 @@ public class SQLiteDatabase {
 		self.statementPerformer = SQLiteStatementPerformer(database: database!)
 
 		// Check options
-		if options.contains(.walMode) {
-			// Activate WAL mode
-			sqlite3_exec(database, "PRAGMA journal_mode = WAL;", nil, nil, nil);
+		options.forEach() {
+			// Check option
+			switch $0 {
+				case .walMode:
+					// Activate WAL mode
+					sqlite3_exec(database, "PRAGMA journal_mode = WAL;", nil, nil, nil);
+
+				case .cacheSize(let kibibytes):
+					// Set cache size
+					sqlite3_exec(database, "PRAGMA cache_size = -\(kibibytes);", nil, nil, nil);
+
+				case .vacuum:
+					// Vacuum now
+					sqlite3_exec(database, "VACUUM;", nil, nil, nil);
+			}
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public convenience init(in folder :Folder, with name :String = "database", options :Options = [.walMode]) throws {
+	public convenience init(in folder :Folder, with name :String = "database", options :[Options] = [.walMode]) throws {
 		// Setup
 		let	urlBase = folder.url.appendingPathComponent(name)
 		let	file =
