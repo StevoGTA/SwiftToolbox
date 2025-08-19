@@ -28,24 +28,56 @@ extension HTTPEndpointMethod {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - VaporHTTPServer
-public class VaporHTTPServer : HTTPServer, @unchecked Sendable {
+public class VaporHTTPServer : HTTPServer {
 
 	// MARK: Properties
-	private	let	application = Application(Environment(name: "", arguments: ["serve"]))
+	private	let	port :Int
+	private	let	maxBodySize :Int
+
+	private	var	httpEndpoints = [HTTPEndpoint]()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	required public init(port :Int, maxBodySize :Int) {
-		// Complete application configuration
-		self.application.http.server.configuration.port = port
-		self.application.routes.defaultMaxBodySize = ByteCount(value: maxBodySize)
+		// Store
+		self.port = port
+		self.maxBodySize = maxBodySize
+	}
 
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func register(_ httpEndpoint :HTTPEndpoint) { self.httpEndpoints.append(httpEndpoint) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func runDetached() {
 		// Run in task
 		Task.detached() {
+			// Setup application
+			let	application = try! await Application.make(Environment(name: "", arguments: ["serve"]))
+			application.http.server.configuration.port = self.port
+			application.routes.defaultMaxBodySize = ByteCount(value: self.maxBodySize)
+
+			// Register routes
+			self.httpEndpoints.forEach() { httpEndpoint in
+				// Setup
+				let	pathComponents =
+							httpEndpoint.path.pathComponents.map()
+									{
+										// Create PathComponent for either constant or parameter value
+										return !$0.hasPrefix(":") ?
+												PathComponent.constant($0) :
+												PathComponent.parameter($0.substring(fromCharacterIndex: 1))
+									}
+
+				// Register route
+				application.on(httpEndpoint.method.httpMethod, pathComponents)
+						{ [httpEndpoint] in await VaporHTTPServer.perform(request: $0, httpEndpoint: httpEndpoint) }
+			}
+
 			// Catch errors
 			do {
 				// Execute application
-				try await self.application.execute()
+				try await application.execute()
 			} catch {
 				// Error
 				NSLog("VaporHTTPServer encountered error when executing application: \(error)")
@@ -53,27 +85,9 @@ public class VaporHTTPServer : HTTPServer, @unchecked Sendable {
 		}
 	}
 
-	// MARK: Instance methods
-	//------------------------------------------------------------------------------------------------------------------
-	public func register(_ httpEndpoint :HTTPEndpoint) {
-		// Setup
-		let	pathComponents =
-					httpEndpoint.path.pathComponents.map()
-							{
-								// Create PathComponent for either constant or parameter value
-								return !$0.hasPrefix(":") ?
-										PathComponent.constant($0) :
-										PathComponent.parameter($0.substring(fromCharacterIndex: 1))
-							}
-
-		// Register route
-		self.application.on(httpEndpoint.method.httpMethod, pathComponents)
-				{ [unowned self] in await self.perform(request: $0, httpEndpoint: httpEndpoint) }
-	}
-
 	// MARK: Private methods
 	//------------------------------------------------------------------------------------------------------------------
-	private func perform(request :Request, httpEndpoint :HTTPEndpoint) async -> Response {
+	static private func perform(request :Request, httpEndpoint :HTTPEndpoint) async -> Response {
 		// Compose info
 		let	urlComponents = URLComponents(url: URL(string: request.url.string)!, resolvingAgainstBaseURL: false)!
 		let	pathComponents =
