@@ -37,6 +37,13 @@ public class LockingArray<T> {
 	public func forEach(proc :(_ value :T) -> Void) { self.lock.read({ self.array.forEach({ proc($0) }) }) }
 
 	//------------------------------------------------------------------------------------------------------------------
+    public func reduce<Result>(_ initialResult: Result, _ nextPartialResult: (Result, T) throws -> Result) rethrows ->
+    		Result {
+		// Reduce
+		try self.lock.read({ try self.array.reduce(initialResult, nextPartialResult) })
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func sort(by compareProc :(_ value1 :T, _ value2 :T) -> Bool) -> Self {
 		// Sort

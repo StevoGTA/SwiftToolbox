@@ -26,6 +26,8 @@ public class File : Equatable, Hashable {
 	public					var	folder :Folder { Folder(self.url.deletingLastPathComponent()) }
 	public					var	creationDate :Date { self.url.creationDate! }
 	public					var	modificationDate :Date { self.url.contentModificationDate! }
+	public					var	localizedTypeDescription :String? { self.url.localizedTypeDescription }
+	public					var	isAlias :Bool { (self.localizedTypeDescription ?? "") == "Alias" }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------

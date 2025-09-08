@@ -115,6 +115,15 @@ public class MongoDatabaseConnection {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func document(in name :String, filter :BSONDocument) throws -> BSONDocument? {
+		// Preflight
+		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
+
+		// Return document
+		return try mongoDatabase.collection(name).findOne(filter).wait()
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
 	public func insert(document :BSONDocument, in name :String) async throws -> InsertOneResult {
 		// Preflight
