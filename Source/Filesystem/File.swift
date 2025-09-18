@@ -58,3 +58,15 @@ public class File : Equatable, Hashable {
 	//------------------------------------------------------------------------------------------------------------------
 	func set(modificationDate :Date) throws { try self.url.set(modificationDate: modificationDate) }
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Sequence extension for File
+extension Sequence where Element == File {
+
+	// Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func sorted() -> [File] {
+		return sorted(keyProc: { $0.name },
+				keyCompareProc: { $0.compare($1, options: [.caseInsensitive, .numeric]) == .orderedAscending })
+	}
+}

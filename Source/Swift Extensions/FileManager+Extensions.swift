@@ -22,8 +22,10 @@ extension FileManager {
 	public struct EnumerationOptions : OptionSet {
 
 		// MARK: Properties
-		static	public	let	sorted = EnumerationOptions(rawValue: 1 << 0)
-		static	public	let	skipHiddenFiles = EnumerationOptions(rawValue: 1 << 1)
+		static	public	let	sort = EnumerationOptions(rawValue: 1 << 0)
+		static	public	let	skipHidden = EnumerationOptions(rawValue: 1 << 1)
+		static	public	let	skipPackageContents = EnumerationOptions(rawValue: 1 << 2)
+		static	public	let	followSymlinks = EnumerationOptions(rawValue: 1 << 3)
 
 				public	let	rawValue :Int
 
@@ -67,12 +69,14 @@ extension FileManager {
 		// Check deep
 		if deep {
 			// Deep
-			try enumerateFoldersFilesDeep(in: folder, includingPropertiesForKeys: keys,
-					enumerationOptions: enumerationOptions, folderProc: { folders.append($0); _ = $1; return .process })
+			try enumerateFoldersFilesDeep(folder: folder, includingPropertiesForKeys: keys ?? [],
+					enumerationOptions: enumerationOptions, isCancelledProc: { false },
+					folderProc: { folders.append($0); _ = $1; return .process }, fileProc: { _,_ in })
 		} else {
 			// Shallow
 			try enumerateFolders(in: folder, includingPropertiesForKeys: keys, enumerationOptions: enumerationOptions)
 				{ folders.append($0); _ = $1 }
+			if enumerationOptions.contains(.sort) { folders = folders.sorted() }
 		}
 
 		return folders
@@ -87,12 +91,14 @@ extension FileManager {
 		// Check deep
 		if deep {
 			// Deep
-			try enumerateFoldersFilesDeep(in: folder, includingPropertiesForKeys: keys,
-					enumerationOptions: enumerationOptions, fileProc: { files.append($0); _ = $1 })
+			try enumerateFoldersFilesDeep(folder: folder, includingPropertiesForKeys: keys ?? [],
+					enumerationOptions: enumerationOptions, isCancelledProc: { false }, folderProc: { _,_ in .process },
+					fileProc: { files.append($0); _ = $1 })
 		} else {
 			// Shallow
 			try enumerateFiles(in: folder, includingPropertiesForKeys: keys, enumerationOptions: enumerationOptions)
 				{ files.append($0); _ = $1 }
+			if enumerationOptions.contains(.sort) { files = files.sorted() }
 		}
 
 		return files
@@ -102,11 +108,8 @@ extension FileManager {
 	public func enumerateFoldersFilesDeep(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			enumerationOptions: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			folderProc :Folder.SubPathDeepProc = { _,_ in .process }, fileProc :File.SubPathProc = { _,_ in }) throws {
-		// Setup
-		let	keysUse = (keys ?? []) + [.isRegularFileKey]
-
 		// Enumerate
-		try enumerateFoldersFilesDeep(levels: 0, folder: folder, includingPropertiesForKeys: keysUse,
+		try enumerateFoldersFilesDeep(folder: folder, includingPropertiesForKeys: keys ?? [],
 				enumerationOptions: enumerationOptions, isCancelledProc: isCancelledProc, folderProc: folderProc,
 				fileProc: fileProc)
 	}
@@ -122,20 +125,26 @@ extension FileManager {
 			enumerationOptions: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			folderProc :Folder.SubPathProc) throws {
 		// Setup
-		let	keysUse = (keys ?? []) + [.isRegularFileKey]
+		let	keysUse = (keys ?? []) + [.isRegularFileKey, .isSymbolicLinkKey]
 
-		// Iterate all urls
-		var	urls = try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
-		if enumerationOptions.contains(.sorted) { urls = urls.sorted(by: { $0.path < $1.path }) }
+		// Collect URLs
+		var	urls =
+					try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse,
+							options: enumerationOptions.contains(.skipHidden) ? [.skipsHiddenFiles] : [])
+
+		// Filter out files
+		urls = urls.filter({ $0.isDirectory })
+
+		// Check if sorting
+		if enumerationOptions.contains(.sort) { urls = urls.sortedByLastPathComponent() }
+
+		// Process each URL
 		for url in urls {
 			// Check for cancelled
 			if isCancelledProc() { return }
 
-			// Check folder/file
-			if !(try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
-				// Folder
-				autoreleasepool() { folderProc(Folder(url), url.lastPathComponent) }
-			}
+			// Call proc
+			autoreleasepool() { folderProc(Folder(url), url.lastPathComponent) }
 		}
 	}
 
@@ -144,23 +153,26 @@ extension FileManager {
 			enumerationOptions: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			fileProc :File.SubPathProc) throws {
 		// Setup
-		var	keysUse = (keys ?? []) + [.isRegularFileKey]
-		if enumerationOptions.contains(.skipHiddenFiles) { keysUse.append(.isHiddenKey) }
+		let	keysUse = (keys ?? []) + [.isRegularFileKey, .isSymbolicLinkKey]
 
-		// Iterate all urls
-		var	urls = try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
-		if enumerationOptions.contains(.sorted) { urls = urls.sorted(by: { $0.path < $1.path }) }
+		// Collect URLs
+		var	urls =
+					try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse,
+							options: enumerationOptions.contains(.skipHidden) ? [.skipsHiddenFiles] : [])
+
+		// Filter out folders
+		urls = urls.filter({ $0.isFile })
+
+		// Check if sorting
+		if enumerationOptions.contains(.sort) { urls = urls.sortedByLastPathComponent() }
+
+		// Process each URL
 		for url in urls {
 			// Check for cancelled
 			if isCancelledProc() { return }
 
-			// Check folder/file
-			if try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile! &&
-					(!enumerationOptions.contains(.skipHiddenFiles) ||
-							!(try! url.resourceValues(forKeys: [.isHiddenKey]).isHidden!)) {
-				// File
-				autoreleasepool() { fileProc(File(url), url.lastPathComponent) }
-			}
+			// Call proc
+			autoreleasepool() { fileProc(File(url), url.lastPathComponent) }
 		}
 	}
 
@@ -169,22 +181,26 @@ extension FileManager {
 			enumerationOptions: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			folderProc :Folder.SubPathProc, fileProc :File.SubPathProc) throws {
 		// Setup
-		var	keysUse = (keys ?? []) + [.isRegularFileKey]
-		if enumerationOptions.contains(.skipHiddenFiles) { keysUse.append(.isHiddenKey) }
+		let	keysUse = (keys ?? []) + [.isRegularFileKey, .isSymbolicLinkKey]
 
-		// Iterate all urls
-		var	urls = try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
-		if enumerationOptions.contains(.sorted) { urls = urls.sorted(by: { $0.path < $1.path }) }
+		// Collect URLs
+		var	urls =
+					try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse,
+							options: enumerationOptions.contains(.skipHidden) ? [.skipsHiddenFiles] : [])
+
+		// Check if sorting
+		if enumerationOptions.contains(.sort) { urls = urls.sortedByLastPathComponent() }
+
+		// Process each URL
 		for url in urls {
 			// Check for cancelled
 			if isCancelledProc() { return }
 
 			// Check folder/file
-			if !(try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
+			if url.isFolder {
 				// Folder
 				autoreleasepool() { folderProc(Folder(url), url.lastPathComponent) }
-			} else if !enumerationOptions.contains(.skipHiddenFiles) ||
-					!(try! url.resourceValues(forKeys: [.isHiddenKey]).isHidden!) {
+			} else {
 				// File
 				autoreleasepool() { fileProc(File(url), url.lastPathComponent) }
 			}
@@ -193,30 +209,50 @@ extension FileManager {
 
 	// Private methods
 	//------------------------------------------------------------------------------------------------------------------
-	private func enumerateFoldersFilesDeep(levels :Int, folder :Folder,
+	private func enumerateFoldersFilesDeep(level :Int = 0, subPathPrefix :String = "", folder :Folder,
 			includingPropertiesForKeys keys: [URLResourceKey], enumerationOptions: EnumerationOptions,
 			isCancelledProc :IsCancelledProc, folderProc :Folder.SubPathDeepProc, fileProc :File.SubPathProc) throws {
 		// Setup
-		var	keysUse = keys + [.isRegularFileKey]
-		if enumerationOptions.contains(.skipHiddenFiles) { keysUse.append(.isHiddenKey) }
+		let	keysUse = keys + [.isRegularFileKey, .isSymbolicLinkKey]
 
-		var	urls = try contentsOfDirectory(at: folder.url, includingPropertiesForKeys: keysUse, options: [])
-		if enumerationOptions.contains(.sorted) { urls.sort(by: { $0.path < $1.path }) }
+		var	directoryEnumerationOptions :FileManager.DirectoryEnumerationOptions = []
+		if enumerationOptions.contains(.skipHidden) { directoryEnumerationOptions.formUnion(.skipsHiddenFiles) }
+		if enumerationOptions.contains(.skipPackageContents)
+				{ directoryEnumerationOptions.formUnion(.skipsPackageDescendants) }
 
-		// Iterate URLs and process files
+		// Collect URLs
+		let	url = (folder.url.isSymbolicLink ?? false) ? folder.url.urlByResolvingLinks : folder.url
+		var	urls =
+					try contentsOfDirectory(at: url, includingPropertiesForKeys: keysUse,
+							options: directoryEnumerationOptions)
+
+		// Check if sorting
+		if enumerationOptions.contains(.sort) { urls = urls.sortedByLastPathComponent() }
+
+		// Process each URL, collect folders, and process files
 		var	folderURLs = [URL]()
 		for url in urls {
 			// Check for cancelled
 			if isCancelledProc() { return }
 
 			// Check folder/file
-			if !(try! url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile!) {
+			if url.isFolder {
 				// Folder
 				folderURLs.append(url)
-			} else if !enumerationOptions.contains(.skipHiddenFiles) ||
-					!(try! url.resourceValues(forKeys: [.isHiddenKey]).isHidden!) {
+			} else {
 				// File
-				autoreleasepool() { fileProc(File(url), url.path.lastPathComponentsSubPath(levels + 1)) }
+				autoreleasepool() {
+					// Process file
+					let	isSymbolicLink = url.isSymbolicLink ?? false
+					if isSymbolicLink && enumerationOptions.contains(.followSymlinks) {
+						// Is symlink and following
+						fileProc(File(url.urlByResolvingLinks),
+								subPathPrefix.appending(pathComponent: url.path.lastPathComponentsSubPath(level + 1)))
+					} else {
+						// Is not symlink or not following
+						fileProc(File(url), subPathPrefix.appending(url.path.lastPathComponentsSubPath(level + 1)))
+					}
+				}
 			}
 		}
 
@@ -226,12 +262,22 @@ extension FileManager {
 			if isCancelledProc() { return }
 
 			// Call proc
-			if autoreleasepool(
-					invoking: { folderProc(Folder(url), url.path.lastPathComponentsSubPath(levels + 1)) }) == .process {
+			let	urlSubPathPrefix = subPathPrefix.appending(pathComponent: url.path.lastPathComponentsSubPath(level + 1))
+			if autoreleasepool(invoking: { folderProc(Folder(url), urlSubPathPrefix) }) == .process {
 				// Process folder
-				try enumerateFoldersFilesDeep(levels: levels + 1, folder: Folder(url), includingPropertiesForKeys: keys,
-						enumerationOptions: enumerationOptions, isCancelledProc: isCancelledProc,
-						folderProc: folderProc, fileProc: fileProc)
+				let	isSymbolicLink = url.isSymbolicLink ?? false
+				if isSymbolicLink && enumerationOptions.contains(.followSymlinks) {
+					// Is symlink and following
+					try enumerateFoldersFilesDeep(subPathPrefix: urlSubPathPrefix,
+							folder: Folder(url.urlByResolvingLinks), includingPropertiesForKeys: keys,
+							enumerationOptions: enumerationOptions, isCancelledProc: isCancelledProc,
+							folderProc: folderProc, fileProc: fileProc)
+				} else if !isSymbolicLink {
+					// Continue
+					try enumerateFoldersFilesDeep(level: level + 1, subPathPrefix: subPathPrefix, folder: Folder(url),
+							includingPropertiesForKeys: keys, enumerationOptions: enumerationOptions,
+							isCancelledProc: isCancelledProc, folderProc: folderProc, fileProc: fileProc)
+				}
 			}
 		}
 	}

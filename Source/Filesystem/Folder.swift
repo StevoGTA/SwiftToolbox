@@ -64,3 +64,15 @@ public class Folder : Equatable {
 	//------------------------------------------------------------------------------------------------------------------
 	public func subPath(for file :File) -> String? { file.path.subPath(relativeTo: self.path) }
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Sequence extension for Folder
+extension Sequence where Element == Folder {
+
+	// Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func sorted() -> [Folder] {
+		return sorted(keyProc: { $0.name },
+				keyCompareProc: { $0.compare($1, options: [.caseInsensitive, .numeric]) == .orderedAscending })
+	}
+}

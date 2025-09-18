@@ -14,12 +14,46 @@ public extension URL {
 
 	// MARK: Properties
 	var	fileSize :Int64? { Int64((try? self.resourceValues(forKeys: [.fileSizeKey]))?.fileSize) }
-	var	isDirectory :Bool { (try? resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false }
+	var	isDirectory :Bool {
+				// Check for symbolic link
+				if (try? resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink ?? false {
+					// Symbolic links don't know, must resolve
+					let	resolvedURL = self.urlByResolvingLinks
+
+					return (try? resolvedURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+				} else {
+					// Not symbolic link
+					return (try? self.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+				}
+			}
 	var	isFolder :Bool { self.isDirectory }
-	var	isFile :Bool { (try? resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile ?? false }
-	var	creationDate :Date? { (try? resourceValues(forKeys: [.creationDateKey]))?.creationDate }
+	var	isFile :Bool {
+				// Check for symbolic link
+				if (try? resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink ?? false {
+					// Symbolic links don't know, must resolve
+					let	resolvedURL = self.urlByResolvingLinks
+
+					return (try? resolvedURL.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile ?? false
+				} else {
+					// Not symbolic link
+					return (try? self.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile ?? false
+				}
+			}
+	var	creationDate :Date? { (try? self.resourceValues(forKeys: [.creationDateKey]))?.creationDate }
 	var	contentModificationDate :Date?
-				{ (try? resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
+				{ (try? self.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
+
+	var	urlByResolvingLinks :URL {
+				// Check path
+				switch self.path {
+#if os(macOS)
+					case "/etc":	return URL(fileURLWithPath: "/private/etc")
+					case "/tmp":	return URL(fileURLWithPath: "/private/tmp")
+					case "/var":	return URL(fileURLWithPath: "/private/var")
+#endif
+					default:		return self.resolvingSymlinksInPath()
+				}
+			}
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -52,5 +86,17 @@ public extension URL {
 		var	resourceValues = URLResourceValues()
 		resourceValues.contentModificationDate = modificationDate
 		try setResourceValues(resourceValues)
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Sequence extension for URL
+extension Sequence where Element == URL {
+
+	// Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func sortedByLastPathComponent() -> [URL] {
+		return sorted(keyProc: { $0.lastPathComponent },
+				keyCompareProc: { $0.compare($1, options: [.caseInsensitive, .numeric]) == .orderedAscending })
 	}
 }
