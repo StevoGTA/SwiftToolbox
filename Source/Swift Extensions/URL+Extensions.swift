@@ -13,7 +13,6 @@ import Foundation
 public extension URL {
 
 	// MARK: Properties
-	var	fileSize :Int64? { Int64((try? self.resourceValues(forKeys: [.fileSizeKey]))?.fileSize) }
 	var	isDirectory :Bool {
 				// Check for symbolic link
 				if (try? resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink ?? false {
@@ -39,9 +38,14 @@ public extension URL {
 					return (try? self.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile ?? false
 				}
 			}
+	var	isSymbolicLink :Bool? { (try? resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink }
+
+	var	fileSize :Int64? { Int64((try? self.resourceValues(forKeys: [.fileSizeKey]))?.fileSize) }
 	var	creationDate :Date? { (try? self.resourceValues(forKeys: [.creationDateKey]))?.creationDate }
 	var	contentModificationDate :Date?
 				{ (try? self.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
+	var	localizedTypeDescription :String?
+			{ (try? resourceValues(forKeys: [.localizedTypeDescriptionKey]))?.localizedTypeDescription }
 
 	var	urlByResolvingLinks :URL {
 				// Check path
