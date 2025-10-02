@@ -29,6 +29,7 @@ open class Progress {
 							callUpdatedProc()
 						}
 					}
+	public	var	isComplete :Bool { return (self.value ?? 0.0) >= 1.0 }
 	public	var	elapsedTimeInterval :TimeInterval?
 					{ (self.startedDate != nil) ? Date().timeIntervalSince(self.startedDate!) : nil }
 
@@ -61,6 +62,8 @@ open class Progress {
 	public func complete() {
 		// Force update
 		self.lastUpdatedDate = nil
+
+		// Finalize value
 		self.value = 1.0
 	}
 
@@ -87,7 +90,44 @@ open class Progress {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: SizeProgress
+// MARK: - AggregateProgress
+public class AggregateProgress : Progress {
+
+	// MARK: Properties
+	private	let	progresses = LockingArray<Progress>()
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func add(_ progress :Progress) {
+		// Setup
+		progress.updatedProc = { [unowned self] _ in self.updateValue() }
+
+		// Add
+		self.progresses.append(progress)
+
+		// Update
+		updateValue()
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func remove(_ progress :Progress) {
+		// Remove
+		self.progresses.removeAll(where: { $0 === progress })
+
+		// Update
+		updateValue()
+	}
+
+	// MARK: Private methods
+	//------------------------------------------------------------------------------------------------------------------
+	private func updateValue() {
+		// Update
+		self.value = self.progresses.reduce(0.0, { $0 + ($1.value ?? 0.0) }) / Double(self.progresses.count)
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - SizeProgress
 public class SizeProgress : Progress {
 
 	// MARK: Properties
