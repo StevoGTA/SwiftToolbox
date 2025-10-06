@@ -69,7 +69,6 @@ struct PackedStruct {
 	//------------------------------------------------------------------------------------------------------------------
 	static func unpack(data :Data, format :String) throws -> [Any] {
 		// Iterate format
-		var	aligned = false
 		var	count = 0
 		var	endianness = Endianness.native
 		var	index = 0
@@ -82,32 +81,28 @@ struct PackedStruct {
 				continue
 			}
 
-			// Check count
+			// Check if count is 0.
 			if count == 0 {
 				// Should be a control character
 				switch c {
 					case "@":
 						// Native endian, aligned
 						endianness = .native
-						aligned = true
 						continue
 
 					case "=":
 						// Native endian, unaligned
 						endianness = .native
-						aligned = false
 						continue
 
 					case "<":
 						// Little endian, unaligned
 						endianness = .little
-						aligned = false
 						continue
 
 					case ">":
 						// Big endian, unaligned
 						endianness = .big
-						aligned = false
 						continue
 
 					case " ":
@@ -120,129 +115,137 @@ struct PackedStruct {
 				}
 			}
 
-			// Process count
-			for _ in 0..<count {
-				// Check action
-				switch c {
-					case "x":
-						// Skip
-						index += 1
+			// Check action
+			if (c == "s") && (count > 0) {
+				// Fixed-length string
+				guard let subdata = data.subdata(fromIndex: index, length: count) else
+						{ throw Error.insufficientData }
+				guard let string = String(data: subdata, encoding: .utf8) else { throw Error.invalidData(c) }
 
-					case "c":
-						// char
-						guard let value = data.subdata(fromIndex: index, length: 1)?.asUInt8 else
-								{ throw Error.insufficientData }
+				values.append(string)
+				index += count
+			} else {
+				// Loop on count
+				for _ in 0..<count {
+					// Check action
+					switch c {
+						case "x":
+							// Skip
+							index += 1
 
-						values.append(Character(UnicodeScalar(value)))
-						index += 1
+						case "c":
+							// char
+							guard let value = data.subdata(fromIndex: index, length: 1)?.asUInt8 else
+									{ throw Error.insufficientData }
 
-					case "?":
-						// bool
-						guard let value = data.subdata(fromIndex: index, length: 1)?.asUInt8 else
-								{ throw Error.insufficientData }
+							values.append(Character(UnicodeScalar(value)))
+							index += 1
 
-						values.append((value == 0) ? false : true)
-						index += 1
+						case "?":
+							// bool
+							guard let value = data.subdata(fromIndex: index, length: 1)?.asUInt8 else
+									{ throw Error.insufficientData }
 
-					case "b":
-						// Int8
-						guard let value = data.subdata(fromIndex: index, length: 1)?.asInt8 else
-								{ throw Error.insufficientData }
+							values.append((value == 0) ? false : true)
+							index += 1
 
-						values.append(value)
-						index += 1
+						case "b":
+							// Int8
+							guard let value = data.subdata(fromIndex: index, length: 1)?.asInt8 else
+									{ throw Error.insufficientData }
 
-					case "B":
-						// UInt8
-						guard let value = data.subdata(fromIndex: index, length: 1)?.asUInt8 else
-								{ throw Error.insufficientData }
+							values.append(value)
+							index += 1
 
-						values.append(value)
-						index += 1
+						case "B":
+							// UInt8
+							guard let value = data.subdata(fromIndex: index, length: 1)?.asUInt8 else
+									{ throw Error.insufficientData }
 
-					case "h":
-						// Int16
-						guard let subdata = data.subdata(fromIndex: index, length: 2) else
-								{ throw Error.insufficientData }
+							values.append(value)
+							index += 1
 
-						values.append((endianness == .big) ? subdata.asInt16BE! : subdata.asInt16LE!)
-						index += 2
+						case "h":
+							// Int16
+							guard let subdata = data.subdata(fromIndex: index, length: 2) else
+									{ throw Error.insufficientData }
 
-					case "H":
-						// UInt16
-						guard let subdata = data.subdata(fromIndex: index, length: 2) else
-								{ throw Error.insufficientData }
+							values.append((endianness == .big) ? subdata.asInt16BE! : subdata.asInt16LE!)
+							index += 2
 
-						values.append((endianness == .big) ? subdata.asUInt16BE! : subdata.asUInt16LE!)
-						index += 2
+						case "H":
+							// UInt16
+							guard let subdata = data.subdata(fromIndex: index, length: 2) else
+									{ throw Error.insufficientData }
 
-					case "i", "l":
-						// Int32
-						guard let subdata = data.subdata(fromIndex: index, length: 4) else
-								{ throw Error.insufficientData }
+							values.append((endianness == .big) ? subdata.asUInt16BE! : subdata.asUInt16LE!)
+							index += 2
 
-						values.append((endianness == .big) ? subdata.asInt32BE! : subdata.asInt32LE!)
-						index += 4
+						case "i", "l":
+							// Int32
+							guard let subdata = data.subdata(fromIndex: index, length: 4) else
+									{ throw Error.insufficientData }
 
-					case "I", "L":
-						// UInt32
-						guard let subdata = data.subdata(fromIndex: index, length: 4) else
-								{ throw Error.insufficientData }
+							values.append((endianness == .big) ? subdata.asInt32BE! : subdata.asInt32LE!)
+							index += 4
 
-						values.append((endianness == .big) ? subdata.asUInt32BE! : subdata.asUInt32LE!)
-						index += 4
+						case "I", "L":
+							// UInt32
+							guard let subdata = data.subdata(fromIndex: index, length: 4) else
+									{ throw Error.insufficientData }
 
-					case "q":
-						// Int64
-						guard let subdata = data.subdata(fromIndex: index, length: 8) else
-								{ throw Error.insufficientData }
+							values.append((endianness == .big) ? subdata.asUInt32BE! : subdata.asUInt32LE!)
+							index += 4
 
-						values.append((endianness == .big) ? subdata.asInt64BE! : subdata.asInt64LE!)
-						index += 8
+						case "q":
+							// Int64
+							guard let subdata = data.subdata(fromIndex: index, length: 8) else
+									{ throw Error.insufficientData }
 
-					case "Q":
-						// UInt64
-						guard let subdata = data.subdata(fromIndex: index, length: 8) else
-								{ throw Error.insufficientData }
+							values.append((endianness == .big) ? subdata.asInt64BE! : subdata.asInt64LE!)
+							index += 8
 
-						values.append((endianness == .big) ? subdata.asUInt64BE! : subdata.asUInt64LE!)
-						index += 8
+						case "Q":
+							// UInt64
+							guard let subdata = data.subdata(fromIndex: index, length: 8) else
+									{ throw Error.insufficientData }
 
-					case "f":
-						// float
+							values.append((endianness == .big) ? subdata.asUInt64BE! : subdata.asUInt64LE!)
+							index += 8
+
+						case "f":
+							// float
 // TODO
-						index += 4
+							index += 4
 
-					case "d":
-						// double
+						case "d":
+							// double
 // TODO
-						index += 8
+							index += 8
 
-					case "s":
-						// C string
-						let	endIndex = data[index...].firstIndex(where: { $0 == 0x00 }) ?? data.endIndex
-						if let string = String(data: data[index..<endIndex!], encoding: .utf8) {
-							// Have string
+						case "s":
+							// C string
+							let	endIndex = data[index...].firstIndex(where: { $0 == 0x00 }) ?? data.endIndex
+							guard let string = String(data: data[index..<endIndex!], encoding: .utf8) else
+									{ throw Error.invalidData(c) }
+
 							values.append(string)
 							index = endIndex! + 1
-						} else {
-							// Can't create string
-							throw Error.invalidData(c)
-						}
 
-					case "p":
-						// P string
+						case "p":
+							// P string
 // TODO
 break
 
-					case "P":
-						// Pointer
+						case "P":
+							// Pointer
 // TODO
 break
 
-					default:
-						// Error
-						throw Error.invalidFormat(c)
+						default:
+							// Error
+							throw Error.invalidFormat(c)
+					}
 				}
 			}
 
