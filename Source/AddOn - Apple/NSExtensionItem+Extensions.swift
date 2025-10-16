@@ -111,24 +111,32 @@ extension NSExtensionItem {
 					// Catch errors
 					do {
 						// Load files
-						var	filesByKind = [PhotoMediaFileKind : File]()
+						let	urlBasePath = url.deletingPathExtension()
+						var	photoFile :File?
+						var	videoAttachmentFile :File?
 						try FileManager.default.files(in: Folder(url))
 								.forEach() {
-									// Get kind
-									if let photoMediaFileKind = PhotoMediaFileKind.forSubPath($0.path) {
-										// Store
-										filesByKind[photoMediaFileKind] = $0
+									// Check base path
+									if $0.url.deletingPathExtension() == urlBasePath {
+										// Check extension
+										if ["heic", "jpeg", "jpg", "png", "tif"].contains($0.extension) {
+											// URL is a photo
+											photoFile = $0
+										} else if ["m4v", "mov"].contains($0.extension) {
+											// URL is a video
+											videoAttachmentFile = $0
+										}
 									}
 								}
 
-						// Get results
-						guard let photoFile = filesByKind[.photo] else {
+						// Check results
+						guard photoFile != nil else {
 							// Did not find photo file
 							self.error = NSExtensionItemError.couldNotIdentifyPhoto
 
 							return
 						}
-						guard let videoAttachmentFile = filesByKind[.videoAttachment] else {
+						guard videoAttachmentFile != nil else {
 							// Did not find video attachment file
 							self.error = NSExtensionItemError.couldNotIdentifyVideoAttachment
 
@@ -136,15 +144,15 @@ extension NSExtensionItem {
 						}
 
 						// Found files
-						self.filename = photoFile.name
-						self.photoData = try FileReader.contentsAsData(of: photoFile)
+						self.filename = photoFile!.name
+						self.photoData = try FileReader.contentsAsData(of: photoFile!)
 						self.image = Image(self.photoData!)
 
 						self.videoAttachmentFilename =
-								videoAttachmentFile.name
+								videoAttachmentFile!.name
 									.deletingPathExtension
-									.appending(pathExtension: videoAttachmentFile.extension?.lowercased() ?? "")
-						self.videoAttachmentData = try FileReader.contentsAsData(of: videoAttachmentFile)
+									.appending(pathExtension: videoAttachmentFile!.extension?.lowercased() ?? "")
+						self.videoAttachmentData = try FileReader.contentsAsData(of: videoAttachmentFile!)
 					} catch {
 						// Error
 						self.error = error

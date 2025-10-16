@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Local procs
-#if os(macOS)
+#if os(macOS) || os(iOS)
 	fileprivate func _open(_ path :UnsafePointer<CChar>, _ oflag :Int32) -> Int32 { Darwin.open(path, oflag) }
 	fileprivate	func _read(_ fd: Int32, _ buf :UnsafeMutableRawPointer!, _ count :Int) -> Int { Darwin.read(fd, buf, count) }
 	fileprivate func _close(_ fd :Int32) -> Int32 { Darwin.close(fd) }

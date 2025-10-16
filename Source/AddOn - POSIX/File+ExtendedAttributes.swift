@@ -58,45 +58,64 @@ public extension File {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func data(forExtendedAttributeNamed name :String) throws -> Data? {
-		// Query size
+	func data(forExtendedAttributeNamed name :String, maxByteCountIfPresent :Int? = nil) throws -> Data? {
+		// Is there a provided max byte count?
+		if maxByteCountIfPresent != nil {
+			// First, try to read into a buffer we expect to be plenty big enough
+			return withUnsafeTemporaryAllocation(of: CChar.self, capacity: maxByteCountIfPresent!) { buffer in
+				//
 #if os(macOS) || os(tvOS)
-		var	size = getxattr(self.path, name, nil, 0, 0, 0)
+				let	byteCount = getxattr(self.path, name, buffer.baseAddress, maxByteCountIfPresent!, 0, 0)
 #elseif os(Linux)
-		var	size = getxattr(self.path, name, nil, 0)
+				let	byteCount = getxattr(self.path, name, buffer.baseAddress, maxByteCountIfPresent!)
 #endif
-		guard size != -1 else { return nil }
 
-		// Read data
-		let	buffer = malloc(size)!
-#if os(macOS) || os(tvOS)
-		size = getxattr(self.path, name, buffer, size, 0, 0)
-#elseif os(Linux)
-		size = getxattr(self.path, name, buffer, size)
-#endif
-		if size != -1 {
-			// Success
-			return Data(bytes: buffer, count: size)
+				return (byteCount != -1) ? Data(bytes: buffer.baseAddress!, count: byteCount) : nil
+			}
 		} else {
-			// Error
-			throw POSIXError.general(errno)
+			// Query size
+#if os(macOS) || os(tvOS)
+			var	size = getxattr(self.path, name, nil, 0, 0, 0)
+#elseif os(Linux)
+			var	size = getxattr(self.path, name, nil, 0)
+#endif
+			guard size != -1 else { return nil }
+
+			// Read data
+			let	buffer = malloc(size)!
+			defer { free(buffer) }
+#if os(macOS) || os(tvOS)
+			size = getxattr(self.path, name, buffer, size, 0, 0)
+#elseif os(Linux)
+			size = getxattr(self.path, name, buffer, size)
+#endif
+			if size != -1 {
+				// Success
+				return Data(bytes: buffer, count: size)
+			} else {
+				// Error
+				throw POSIXError.general(errno)
+			}
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func string(forExtendedAttributeNamed name :String) throws -> String? {
+	func string(forExtendedAttributeNamed name :String, maxByteCountIfPresent :Int? = nil) throws -> String? {
 		// Retrieve data
-		guard let data = try data(forExtendedAttributeNamed: name) else { return nil }
+		guard let data = try data(forExtendedAttributeNamed: name, maxByteCountIfPresent: maxByteCountIfPresent) else
+				{ return nil }
 
 		return String(data: data, encoding: .utf8)!
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func timeInterval(forExtendedAttributeNamed name :String) throws -> TimeInterval? {
+	func timeInterval(forExtendedAttributeNamed name :String, maxByteCountIfPresent :Int? = nil) throws ->
+			TimeInterval? {
 		// Retrieve data
-		guard let data = try data(forExtendedAttributeNamed: name) else { return nil }
+		guard let data = try data(forExtendedAttributeNamed: name, maxByteCountIfPresent: maxByteCountIfPresent) else
+				{ return nil }
 
-		return data.withUnsafeBytes {$0.load(as: TimeInterval.self) }
+		return data.withUnsafeBytes { $0.load(as: TimeInterval.self) }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -135,9 +154,9 @@ public extension File {
 	func remove(extendedAttributeNamed name :String) throws {
 		// Try to remove
 #if os(macOS) || os(tvOS)
-	let	result = removexattr(self.path, name, 0)
+		let	result = removexattr(self.path, name, 0)
 #elseif os(Linux)
-	let	result = removexattr(self.path, name)
+		let	result = removexattr(self.path, name)
 #endif
 		if result == -1 {
 			// Error
