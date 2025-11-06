@@ -125,11 +125,29 @@ fileprivate class ServerResponder : HTTPServerResponder {
 public class VaporHTTPServer : HTTPServer {
 
 	// MARK: Properties
+	private	let	port :Int
+	private	let	maxBodySize :Int
+
 	private	let	serverResponder = ServerResponder()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	required public init(port :Int, maxBodySize :Int) {
+		// Store
+		self.port = port
+		self.maxBodySize = maxBodySize
+	}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	public func register(_ httpEndpoint :HTTPEndpoint) { self.serverResponder.register(httpEndpoint) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func runDetached() {
+		// Setup
+		let	port = self.port
+		let	maxBodySize = self.maxBodySize
+		
 		// Run in the background
 		DispatchQueue.global().async() {
 			// Setup
@@ -156,8 +174,4 @@ public class VaporHTTPServer : HTTPServer {
 			}
 		}
 	}
-
-	// MARK: Instance methods
-	//------------------------------------------------------------------------------------------------------------------
-	public func register(_ httpEndpoint :HTTPEndpoint) { self.serverResponder.register(httpEndpoint) }
 }

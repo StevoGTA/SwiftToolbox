@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: HTTPEndpointMethod
-public enum HTTPEndpointMethod {
+public enum HTTPEndpointMethod : Sendable {
 
 	// Values
 	case get
