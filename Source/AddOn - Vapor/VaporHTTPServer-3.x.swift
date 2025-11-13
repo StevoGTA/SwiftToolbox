@@ -147,7 +147,7 @@ public class VaporHTTPServer : HTTPServer {
 		// Setup
 		let	port = self.port
 		let	maxBodySize = self.maxBodySize
-		
+
 		// Run in the background
 		DispatchQueue.global().async() {
 			// Setup
