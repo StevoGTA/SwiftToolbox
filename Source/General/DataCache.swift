@@ -128,7 +128,8 @@ class FilesystemDataCache : DataCache {
 			self.size = file.size ?? 0
 
 			// Retrieve last accessed date from filesystem
-			if let lastAccessedDateString = try? file.string(forExtendedAttributeNamed: "lastAccessedDate") {
+			if let lastAccessedDateString =
+					try? file.string(forExtendedAttributeNamed: "lastAccessedDate", maxByteCountIfPresent: 1024) {
 				// Have last accessed date string
 				self.lastAccessedDate = Date(fromRFC3339Extended: lastAccessedDateString)!
 			} else {

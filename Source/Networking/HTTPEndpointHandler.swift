@@ -71,7 +71,7 @@ public enum HTTPEndpointResponseBody {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpoint
-public protocol HTTPEndpoint {
+public protocol HTTPEndpoint : Sendable {
 
 	// MARK: Types
 	typealias PerformInfo = (pathComponents :[String], queryItemsMap :[String : Any], headers :[String : String])
@@ -91,8 +91,8 @@ public protocol HTTPEndpoint {
 public struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 
 	// MARK: Types
-	public typealias ValidateProc = (_ performInfo :PerformInfo) throws -> T
-	public typealias PerformProc = (_ info :T) throws -> PerformResult
+	public typealias ValidateProc = @Sendable (_ performInfo :PerformInfo) throws -> T
+	public typealias PerformProc = @Sendable (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
 	public let	method :HTTPEndpointMethod
@@ -127,8 +127,8 @@ public struct BasicHTTPEndpoint<T> : HTTPEndpoint {
 public struct DataHTTPEndpoint<T> :HTTPEndpoint {
 
 	// MARK: Types
-	public typealias ValidateProc = (_ performInfo :PerformInfo, _ bodyData :Data) throws -> T
-	public typealias PerformProc = (_ info :T) throws -> PerformResult
+	public typealias ValidateProc = @Sendable (_ performInfo :PerformInfo, _ bodyData :Data) throws -> T
+	public typealias PerformProc = @Sendable (_ info :T) throws -> PerformResult
 
 	// MARK: Properties
 	public let	method :HTTPEndpointMethod
@@ -167,8 +167,8 @@ public struct DataHTTPEndpoint<T> :HTTPEndpoint {
 public struct JSONHTTPEndpoint<T, U> :HTTPEndpoint {
 
 	// MARK: Types
-	public typealias ValidateProc = (_ performInfo :PerformInfo, _ info :T) throws -> U
-	public typealias PerformProc = (_ info :U) throws -> PerformResult
+	public typealias ValidateProc = @Sendable (_ performInfo :PerformInfo, _ info :T) throws -> U
+	public typealias PerformProc = @Sendable (_ info :U) throws -> PerformResult
 
 	// MARK: Properties
 	public let	method :HTTPEndpointMethod
