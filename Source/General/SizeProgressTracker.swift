@@ -1,5 +1,5 @@
 //
-//  ProgressTracker.swift
+//  SizeProgressTracker.swift
 //  Swift Toolbox
 //
 //  Created by Stevo on 2/19/24.
@@ -10,9 +10,9 @@ import Foundation
 
 /*
 	Notes:
-		The desired usage scenario is to have the SizeProgress objects be able to report peroidic progress while the
-			work is being accomplshed.  This allows the ProgressTracker to provide the most accurate per-second values
-			for informing the User.
+		The desired usage scenario is to have the SizeProgress objects be able to report periodic progress while the
+			work is being accomplshed.  This allows the SizeProgressTracker to provide the most accurate per-second
+			values for informing the User.
 		However, there are scenarios where the SizeProgress cannot provide periodic progress, and can only report total
 			size and total time when completed.  This makes composing per-second info very challenging.  To that end,
 			there are some checks and safety nets in the attempt to provide the most useful info in situations where,
@@ -95,6 +95,9 @@ public class SizeProgressTracker {
 
 	// MARK: Properties
 	private	let	arraysLock = Lock()
+
+	private	let	notifyProc :() -> Void
+
 	private	var	sizeProgressInfos = [SizeProgressInfo]()
 	private	var	recentlyCompletedSizeProgressInfos = [SizeProgressInfo]()
 
@@ -106,10 +109,13 @@ public class SizeProgressTracker {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init(with interval :TimeInterval = 1.0) {
+	public init(with interval :TimeInterval = 1.0, notifyProc :@escaping () -> Void = {}) {
+		// Store
+		self.notifyProc = notifyProc
+
 		// Setup timer
-		self.timer =
-				Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [unowned self] _ in self.update() }
+		self.timer = Timer(timeInterval: interval, repeats: true) { [unowned self] _ in self.update() }
+		RunLoop.main.add(self.timer, forMode: .default)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -186,7 +192,7 @@ public class SizeProgressTracker {
 			// Process recently completed SizeProgressInfos
 			self.recentlyCompletedSizeProgressInfos
 					.compactMap({ sizeProgressInfo -> SizeProgressInfo.TimeDeltaInfo? in
-						//
+						// Check if changed
 						guard sizeProgressInfo.lastCurrentSize < sizeProgressInfo.sizeProgress.totalSize else {
 							// Nothing to report
 							return nil
@@ -206,5 +212,8 @@ public class SizeProgressTracker {
 			// Drop oldest one
 			self.timeSliceInfos = Array(self.timeSliceInfos.dropFirst())
 		}
+
+		// Call proc
+		self.notifyProc()
 	}
 }

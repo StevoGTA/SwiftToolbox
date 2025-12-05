@@ -15,11 +15,19 @@ public extension Int64 {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	init?(_ int :Int?) {
-		// Check if string is nil
-		guard int != nil else { return nil }
+	init?(_ value :Double?) {
+		// Check if value is nil
+		guard value != nil else { return nil }
 
-		self.init(int!)
+		self.init(value!)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init?(_ value :Int?) {
+		// Check if value is nil
+		guard value != nil else { return nil }
+
+		self.init(value!)
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

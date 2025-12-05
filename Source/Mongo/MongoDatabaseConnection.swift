@@ -92,7 +92,6 @@ public class MongoDatabaseConnection {
 		// Preflight
 		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
 
-		// Return collection names
 		return try await mongoDatabase.listCollectionNames()
 	}
 
@@ -101,7 +100,6 @@ public class MongoDatabaseConnection {
 		// Preflight
 		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
 
-		// Return documents
 		return try await mongoDatabase.collection(name).find(filter)
 	}
 
@@ -110,7 +108,6 @@ public class MongoDatabaseConnection {
 		// Preflight
 		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
 
-		// Return document
 		return try await mongoDatabase.collection(name).findOne(filter)
 	}
 
@@ -119,7 +116,6 @@ public class MongoDatabaseConnection {
 		// Preflight
 		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
 
-		// Return document
 		return try mongoDatabase.collection(name).findOne(filter).wait()
 	}
 
@@ -129,45 +125,54 @@ public class MongoDatabaseConnection {
 		// Preflight
 		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
 
-		// Insert one
 		return try await mongoDatabase.collection(name).insertOne(document)!
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func update(filter :BSONDocument, with update :BSONDocument, in name :String) async throws ->
+	public func update(id :BSON, with update :BSONDocument, in name :String) async throws ->
 			UpdateResult {
 		// Preflight
 		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
 
-		// Update
-		return try await mongoDatabase.collection(name).updateOne(filter: filter, update: update)!
+		return try await mongoDatabase.collection(name).updateOne(filter: ["_id": id], update: update)!
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func update(document :BSONDocument, with update :BSONDocument, in name :String) async throws ->
+	public func update(document :inout BSONDocument, with update :BSONDocument, in name :String) async throws ->
 			UpdateResult {
-		// Update
-		try await self.update(filter: ["_id": document["_id"]!], with: update, in: name)
+		// Update database
+		let	updateResult = try await self.update(id: document._id!, with: update, in: name)
+
+		// Update document
+		update.$set?.documentValue?.forEach() { document[$0] = $1 }
+		update.$unset?.documentValue?.forEach() { document[$0.key] = nil }
+
+		return updateResult
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func update(filter :BSONDocument, with update :BSONDocument, in name :String) throws ->
+	public func update(id :BSON, with update :BSONDocument, in name :String) throws ->
 			UpdateResult {
 		// Preflight
 		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
 
-		// Update
-		return try mongoDatabase.collection(name).updateOne(filter: filter, update: update).wait()!
+		return try mongoDatabase.collection(name).updateOne(filter: ["_id": id], update: update).wait()!
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func update(document :BSONDocument, with update :BSONDocument, in name :String) throws ->
+	public func update(document :inout BSONDocument, with update :BSONDocument, in name :String) throws ->
 			UpdateResult {
-		// Update
-		try self.update(filter: ["_id": document["_id"]!], with: update, in: name)
+		// Update database
+		let	updateResult = try self.update(id: document._id!, with: update, in: name)
+
+		// Update document
+		update.$set?.documentValue?.forEach() { document[$0] = $1 }
+		update.$unset?.documentValue?.forEach() { document[$0.key] = nil }
+
+		return updateResult
 	}
 }
