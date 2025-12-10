@@ -140,39 +140,11 @@ public class MongoDatabaseConnection {
 
 	//------------------------------------------------------------------------------------------------------------------
 	@discardableResult
-	public func update(document :inout BSONDocument, with update :BSONDocument, in name :String) async throws ->
-			UpdateResult {
-		// Update database
-		let	updateResult = try await self.update(id: document._id!, with: update, in: name)
-
-		// Update document
-		update.$set?.documentValue?.forEach() { document[$0] = $1 }
-		update.$unset?.documentValue?.forEach() { document[$0.key] = nil }
-
-		return updateResult
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	@discardableResult
 	public func update(id :BSON, with update :BSONDocument, in name :String) throws ->
 			UpdateResult {
 		// Preflight
 		guard let mongoDatabase = self.mongoDatabase else { throw Self.Error.noDatabaseSpecified }
 
 		return try mongoDatabase.collection(name).updateOne(filter: ["_id": id], update: update).wait()!
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	@discardableResult
-	public func update(document :inout BSONDocument, with update :BSONDocument, in name :String) throws ->
-			UpdateResult {
-		// Update database
-		let	updateResult = try self.update(id: document._id!, with: update, in: name)
-
-		// Update document
-		update.$set?.documentValue?.forEach() { document[$0] = $1 }
-		update.$unset?.documentValue?.forEach() { document[$0.key] = nil }
-
-		return updateResult
 	}
 }
