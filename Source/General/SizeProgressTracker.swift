@@ -104,9 +104,6 @@ public class SizeProgressTracker {
 	private	var	timeSliceInfos = [TimeSliceInfo]()
 	private	var	timer :Timer!
 
-	private	var	lastKnownAverageRate = 0.0
-	private	var	lastKnownAverageRatePerItem = 0.0
-
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(with interval :TimeInterval = 1.0, notifyProc :@escaping () -> Void = {}) {
@@ -152,15 +149,6 @@ public class SizeProgressTracker {
 
 		var	averageRate = self.timeSliceInfos.reduce(0.0, { $0 + $1.rate }) / count
 		var	averageRatePerItem = self.timeSliceInfos.reduce(0.0, { $0 + $1.ratePerItem }) / count
-		if averageRate > 0.0 {
-			// Have actual values
-			self.lastKnownAverageRate = averageRate
-			self.lastKnownAverageRatePerItem = averageRatePerItem
-		} else {
-			// No recent snapshots, so use last known info
-			averageRate = self.lastKnownAverageRate
-			averageRatePerItem = self.lastKnownAverageRatePerItem
-		}
 
 		let	estimatedTimeIntervalRemaining :TimeInterval?
 		if (remainingSize > 0) && (averageRatePerItem > 0.0) && (parallelItems > 0) {
