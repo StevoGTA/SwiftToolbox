@@ -32,7 +32,7 @@ extension HTTPEndpointRequestError : CustomStringConvertible, LocalizedError {
 public class HTTPEndpointRequest {
 
 	// MARK: Options
-	public struct Options : OptionSet {
+	public struct Options : OptionSet, Sendable {
 
 		// MARK: Properties
 		static	public	let	queryContainsSecureInfo = Options(rawValue: 1 << 0)

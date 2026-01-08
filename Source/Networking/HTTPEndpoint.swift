@@ -47,7 +47,7 @@ public struct HTTPEndpointStatusError : CustomStringConvertible, Error, Localize
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointStatus
-public enum HTTPEndpointStatus : Int {
+public enum HTTPEndpointStatus : Int, Sendable {
 	// Values
 	case `continue` = 100
 	case switchingProtocol = 101

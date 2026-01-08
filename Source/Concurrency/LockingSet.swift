@@ -8,7 +8,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: LockingSet
-public class LockingSet<T : Hashable> {
+public class LockingSet<T : Hashable> : @unchecked Sendable {
 
 	// MARK: Properties
 	public	var	count :Int { self.lock.read() { self.set.count } }

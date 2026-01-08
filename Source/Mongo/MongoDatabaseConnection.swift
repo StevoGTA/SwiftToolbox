@@ -6,7 +6,7 @@
 //  Copyright © 2024 Stevo Brock. All rights reserved.
 //
 
-import MongoSwift
+@preconcurrency import MongoSwift
 import NIOPosix
 
 //----------------------------------------------------------------------------------------------------------------------

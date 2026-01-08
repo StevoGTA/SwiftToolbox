@@ -8,7 +8,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: LockingDictionary
-public class LockingDictionary<T : Hashable, U> {
+public class LockingDictionary<T : Hashable, U> : @unchecked Sendable {
 
 	// MARK: Types
 	public typealias CreateValueProc = () -> U

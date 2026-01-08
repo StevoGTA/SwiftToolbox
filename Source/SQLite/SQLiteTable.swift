@@ -61,7 +61,7 @@ fileprivate extension SQLiteTableColumn {
 public struct SQLiteTable {
 
 	// MARK: Types
-	public	struct Options : OptionSet {
+	public	struct Options : OptionSet, Sendable {
 
 				static	public	let	withoutRowID = Options(rawValue: 1 << 0)
 

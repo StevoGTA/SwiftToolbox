@@ -19,7 +19,7 @@ import Foundation
 extension FileManager {
 
 	// MARK: Types
-	public struct EnumerationOptions : OptionSet {
+	public struct EnumerationOptions : OptionSet, Sendable {
 
 		// MARK: Properties
 		static	public	let	sort = EnumerationOptions(rawValue: 1 << 0)

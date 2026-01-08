@@ -148,7 +148,7 @@ public class StorageVolumeManager {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init() {
+	private init() {
 		// Setup Disk Arbitration session
 		self.daSession = DASessionCreate(kCFAllocatorDefault)!
 		DASessionSetDispatchQueue(self.daSession, DispatchQueue.global())

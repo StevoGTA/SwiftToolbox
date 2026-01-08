@@ -8,7 +8,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: LockingError
-public class LockingError {
+public class LockingError : @unchecked Sendable {
 
 	// MARK: Properties
 	public	var	error :Error? { self.lock.read() { self.errorInternal } }

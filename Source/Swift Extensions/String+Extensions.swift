@@ -25,7 +25,7 @@ extension String {
 public extension String {
 
 	// MARK: RandomCharacterOptions
-	struct RandomCharacterOptions : OptionSet {
+	struct RandomCharacterOptions : OptionSet, Sendable {
 
 		// MARK: Properties
 		static	public	let	lowercaseLetters = RandomCharacterOptions(rawValue: 1 << 0)

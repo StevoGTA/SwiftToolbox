@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: LockingValue
-public class LockingValue<T> {
+public class LockingValue<T> : @unchecked Sendable {
 
 	// MARK: Properties
 	public	var	value :T { self.lock.read() { self.valueInternal } }
@@ -58,7 +58,7 @@ extension LockingValue where T : Equatable {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - LockingNumeric
-public class LockingNumeric<T : Numeric> {
+public class LockingNumeric<T : Numeric> : @unchecked Sendable {
 
 	// MARK: Properties
 	public	var	value :T { self.lock.read() { self.valueInternal } }
