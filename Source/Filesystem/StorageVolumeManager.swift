@@ -6,11 +6,11 @@
 //  Copyright © 2024 Stevo Brock. All rights reserved.
 //
 
-import DiskArbitration
+@preconcurrency import DiskArbitration
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: StorageVolumeManager
-public class StorageVolumeManager {
+public final class StorageVolumeManager : Sendable {
 
 	// MARK: Notifications
 	/*

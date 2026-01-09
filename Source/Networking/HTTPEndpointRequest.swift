@@ -55,7 +55,7 @@ public class HTTPEndpointRequest {
 	public typealias MultiValueQueryComponent = (key :String, values :[Any])
 
 	// MARK: Properties
-	static	public			var	defaultTimeoutInterval = 60.0
+	static	public			let	defaultTimeoutInterval = LockingNumeric<TimeInterval>(60.0)
 
 							let	method :HTTPEndpointMethod
 							let	path :String
@@ -74,7 +74,8 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String] = [:],
-			bodyData :Data? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
+			bodyData :Data? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval.value,
+			options :Options = []) {
 		// Store
 		self.method = method
 		self.path = path
@@ -92,7 +93,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String] = [:],
-			jsonBody :Any, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
+			jsonBody :Any, timeoutInterval :TimeInterval = defaultTimeoutInterval.value, options :Options = []) {
 		// Store
 		self.method = method
 		self.path = path
@@ -110,7 +111,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String] = [:],
-			xmlBody :Data, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
+			xmlBody :Data, timeoutInterval :TimeInterval = defaultTimeoutInterval.value, options :Options = []) {
 		// Store
 		self.method = method
 		self.path = path
@@ -128,7 +129,7 @@ public class HTTPEndpointRequest {
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod, path :String, queryComponents :[String : Any]? = nil,
 			multiValueQueryComponent :MultiValueQueryComponent? = nil, headers :[String : String] = [:],
-			urlEncodedBody :[String : Any], timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			urlEncodedBody :[String : Any], timeoutInterval :TimeInterval = defaultTimeoutInterval.value,
 			options :Options = []) {
 		// Store
 		self.method = method
@@ -149,7 +150,8 @@ public class HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(method :HTTPEndpointMethod = .get, url :URL, headers :[String : String] = [:],
-			bodyData :Data? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = []) {
+			bodyData :Data? = nil, timeoutInterval :TimeInterval = defaultTimeoutInterval.value,
+			options :Options = []) {
 		// Store
 		self.method = method
 		self.path = url.absoluteString
@@ -235,7 +237,7 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod = .get, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String] = [:], timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			headers :[String : String] = [:], timeoutInterval :TimeInterval = defaultTimeoutInterval.value,
 			destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
@@ -247,7 +249,7 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 
 	//------------------------------------------------------------------------------------------------------------------
 	init(method :HTTPEndpointMethod = .get, path :String, queryComponents :[String : Any]? = nil,
-			headers :[String : String] = [:], timeoutInterval :TimeInterval = defaultTimeoutInterval,
+			headers :[String : String] = [:], timeoutInterval :TimeInterval = defaultTimeoutInterval.value,
 			destinationFile :File) {
 		// Store
 		self.destinationURL = destinationFile.url
@@ -258,7 +260,8 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [], destinationURL :URL) {
+	init(url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval.value, options :Options = [],
+			destinationURL :URL) {
 		// Store
 		self.destinationURL = destinationURL
 
@@ -267,7 +270,7 @@ public class FileHTTPEndpointRequest : HTTPEndpointRequest {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	init(url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval, options :Options = [],
+	init(url :URL, timeoutInterval :TimeInterval = defaultTimeoutInterval.value, options :Options = [],
 			destinationFile :File) {
 		// Store
 		self.destinationURL = destinationFile.url

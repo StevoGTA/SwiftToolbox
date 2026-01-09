@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SerialQueue
-public class SerialQueue<T> : ProcConcurrentQueue<T> {
+public final class SerialQueue<T : Sendable> : ProcConcurrentQueue<T>, @unchecked Sendable {
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
