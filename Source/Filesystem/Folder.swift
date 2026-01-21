@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Folder
-public class Folder : Equatable {
+public struct Folder : Equatable, Sendable {
 
 	// MARK: Types
 	public enum Action {

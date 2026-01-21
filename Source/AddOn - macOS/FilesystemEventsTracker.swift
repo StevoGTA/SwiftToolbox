@@ -16,7 +16,7 @@ public class FilesystemEventsTracker {
 	public struct FolderInfo {
 
 		// MARK: Flags
-		public struct Flags : OptionSet {
+		public struct Flags : OptionSet, Sendable {
 
 			// MARK: Properties
 			static	public	let	created = Flags(rawValue: 1 << 0)
@@ -46,7 +46,7 @@ public class FilesystemEventsTracker {
 	public struct FileInfo {
 
 		// MARK: Flags
-		public struct Flags : OptionSet {
+		public struct Flags : OptionSet, Sendable {
 
 			// MARK: Properties
 			static	public	let	created = Flags(rawValue: 1 << 0)

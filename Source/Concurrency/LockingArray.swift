@@ -8,7 +8,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: LockingArray
-public class LockingArray<T> {
+public class LockingArray<T> : @unchecked Sendable {
 
 	// MARK: Properties
 	public	var	count :Int { self.lock.read() { self.array.count } }

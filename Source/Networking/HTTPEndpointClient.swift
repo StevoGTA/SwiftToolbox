@@ -139,10 +139,10 @@ fileprivate extension HTTPEndpointRequest {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - HTTPEndpointClient
-open class HTTPEndpointClient : NSObject, URLSessionDelegate {
+open class HTTPEndpointClient {
 
 	// MARK: Options
-	public struct Options : OptionSet {
+	public struct Options : OptionSet, Sendable {
 
 		// MARK: Properties
 		static	public	let	multiValueQueryUseComma = Options(rawValue: 1 << 0)
@@ -161,7 +161,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 	}
 
 	// MARK: LogOptions
-	public struct LogOptions : OptionSet {
+	public struct LogOptions : OptionSet, Sendable {
 
 		// MARK: Properties
 		static	public	let	requestAndResponse = LogOptions(rawValue: 1 << 0)
@@ -266,7 +266,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 	//------------------------------------------------------------------------------------------------------------------
 	// MARK: HTTPEndpointRequestPerformInfo
-	private class HTTPEndpointRequestPerformInfo {
+	private class HTTPEndpointRequestPerformInfo : @unchecked Sendable {
 
 		// MARK: Types
 		typealias DataCompletionProc = (_ response :HTTPURLResponse?, _ data :Data?, _ error :Error?) -> Void
@@ -370,7 +370,7 @@ open class HTTPEndpointClient : NSObject, URLSessionDelegate {
 
 	//------------------------------------------------------------------------------------------------------------------
 	// MARK: URLSessionDelegate
-	private class URLSessionDelegate : NSObject, Foundation.URLSessionDelegate, URLSessionDataDelegate,
+	private final class URLSessionDelegate : NSObject, Foundation.URLSessionDelegate, URLSessionDataDelegate,
 			URLSessionDownloadDelegate {
 
 		// MARK: Types

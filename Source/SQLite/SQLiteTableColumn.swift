@@ -8,10 +8,10 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: SQLiteTableColumn
-public struct SQLiteTableColumn : Equatable {
+public struct SQLiteTableColumn : Equatable, Sendable {
 
 	// MARK: Kind
-	public	enum Kind {
+	public	enum Kind : Sendable {
 				// Values
 				// INTEGER values are whole numbers (either positive or negative).
 				case integer
@@ -66,7 +66,7 @@ public struct SQLiteTableColumn : Equatable {
 			}
 
 	// MARK: Options
-	public	enum Options {
+	public	enum Options : Sendable {
 				case primaryKey
 				case autoincrement
 				case notNull

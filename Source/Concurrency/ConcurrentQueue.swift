@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: ConcurrentQueue
-public class ConcurrentQueue<T> {
+public class ConcurrentQueue<T : Sendable> : @unchecked Sendable {
 
 	// MARK: Enums
 	public enum ConcurrentItems {
@@ -44,9 +44,8 @@ public class ConcurrentQueue<T> {
 	// MARK: Properties
 	private	let	maxConcurrentItems :Int
 
-	private	let	itemsLock = Lock()
 	private	let	activeItemsCount = LockingNumeric<Int>()
-	private	var	queuedItems = [(item :T, priority :Priority)]()
+	private	let	queuedItems = LockingArray<(item :T, priority :Priority)>()
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -65,7 +64,7 @@ public class ConcurrentQueue<T> {
 	//------------------------------------------------------------------------------------------------------------------
 	public func add(_ item :T, priority :Priority = .normal) {
 		// Add
-		self.itemsLock.perform() { self.queuedItems.append((item, priority)) }
+		self.queuedItems.append((item, priority))
 
 		// Process
 		processItems()
@@ -74,7 +73,7 @@ public class ConcurrentQueue<T> {
 	//------------------------------------------------------------------------------------------------------------------
 	public func add(_ items :[T], priority :Priority = .normal) {
 		// Add
-		self.itemsLock.perform() { self.queuedItems += items.map({ ($0, priority) }) }
+		self.queuedItems.append(items.map({ ($0, priority) }))
 
 		// Process
 		processItems()
@@ -83,7 +82,7 @@ public class ConcurrentQueue<T> {
 	//------------------------------------------------------------------------------------------------------------------
 	public func wait() {
 		// While there are still queued items, wait on the active items count
-		while !self.itemsLock.perform({ self.queuedItems.isEmpty }) { self.activeItemsCount.wait() }
+		while !self.queuedItems.isEmpty { self.activeItemsCount.wait() }
 
 		// Now that there are no more queued items, wait on the active items count one last time
 		self.activeItemsCount.wait()
@@ -91,30 +90,27 @@ public class ConcurrentQueue<T> {
 
 	// MARK: Subclass methods
 	//------------------------------------------------------------------------------------------------------------------
-	fileprivate func process(_ item :T, completion :@escaping () -> Void) {}
+	fileprivate func process(_ item :T, completion :@escaping @Sendable () -> Void) {}
 
 	// MARK: Private methods
 	//------------------------------------------------------------------------------------------------------------------
 	private func processItems() {
-		// Process
-		self.itemsLock.perform() {
-			// Check situation
-			while (self.activeItemsCount.value < self.maxConcurrentItems) && !self.queuedItems.isEmpty {
-				// Order by priority
-				self.queuedItems.sort(by: { $0.priority.rawValue > $1.priority.rawValue })
+		// Check situation
+		while (self.activeItemsCount.value < self.maxConcurrentItems) && !self.queuedItems.isEmpty {
+			// Order by priority
+			self.queuedItems.sort(by: { $0.priority.rawValue > $1.priority.rawValue })
 
-				// Activate a queued item
-				let	item = self.queuedItems.removeFirst()
-				self.activeItemsCount.add(1)
+			// Activate a queued item
+			let	item = self.queuedItems.removeFirst()
+			self.activeItemsCount.add(1)
 
-				// Process
-				process(item.item) { [weak self] in
-					// Done
-					self?.activeItemsCount.subtract(1)
+			// Process
+			process(item.item) { [weak self] in
+				// Done
+				self?.activeItemsCount.subtract(1)
 
-					// Process more items
-					DispatchQueue.main.async() { [weak self] in self?.processItems() }
-				}
+				// Process more items
+				DispatchQueue.main.async() { [weak self] in self?.processItems() }
 			}
 		}
 	}
@@ -122,10 +118,10 @@ public class ConcurrentQueue<T> {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - ProcConcurrentQueue
-public class ProcConcurrentQueue<T> : ConcurrentQueue<T> {
+public class ProcConcurrentQueue<T : Sendable> : ConcurrentQueue<T>, @unchecked Sendable {
 
 	// MARK: Types
-	public typealias Proc = (_ item :T) -> Void
+	public typealias Proc = @Sendable (_ item :T) -> Void
 
 	// MARK: Properties
 	private	let	procDispatchQueue :DispatchQueue
@@ -152,7 +148,7 @@ public class ProcConcurrentQueue<T> : ConcurrentQueue<T> {
 
 	// MARK: ConcurrentQueue methods
 	//------------------------------------------------------------------------------------------------------------------
-	fileprivate override func process(_ item :T, completion :@escaping () -> Void) {
+	fileprivate override func process(_ item :T, completion :@escaping @Sendable () -> Void) {
 		// Setup
 		let	proc = self.proc
 
@@ -169,7 +165,7 @@ public class ProcConcurrentQueue<T> : ConcurrentQueue<T> {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - ConcurrentProcQueue
-public class ConcurrentProcQueue : ConcurrentQueue< () -> Void> {
+public class ConcurrentProcQueue : ConcurrentQueue<@Sendable () -> Void>, @unchecked Sendable {
 
 	// MARK: Properties
 	private	let	procDispatchQueue :DispatchQueue
@@ -193,11 +189,12 @@ public class ConcurrentProcQueue : ConcurrentQueue< () -> Void> {
 
 	// MARK: ConcurrentQueue methods
 	//------------------------------------------------------------------------------------------------------------------
-	fileprivate override func process(_ item :@escaping () -> Void, completion :@escaping () -> Void) {
+	fileprivate override func process(_ proc :@escaping @Sendable () -> Void,
+			completion :@escaping @Sendable () -> Void) {
 		// Perform
 		self.procDispatchQueue.async() {
 			// Perform
-			item()
+			proc()
 
 			// Done
 			completion()

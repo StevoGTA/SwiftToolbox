@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: File
-public class File : Equatable, Hashable {
+public class File : Equatable, Hashable, @unchecked Sendable {
 
 	// MARK: Types
 	public typealias SubPathProc = (_ file :File, _ subPath :String) -> Void

@@ -10,7 +10,7 @@ import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Lock
-public class Lock {
+public class Lock : @unchecked Sendable {
 
 	// MARK: Properties
 	private	var	mutex = pthread_mutex_t()
