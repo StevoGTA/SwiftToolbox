@@ -34,6 +34,9 @@ extension RangeReplaceableCollection where Iterator.Element : Equatable {
 			}
 		}
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	static public func -=(lhs: inout Self, rhs: [Self.Iterator.Element]) { lhs.remove(rhs) }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
