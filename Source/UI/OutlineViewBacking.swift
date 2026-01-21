@@ -8,6 +8,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: OutlineViewBacking
+@MainActor
 public class OutlineViewBacking : NSObject {
 
 	// MARK: Item
