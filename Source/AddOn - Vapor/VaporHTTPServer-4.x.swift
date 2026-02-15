@@ -50,15 +50,20 @@ public class VaporHTTPServer : HTTPServer {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func runDetached() {
+		// Setup
+		let	port = self.port
+		let	maxBodySize = self.maxBodySize
+		let	httpEndpoints = self.httpEndpoints
+
 		// Run in task
 		Task.detached() {
 			// Setup application
 			let	application = try! await Application.make(Environment(name: "", arguments: ["serve"]))
-			application.http.server.configuration.port = self.port
-			application.routes.defaultMaxBodySize = ByteCount(value: self.maxBodySize)
+			application.http.server.configuration.port = port
+			application.routes.defaultMaxBodySize = ByteCount(value: maxBodySize)
 
 			// Register routes
-			self.httpEndpoints.forEach() { httpEndpoint in
+			httpEndpoints.forEach() { httpEndpoint in
 				// Setup
 				let	pathComponents =
 							httpEndpoint.path.pathComponents.map()
