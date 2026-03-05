@@ -10,7 +10,7 @@ import SwiftUI
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Toggleable
-class Toggleable : Identifiable {
+class Toggleable {
 
 	// MARK: Properties
 	let	title :String
@@ -24,4 +24,32 @@ class Toggleable : Identifiable {
 		self.title = title
 		self.isActive = isActive
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - ToggleableWrapper
+class ToggleableWrapper : Identifiable, ObservableObject {
+
+	// MARK: Properties
+			let	id = UUID().base64EncodedString
+
+			var	title :String { self.toggleable.title }
+
+			@Published
+			var	isActive :Bool
+
+	private	let	toggleable :Toggleable
+
+	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init(_ toggleable :Toggleable) {
+		// Store
+		self.toggleable = toggleable
+
+		self.isActive = toggleable.isActive
+	}
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func commit() { self.toggleable.isActive = self.isActive }
 }
