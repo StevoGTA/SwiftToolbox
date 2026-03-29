@@ -139,6 +139,23 @@ public extension String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// MARK: - Localization Extension
+public extension String {
+
+	// MARK: Lifecycle methods
+	init(localized key :String, table :String) {
+		// Check availability
+		if #available(macOS 12, *) {
+			// macOS 12+
+			self.init(localized: String.LocalizationValue(key), table: table)
+		} else {
+			// Pre-macOS 12
+			self.init(NSLocalizedString(key, tableName: table, comment: key))
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // MARK: - Path Extension
 public extension String {
 
