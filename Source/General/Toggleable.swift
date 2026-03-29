@@ -6,15 +6,17 @@
 //  Copyright © 2025 Stevo Brock. All rights reserved.
 //
 
-import SwiftUI
+import Foundation
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Toggleable
-class Toggleable {
+class Toggleable : Identifiable, ObservableObject {
 
 	// MARK: Properties
+	let	id = UUID().base64EncodedString
 	let	title :String
 
+	@Published
 	var	isActive :Bool
 
 	// MARK: Lifecycle methods
@@ -24,32 +26,4 @@ class Toggleable {
 		self.title = title
 		self.isActive = isActive
 	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// MARK: - ToggleableWrapper
-class ToggleableWrapper : Identifiable, ObservableObject {
-
-	// MARK: Properties
-			let	id = UUID().base64EncodedString
-
-			var	title :String { self.toggleable.title }
-
-			@Published
-			var	isActive :Bool
-
-	private	let	toggleable :Toggleable
-
-	// MARK: Lifecycle methods
-	//------------------------------------------------------------------------------------------------------------------
-	init(_ toggleable :Toggleable) {
-		// Store
-		self.toggleable = toggleable
-
-		self.isActive = toggleable.isActive
-	}
-
-	// MARK: Instance methods
-	//------------------------------------------------------------------------------------------------------------------
-	func commit() { self.toggleable.isActive = self.isActive }
 }
