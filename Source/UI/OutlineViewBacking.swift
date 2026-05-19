@@ -95,13 +95,15 @@ public class OutlineViewBacking : NSObject {
 				// Update
 				self.itemByItemID += Dictionary(childItems.map({ ($0.id, $0) }))
 				parentItem.childItemIDs += childItems.map({ $0.id })
-				parentItem.childItemIDsSorted = parentItem.childItemIDs
 
 				// Check if have sorting
 				if !self.sortDescriptors.isEmpty {
 					// Sort
 					updateSorting(itemIDs: &parentItem.childItemIDsSorted)
 				}
+
+				// Update
+				parentItem.needsReload = false
 			}
 
 			return parentItem.childItemIDsSorted[index]
