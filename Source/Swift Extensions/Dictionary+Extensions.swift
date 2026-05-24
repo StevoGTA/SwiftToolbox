@@ -115,6 +115,20 @@ public extension Dictionary {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	mutating func appendArrayValueElements<T>(key :Key, values :Set<T>) {
+		// Check if has existing array
+		if var array = (self[key] as? [T]) {
+			// Has existing array
+			self[key] = nil
+			array += values
+			self[key] = (array as! Value)
+		} else {
+			// First item
+			self[key] = (values as! Value)
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	mutating func removeArrayValueElement<T :Equatable>(key :Key, value :T) {
 		// Check if have existing array
 		if var array = (self[key] as? [T]) {
@@ -123,6 +137,42 @@ public extension Dictionary {
 
 			// Remove value
 			array.remove(value)
+
+			// Check if need to store
+			if !array.isEmpty {
+				// Store
+				self[key] = (array as! Value)
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	mutating func removeArrayValueElements<T :Equatable>(key :Key, values :[T]) {
+		// Check if have existing array
+		if var array = (self[key] as? [T]) {
+			// Has existing array
+			self[key] = nil
+
+			// Remove value
+			array.remove(values)
+
+			// Check if need to store
+			if !array.isEmpty {
+				// Store
+				self[key] = (array as! Value)
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	mutating func removeArrayValueElements<T :Equatable>(key :Key, values :Set<T>) {
+		// Check if have existing array
+		if var array = (self[key] as? [T]) {
+			// Has existing array
+			self[key] = nil
+
+			// Remove value
+			array.remove(Array(values))
 
 			// Check if need to store
 			if !array.isEmpty {

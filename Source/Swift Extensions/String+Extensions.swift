@@ -139,13 +139,21 @@ public extension String {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// MARK: - Identifiable Extension
+extension String : @retroactive Identifiable {
+
+	// MARK: Properties
+	public	var	id :String { self }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // MARK: - Localization Extension
 public extension String {
 
 	// MARK: Lifecycle methods
 	init(localized key :String, table :String) {
 		// Check availability
-		if #available(macOS 12, *) {
+		if #available(iOS 15, macOS 12, *) {
 			// macOS 12+
 			self.init(localized: String.LocalizationValue(key), table: table)
 		} else {
