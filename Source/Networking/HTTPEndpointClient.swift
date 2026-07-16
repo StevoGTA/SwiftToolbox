@@ -42,43 +42,33 @@ fileprivate extension HTTPEndpointRequest {
 			// Already have fully-formed URL
 			addURLRequestProc(URL(string: self.path)!)
 		} else {
-			// Compose URLRequests
-			let	queryComponents =
-						self.queryComponents?
-								.flatMap({ key, value in
-									// Check type
-									if let array = value as? [String] {
-										// Array of Strings
-										return array.map({ (key, $0) })
-									} else {
-										// String
-										return [(key, "\(value)")]
-									}
-								})
-								.map({
-									"\($0.0)=\($0.1)"
-											.urlQueryEncoded(
-													encodePlus: options.contains(.percentEncodePlusCharacter))
-								})
-			let	queryString = String(combining: queryComponents ?? [], with: "&")
+			// Compose URLRequests - let URLComponents encode and join the query pairs
+			let	encodePlus = options.contains(.percentEncodePlusCharacter)
+			var	urlComponents = URLComponents()
+			urlComponents.queryItems =
+					self.queryComponents?
+							.flatMap({ key, value in
+								// Check type
+								if let array = value as? [String] {
+									// Array of Strings
+									return array.map({ URLQueryItem(name: key, value: $0) })
+								} else if let string = value as? String {
+									// String
+									return [URLQueryItem(name: key, value: string)]
+								} else {
+									// Convert to String
+									return [URLQueryItem(name: key, value: "\(value)")]
+								}
+							})
+			let	rawQueryString = urlComponents.percentEncodedQuery ?? ""
+			let	queryString = encodePlus ? rawQueryString.replacingOccurrences(of: "+", with: "%2B") : rawQueryString
 			let	hasQuery = !queryString.isEmpty || (self.multiValueQueryComponent != nil)
 			let	urlRoot = serverPrefix + self.path + (hasQuery ? "?" : "") + queryString
 
 			if let (key, values) = self.multiValueQueryComponent, !values.isEmpty {
 				// Setup
-				let	keyUse = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
-				let	valuesUse =
-							values.map() { value -> String in
-									// Check value type
-									if let string = value as? String {
-										// String
-										return string.urlQueryEncoded(
-												encodePlus: options.contains(.percentEncodePlusCharacter))
-									} else {
-										// Not string
-										return "\(value)"
-									}
-								}
+				let	keyUse = key.urlQueryValueEncoded(encodePlus: encodePlus)
+				let	valuesUse = values.map() { ($0 as? String)?.urlQueryValueEncoded(encodePlus: encodePlus) ?? "\($0)" }
 
 				// Check options
 				var	queryComponent = ""

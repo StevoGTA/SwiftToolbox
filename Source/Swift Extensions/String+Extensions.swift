@@ -381,17 +381,25 @@ public extension String {
 
 	// MARK: Properties
 	static	private	let	pathTransformCharacterSet = CharacterSet(charactersIn: "/").inverted
+	static	private	let	queryValueTransformCharacterSet :CharacterSet = {
+								// Start with the characters allowed in the query
+								var	characterSet = CharacterSet.urlQueryAllowed
+
+								// Remove & and =
+								characterSet.remove(charactersIn: "&=")
+
+								return characterSet
+							}()
 
 					var	urlPathEncoded :String
 							{ self.addingPercentEncoding(withAllowedCharacters: Self.pathTransformCharacterSet)! }
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func urlQueryEncoded(encodePlus :Bool) -> String {
-		// Return encoded string
-		return encodePlus ?
-				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
-						.replacingOccurrences(of: "+", with: "%2B") :
-				self.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+	func urlQueryValueEncoded(encodePlus :Bool) -> String {
+		// Percent-encode as a single URL query value
+		let	encoded = self.addingPercentEncoding(withAllowedCharacters: Self.queryValueTransformCharacterSet) ?? self
+
+		return encodePlus ? encoded.replacingOccurrences(of: "+", with: "%2B") : encoded
 	}
 }
