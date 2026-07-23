@@ -8,6 +8,7 @@
 
 import AVFoundation
 import CoreServices
+import UniformTypeIdentifiers
 
 #if os(iOS)
 	import UIKit
@@ -199,21 +200,93 @@ extension NSExtensionItem {
 		// MARK: Instance methods
 		//--------------------------------------------------------------------------------------------------------------
 		fileprivate func load(completionProc :@escaping () -> Void) {
+			// Prefer the ORIGINAL file when the provider exposes one via its file URL.  Some sources (notably Finder
+			//	on macOS 26+) hand share extensions a transcoded PNG as the image representation while still exposing
+			//	the untouched original (HEIC, etc.) through "public.file-url" - loading that preserves the real bytes,
+			//	the EXIF/XMP metadata, and the original filename.
+			if self.itemProvider.hasItemConformingToTypeIdentifier(kUTTypeFileURL as String) {
+				// Resolve the original file URL
+				_ = self.itemProvider.loadObject(ofClass: URL.self) { url, _ in
+					// Handle results
+					if let url = url {
+						// Load the untouched original file
+						self.load(fromOriginalFile: File(url))
+
+						completionProc()
+					} else {
+						// Could not resolve the file URL - fall back to the image representation
+						self.loadImageRepresentation(completionProc: completionProc)
+					}
+				}
+			} else {
+				// No file URL - load the image representation directly
+				self.loadImageRepresentation(completionProc: completionProc)
+			}
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		private func load(fromOriginalFile file :File) {
+			// Access the original (may be security-scoped when delivered by a share)
+			let	url = file.url
+			let	didStartAccess = url.startAccessingSecurityScopedResource()
+			defer { if didStartAccess { url.stopAccessingSecurityScopedResource() } }
+
+			// The original file preserves its real bytes, metadata, and filename
+			self.filename = file.name
+			self.creationDate = file.creationDate
+			self.modificationDate = file.modificationDate
+
+			do {
+				// Load data and create image
+				self.data = try FileReader.contentsAsData(of: file)
+				self.image = Image(self.data!)
+			} catch {
+				// Error
+				self.error = error
+			}
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		private func loadImageRepresentation(completionProc :@escaping () -> Void) {
 			// Load
-			_ = self.itemProvider.loadFileRepresentation(forTypeIdentifier: kUTTypeImage as String) {
+			// Determine the most specific concrete image type this provider holds - preserving EXIF/XMP metadata and the
+			//	original filename - instead of transcoding to PNG.
+			let	imageContentType = self.itemProvider.bestConcreteImageContentType
+			let	imageContentTypeIdentifier = imageContentType?.identifier ?? (kUTTypeImage as String)
+			_ = self.itemProvider.loadFileRepresentation(forTypeIdentifier: imageContentTypeIdentifier) {
 				// Handle results
 				if let url = $0 {
 					// Success
 					let	file = File(url)
-					self.filename = file.name
+
+					// Try to preserve the original filename
+					if let suggestedName = self.itemProvider.suggestedName {
+						// Use suggested name with the concrete file extension
+						let	fileExtension = file.extension ?? imageContentType?.preferredFilenameExtension
+						self.filename =
+								(fileExtension != nil) ?
+										suggestedName.deletingPathExtension.appending(pathExtension: fileExtension!) :
+										suggestedName
+					} else {
+						// Fall back to the delivered file's name
+						self.filename = file.name
+					}
+
 					self.creationDate = file.creationDate
 					self.modificationDate = file.modificationDate
 
 #if os(iOS)
 					// iOS
-					self.data = try! Data(contentsOf: url)
+					do {
+						// Load data
+						self.data = try Data(contentsOf: url)
 
-					self.image = Image(self.data!)
+						// Create image
+						self.image = Image(self.data!)
+					} catch {
+						// Error
+						self.error = error
+					}
 #endif
 #if os(macOS)
 					// macOS
@@ -243,7 +316,7 @@ extension NSExtensionItem {
 				} else {
 					// Could not load as file
 					_ = $1
-					_ = self.itemProvider.loadDataRepresentation(forTypeIdentifier: kUTTypeImage as String) {
+					_ = self.itemProvider.loadDataRepresentation(forTypeIdentifier: imageContentTypeIdentifier) {
 						// Handle results
 						if let data = $0 {
 							// Success

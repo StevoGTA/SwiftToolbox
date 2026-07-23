@@ -101,110 +101,161 @@ class Image {
 	}
 
 	// MARK: Properties
-					var	creationDate :Date? {
-								// Check what we have
-								if let createDate =
-										(self.metadata?["xmp"] as? [String : Any])?["CreateDate"] as? String {
-									// Have CreateDate
-									if let offsetTime =
-											(self.metadata?["exif"] as? [String : Any])?["OffsetTime"] as? String {
-										// Have OffsetTime too
-										// 2021-09-14T10:27:38.915 + -07:00
-										return Date(
-												fromRFC3339Extended:
-														createDate + offsetTime.replacingOccurrences(of: ":", with: ""))
-									} else if let date =
-											 DateFormatter(dateFormat: "yyyy-MM-dd'T'HH:mm:ss").date(from: createDate) {
-										// Could create date
-										return date
-									} else if let date =
-											DateFormatter(dateFormat: "yyyy-MM-dd'T'HH:mm:ss.SSS")
-													.date(from: createDate) {
-										// Could create date
-										return date
-									} else {
-										// Don't know how to create date
+	static	private			let	iso8601MetadataDateFormatter :ISO8601DateFormatter = {
+										// Setup
+										let	dateFormatter = ISO8601DateFormatter()
+										dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+										return dateFormatter
+									}()
+	static	private			let	iso8601MetadataDateFormatterNoFractionalSeconds :ISO8601DateFormatter = {
+										// Setup
+										let	dateFormatter = ISO8601DateFormatter()
+										dateFormatter.formatOptions = [.withInternetDateTime]
+
+										return dateFormatter
+									}()
+	static	private			let	localMetadataDateFormatter :DateFormatter = {
+										// Setup
+										let	dateFormatter = DateFormatter()
+										dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+										dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+
+										return dateFormatter
+									}()
+	static	private			let	localMetadataDateFormatterNoFractionalSeconds :DateFormatter = {
+										// Setup
+										let	dateFormatter = DateFormatter()
+										dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+										dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+
+										return dateFormatter
+									}()
+
+							var	creationDate :Date? {
+										// Prefer xmp:CreateDate (EXIF DateTimeDigitized); fall back to
+										//	photoshop:DateCreated (EXIF DateTimeOriginal).  ImageIO maps the EXIF
+										//	date/time fields into these XMP keys, so this covers plain-EXIF files too.
+										let	offsetTime =
+													(self.metadata?["exif"] as? [String : Any])?["OffsetTime"] as?
+															String
+										for candidate in
+														[(self.metadata?["xmp"] as? [String : Any])?["CreateDate"] as?
+																String,
+												(self.metadata?["photoshop"] as? [String : Any])?["DateCreated"] as?
+														String] {
+											// Skip empty candidates and camera "0000-00-00..." defaults
+											guard let raw = candidate, !raw.hasPrefix("0000") else { continue }
+
+											// A value carries its own timezone if it ends with Z or has a +/- in the
+											//	time portion (after the "T")
+											let	timePart =
+														raw.firstIndex(of: "T")
+																.map({ String(raw[raw.index(after: $0)...]) }) ?? ""
+											let	hasTimeZone =
+														raw.hasSuffix("Z") ||
+																timePart.contains("+") ||
+																timePart.contains("-")
+
+											if hasTimeZone {
+												// Parse with its embedded timezone (ISO 8601, with then without
+												//	fractional seconds)
+												if let date = Image.iso8601MetadataDateFormatter.date(from: raw) ??
+														Image.iso8601MetadataDateFormatterNoFractionalSeconds
+																.date(from: raw) {
+													return date
+												}
+											} else if let offsetTime = offsetTime {
+												// No embedded zone, but we have an exif OffsetTime - apply it, then
+												//	parse
+												let	string = raw + offsetTime
+												if let date = Image.iso8601MetadataDateFormatter.date(from: string) ??
+														Image.iso8601MetadataDateFormatterNoFractionalSeconds
+																.date(from: string) { return date }
+											} else if let date = Image.localMetadataDateFormatter.date(from: raw) ??
+													Image.localMetadataDateFormatterNoFractionalSeconds.date(
+															from: raw) {
+												// No timezone available at all - fall back to device-local time
+												return date
+											}
+										}
+
 										return nil
 									}
-								} else {
-									// Unknown
-									return nil
-								}
-							}
 
-			lazy	var	cgImage :CGImage? = { [unowned self] in
-								// Check if have CGImage already
-								if (self.cgImageInternal == nil) && (self.cgImageSource != nil) {
-									// Create from source
-									self.cgImageInternal = CGImageSourceCreateImageAtIndex(self.cgImageSource!, 0, nil)
-								}
+					lazy	var	cgImage :CGImage? = { [unowned self] in
+										// Check if have CGImage already
+										if (self.cgImageInternal == nil) && (self.cgImageSource != nil) {
+											// Create from source
+											self.cgImageInternal = CGImageSourceCreateImageAtIndex(self.cgImageSource!, 0, nil)
+										}
 
-								return self.cgImageInternal
-							}()
-			lazy	var	orientation :Orientation = { [unowned self] in
-								// Setup
-								let	metadata = self.metadata
-								let	orientation = (metadata?["tiff"] as? [String : Any])?["Orientation"] as? String
+										return self.cgImageInternal
+									}()
+					lazy	var	orientation :Orientation = { [unowned self] in
+										// Setup
+										let	metadata = self.metadata
+										let	orientation = (metadata?["tiff"] as? [String : Any])?["Orientation"] as? String
 
-								// Check results
-								if let value = Int(orientation) {
-									// Have value
-									return Orientation(rawValue: value) ?? .up
-								} else {
-									// Use default
-									return .up
-								}
-							}()
-			lazy	var	size :CGSize? = { [unowned self] in
-								// Preflight
-								guard let cgImage = self.cgImage else { return nil }
+										// Check results
+										if let value = Int(orientation) {
+											// Have value
+											return Orientation(rawValue: value) ?? .up
+										} else {
+											// Use default
+											return .up
+										}
+									}()
+					lazy	var	size :CGSize? = { [unowned self] in
+										// Preflight
+										guard let cgImage = self.cgImage else { return nil }
 
-								// Check orientation
-								switch self.orientation {
-									case .topLeft, .topRight, .bottomRight, .bottomLeft:
-										// Normal
-										return CGSize(width: cgImage.width, height: cgImage.height)
+										// Check orientation
+										switch self.orientation {
+											case .topLeft, .topRight, .bottomRight, .bottomLeft:
+												// Normal
+												return CGSize(width: cgImage.width, height: cgImage.height)
 
-									case .rightTop, .rightBottom, .leftBottom, .leftTop:
-										// Rotated
-										return CGSize(width: cgImage.height, height: cgImage.width)
-								}
-							}()
-			lazy	var	cgColorSpace :CGColorSpace? = { [unowned self] in return self.cgImage?.colorSpace }()
+											case .rightTop, .rightBottom, .leftBottom, .leftTop:
+												// Rotated
+												return CGSize(width: cgImage.height, height: cgImage.width)
+										}
+									}()
+					lazy	var	cgColorSpace :CGColorSpace? = { [unowned self] in return self.cgImage?.colorSpace }()
 
-			lazy	var	metadata :[String : Any]? = {
-								// Setup
-								guard let cgImageSource = self.cgImageSource else { return nil }
-								guard let imageMetadata = CGImageSourceCopyMetadataAtIndex(cgImageSource, 0, .none) else
-										{ return nil }
-								guard let tags = CGImageMetadataCopyTags(imageMetadata) as? [CGImageMetadataTag] else
-										{ return nil }
+					lazy	var	metadata :[String : Any]? = {
+										// Setup
+										guard let cgImageSource = self.cgImageSource else { return nil }
+										guard let imageMetadata = CGImageSourceCopyMetadataAtIndex(cgImageSource, 0, .none) else
+												{ return nil }
+										guard let tags = CGImageMetadataCopyTags(imageMetadata) as? [CGImageMetadataTag] else
+												{ return nil }
 
-								// Transmogrify
-								var	metadata = [String : [String : Any]]()
-								tags.forEach() {
-									// Get info
-									guard let prefix = CGImageMetadataTagCopyPrefix($0),
-											let name = CGImageMetadataTagCopyName($0) else { return }
+										// Transmogrify
+										var	metadata = [String : [String : Any]]()
+										tags.forEach() {
+											// Get info
+											guard let prefix = CGImageMetadataTagCopyPrefix($0),
+													let name = CGImageMetadataTagCopyName($0) else { return }
 
-									// Get current class info
-									var	info = metadata[prefix as String] ?? [:]
-									info[name as String] = $0.transmogrifiedValue
-									metadata[prefix as String] = info
-								}
+											// Get current class info
+											var	info = metadata[prefix as String] ?? [:]
+											info[name as String] = $0.transmogrifiedValue
+											metadata[prefix as String] = info
+										}
 
-								return metadata
-							}()
-			lazy	var	properties :[String : Any]? = {
-								// Setup
-								guard let cgImageSource = self.cgImageSource else { return nil }
+										return metadata
+									}()
+					lazy	var	properties :[String : Any]? = {
+										// Setup
+										guard let cgImageSource = self.cgImageSource else { return nil }
 
-								return CGImageSourceCopyProperties(cgImageSource, nil) as? [String : Any]
-							}()
+										return CGImageSourceCopyProperties(cgImageSource, nil) as? [String : Any]
+									}()
 
-	private			let	cgImageSource :CGImageSource?
+			private			let	cgImageSource :CGImageSource?
 
-	private			var	cgImageInternal :CGImage?
+			private			var	cgImageInternal :CGImage?
 
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
