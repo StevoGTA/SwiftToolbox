@@ -5,6 +5,8 @@
 //  Created by Stevo on 2/6/25.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Logger
 public class Logger {
@@ -72,19 +74,20 @@ public class ConsoleLogger : Logger {
 // MARK: FileLogger
 public class FileLogger : Logger {
 
-	// MARK: Properties
-	private	let	fileWriter :FileWriter
-
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
-	public init (level :Level = .warning, file :File) {
-		// Setup
-		self.fileWriter = FileWriter(for: file)
+	public init (level :Level = .warning, file :File) throws {
+		// Setup - .overwrite creates the file, or empties one already there, so every run starts a fresh log
+		let	fileWriter = try FileWriter(for: file)
 
 		// Do super
 		super.init(level: level)
 
-		// Setup proc
+		/*
+			Setup proc - the file stays open for the life of the logger, so each line costs a single write.  Those
+				bytes are handed to the OS as they are written, so anything already logged survives a crash of this
+				application just as well as it did when the file was opened and closed around every line.
+		*/
 		let	lock = Lock()
 		self.proc = { level, string in
 			// One at a time please
@@ -92,17 +95,12 @@ public class FileLogger : Logger {
 				// Catch errors
 				do {
 					// Add message to file
-					try self.fileWriter.open(mode: FileManager.default.exists(file) ? .append : .overwrite)
-					try self.fileWriter.write("\(string)\n")
-					self.fileWriter.close()
+					try fileWriter.write("\(string)\n")
 				} catch {
 					// Error
 					NSLog("FileLogger encountered error when writing to file - \(error)")
 				}
 			}
 		}
-
-		// Remove any existing file
-		try? FileManager.default.remove(file)
 	}
 }

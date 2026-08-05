@@ -140,11 +140,19 @@ public extension String {
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - Identifiable Extension
+#if compiler(>=5.10)
 extension String : @retroactive Identifiable {
 
 	// MARK: Properties
 	public	var	id :String { self }
 }
+#else
+extension String : Identifiable {
+
+	// MARK: Properties
+	public	var	id :String { self }
+}
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: - Localization Extension
