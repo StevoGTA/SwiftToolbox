@@ -125,7 +125,7 @@ public struct SQLiteTable {
 		self.statementPerformer = statementPerformer
 	}
 
-	// MARK: Property methods
+	// MARK: Properties
 	//------------------------------------------------------------------------------------------------------------------
 	public subscript(dynamicMember member :String) -> SQLiteTableColumn { self.tableColumnByDynamicMember[member]! }
 

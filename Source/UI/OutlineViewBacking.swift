@@ -47,7 +47,7 @@ public class OutlineViewBacking : NSObject {
 	// MARK: Properties
 	@objc			var	topLevelObjects :[Any] { self.topLevelItemIDsSorted.map({ self.itemByItemID[$0]!.object }) }
 
-	@objc			var	compareObjectsProc
+	@objc			var	compareItemsProc
 								:(_ item1 :Item, _ item2 :Item, _ sortDescriptors :[NSSortDescriptor]) -> Bool =
 								{
 									// Iterate sort descriptors
@@ -95,13 +95,15 @@ public class OutlineViewBacking : NSObject {
 				// Update
 				self.itemByItemID += Dictionary(childItems.map({ ($0.id, $0) }))
 				parentItem.childItemIDs += childItems.map({ $0.id })
-				parentItem.childItemIDsSorted = parentItem.childItemIDs
 
 				// Check if have sorting
 				if !self.sortDescriptors.isEmpty {
 					// Sort
 					updateSorting(itemIDs: &parentItem.childItemIDsSorted)
 				}
+
+				// Update
+				parentItem.needsReload = false
 			}
 
 			return parentItem.childItemIDsSorted[index]
@@ -238,7 +240,7 @@ public class OutlineViewBacking : NSObject {
 		itemIDs =
 				itemIDs
 						.map({ self.itemByItemID[$0]! })
-						.sorted(by: { self.compareObjectsProc($0, $1, self.sortDescriptors) })
+						.sorted(by: { self.compareItemsProc($0, $1, self.sortDescriptors) })
 						.map({ $0.id })
 	}
 }

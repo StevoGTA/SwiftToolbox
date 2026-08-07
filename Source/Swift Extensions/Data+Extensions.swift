@@ -134,4 +134,15 @@ public extension Data {
 
 		return subdata(in: startIndex..<endIndex)
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func chunked(by chunkSize :Int) -> [SubSequence] {
+		// Return array of SubSequences
+		return (0..<self.count / chunkSize).map() {
+			// Compute start for this SubSequence
+			let	start = self.startIndex + $0 * chunkSize
+
+			return self[start..<start + chunkSize]
+		}
+	}
 }
