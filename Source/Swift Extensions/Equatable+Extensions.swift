@@ -37,6 +37,9 @@ func ==<T>(lhs: T?, rhs: T?) -> Bool where T: Any {
 	} else if let lhs = (lhs as? [AnyHashable: Any]), let rhs = (rhs as? [AnyHashable: Any]) {
 		// AnyHashable check
 		return (lhs.count == rhs.count) && lhs.allSatisfy({ $1 == rhs[$0] })
+	} else if let lhs = (lhs as? AnyHashable), let rhs = (rhs as? AnyHashable) {
+		// Hashable check - covers scalars, Sets, and anything else Hashable
+		return lhs == rhs
 	} else {
 		// Don't know how to check
 		return false
