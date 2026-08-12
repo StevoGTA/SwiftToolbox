@@ -131,8 +131,8 @@ public extension String {
 
 				let parts = components[1].components(separatedBy: "-")
 				guard parts.count == 2 else { return nil }
-				guard let start = Int64(parts[0]) else { return nil }
-				guard let end = Int64(parts[1]) else { return nil }
+				guard let start = Int64(parts[0]), start >= 0 else { return nil }
+				guard let end = Int64(parts[1]), end >= start else { return nil }
 
 				return (start, end - start + 1)
 			}
