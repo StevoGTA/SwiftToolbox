@@ -19,15 +19,14 @@ import Foundation
 							finished, so the destination is never seen partially written
 		totalByteCount	the final size of the file, which is what allows knowing when the file is complete
 		completionProc	called at most once, when the file is complete and in place
-		idleTimeout		if the file is not complete and no write happens for this long, the file is abandoned - any
-							temp file is removed and abandonProc is called.  Best paired with a totalByteCount, as
-							without one there is no way to tell "done" from "stalled", so a slow producer - or one
-							that simply has not called complete() yet - can have its file thrown away
 
-	Call complete() when done, or abandon() to give up - a file with a totalByteCount completes itself.
+	Call complete() when done - a file with a totalByteCount completes itself.  To give up on a file, simply drop
+		the writer - a staged temp that never completed is removed on deinit; without staging, whatever was written
+		stays, which is precisely what staging is for.  If complete() throws, nothing was published and the writer
+		is still writing - retry complete(), or drop the writer.
 
-	Neither proc is called on any particular thread - completionProc arrives on whichever thread finished the file
-		and abandonProc can arrive on the idle timer's own queue, so treat both as coming from anywhere.
+	completionProc is not called on any particular thread - it arrives on whichever thread finished the file, so
+		treat it as coming from anywhere.
 
 	Coverage of the file is tracked as written, so writes may arrive out of order and may repeat (a retry of the
 		same bytes changes nothing) - the file is complete when every byte from 0 to totalByteCount is covered.
@@ -37,8 +36,8 @@ import Foundation
 		safe but gain nothing from being spread across threads.
 
 	A write that fails partway leaves bytes on disk that are not accounted for.  A positioned write simply sorts
-		itself out when it is retried, but a sequential one does not as the file offset has moved on, so abandon
-		rather than carry on writing after one fails.
+		itself out when it is retried, but a sequential one does not as the file offset has moved on, so drop the
+		writer rather than carry on writing after one fails.
 */
 public final class FileWriter : @unchecked Sendable {
 
@@ -53,7 +52,6 @@ public final class FileWriter : @unchecked Sendable {
 	public enum State {
 		case writing	// Still accepting writes
 		case complete	// Fully written and in place
-		case abandoned	// Given up on - a staged file leaves nothing behind, otherwise whatever was written stays
 	}
 
 	// MARK: Error
@@ -63,7 +61,7 @@ public final class FileWriter : @unchecked Sendable {
 		public enum Kind {
 			case invalidMode
 			case couldNotOpen
-			case notWriting
+			case alreadyComplete
 			case outOfBounds
 			case writeFailed
 			case incomplete
@@ -95,7 +93,6 @@ public final class FileWriter : @unchecked Sendable {
 
 	// MARK: Types
 	public typealias CompletionProc = @Sendable (_ file :File) -> Void
-	public typealias AbandonProc = @Sendable (_ file :File) -> Void
 
 	// MARK: Properties
 	public			let	file :File
@@ -106,16 +103,13 @@ public final class FileWriter : @unchecked Sendable {
 
 			private	let	totalByteCount :Int64?
 			private	let	stagedFile :File?
-			private	let	idleTimeout :TimeInterval?
 			private	let	completionProc :CompletionProc?
-			private	let	abandonProc :AbandonProc?
 			private	let	lock = Lock()
 
 			private	let	fd :Int32
 			private	var	nextOffset = Int64(0)
 			private	var	coverage = [Range<Int64>]()
 			private	var	stateInternal = State.writing
-			private	var	idleTimer :DispatchSourceTimer?
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -151,22 +145,15 @@ public final class FileWriter : @unchecked Sendable {
 
 	//------------------------------------------------------------------------------------------------------------------
 	// Write a file within the given proc, which relieves the caller of managing the FileWriter's lifetime - the file is
-	//	completed when the proc returns and abandoned if the proc throws.
+	//	completed when the proc returns.  If the proc throws, the writer is simply dropped, which cleans up any staged
+	//	temp on deinit.
 	static public func write(to file :File, mode :Mode = .overwrite, staged :Bool = false,
 			proc :(_ fileWriter :FileWriter) throws -> Void) throws {
 		// Setup
 		let	fileWriter = try FileWriter(for: file, mode: mode, staged: staged)
 
 		// Call proc
-		do {
-			// Write
-			try proc(fileWriter)
-		} catch {
-			// Abandon and rethrow
-			fileWriter.abandon()
-
-			throw error
-		}
+		try proc(fileWriter)
 
 		// Complete
 		try fileWriter.complete()
@@ -175,8 +162,7 @@ public final class FileWriter : @unchecked Sendable {
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(for file :File, mode :Mode = .overwrite, staged :Bool = false, totalByteCount :Int64? = nil,
-			idleTimeout :TimeInterval? = nil, completionProc :CompletionProc? = nil, abandonProc :AbandonProc? = nil)
-			throws {
+			completionProc :CompletionProc? = nil) throws {
 		// Preflight - .append starts partway into an existing file, which neither staging (which starts from
 		//	nothing and then replaces the destination) nor coverage (which counts from 0) can make sense of
 		guard (mode != .append) || (!staged && (totalByteCount == nil)) else
@@ -207,28 +193,12 @@ public final class FileWriter : @unchecked Sendable {
 		self.file = file
 		self.totalByteCount = totalByteCount
 		self.stagedFile = stagedFile
-		self.idleTimeout = idleTimeout
 		self.completionProc = completionProc
-		self.abandonProc = abandonProc
 		self.fd = fd
-
-		// Start watching for idleness
-		if idleTimeout != nil {
-			// Setup timer
-			let	idleTimer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
-			idleTimer.setEventHandler() { [weak self] in self?.abandon() }
-			idleTimer.schedule(deadline: .now() + idleTimeout!, repeating: .never)
-			idleTimer.resume()
-
-			self.idleTimer = idleTimer
-		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	deinit {
-		// Stop watching for idleness
-		self.idleTimer?.cancel()
-
 		// Close - the file descriptor is held until now so that a write which is already underway can never land on a
 		//	descriptor number that has since been reused for something else entirely
 		Darwin.close(self.fd)
@@ -247,7 +217,7 @@ public final class FileWriter : @unchecked Sendable {
 					try self.lock.perform() { () -> Bool in
 						// Preflight
 						guard self.stateInternal == .writing else
-							{ throw Error(kind: .notWriting, file: self.file) }
+							{ throw Error(kind: .alreadyComplete, file: self.file) }
 						try checkInBounds(offset: self.nextOffset, count: data.count)
 						guard !data.isEmpty else { return false }
 
@@ -276,7 +246,7 @@ public final class FileWriter : @unchecked Sendable {
 	//	regardless of the offset given.
 	public func write(_ data :Data, at offset :Int64) throws {
 		// Preflight
-		guard self.state == .writing else { throw Error(kind: .notWriting, file: self.file) }
+		guard self.state == .writing else { throw Error(kind: .alreadyComplete, file: self.file) }
 		try checkInBounds(offset: offset, count: data.count)
 		guard !data.isEmpty else { return }
 
@@ -296,19 +266,16 @@ public final class FileWriter : @unchecked Sendable {
 	//------------------------------------------------------------------------------------------------------------------
 	// Declare the file done - move it into place if staged and call the completionProc.  Happens automatically when a
 	//	totalByteCount was given and the file becomes fully written.  Does nothing if already complete, and throws if
-	//	the file was abandoned or is not fully written.
+	//	the file is not fully written.
 	public func complete() throws {
 		// Perform under lock
 		guard try self.lock.perform({ () -> Bool in
 			// Check state
-			guard self.stateInternal != .abandoned else { throw Error(kind: .notWriting, file: self.file) }
 			guard self.stateInternal == .writing else { return false }
 			guard isFullyCovered else { throw Error(kind: .incomplete, file: self.file) }
 
-			// Claim and stop watching for idleness
+			// Claim
 			self.stateInternal = .complete
-			self.idleTimer?.cancel()
-			self.idleTimer = nil
 
 			return true
 		}) else { return }
@@ -331,41 +298,15 @@ public final class FileWriter : @unchecked Sendable {
 					{ throw Error(kind: .couldNotMoveIntoPlace, file: self.file, errno: errno) }
 			}
 		} catch {
-			// Don't leave the temp file lying around, and don't claim to be complete when nothing was published - the
-			//	caller hears about it through the error rather than the abandonProc
-			if self.stagedFile != nil { try? FileManager.default.remove(self.stagedFile!) }
-			self.lock.perform({ self.stateInternal = .abandoned })
+			// Nothing was published, so don't claim to be complete - the file is exactly as it was, so the caller can
+			//	retry complete() or simply drop the writer (which cleans up any staged temp)
+			self.lock.perform({ self.stateInternal = .writing })
 
 			throw error
 		}
 
 		// Call completion proc - outside the lock as it is the caller's work and can take as long as it likes
 		self.completionProc?(self.file)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	// Give up on the file and call the abandonProc.  Does nothing if no longer writing.  A staged file leaves nothing
-	//	behind; without staging, whatever was already written stays at the destination, which is precisely what staging
-	//	is for.
-	public func abandon() {
-		// Claim under the lock - only one caller ever gets to do this
-		guard self.lock.perform({ () -> Bool in
-			// Check state
-			guard self.stateInternal == .writing else { return false }
-
-			// Claim and stop watching for idleness
-			self.stateInternal = .abandoned
-			self.idleTimer?.cancel()
-			self.idleTimer = nil
-
-			return true
-		}) else { return }
-
-		// Remove the temp file so a partially written file is not left lying around
-		if self.stagedFile != nil { try? FileManager.default.remove(self.stagedFile!) }
-
-		// Call abandon proc
-		self.abandonProc?(self.file)
 	}
 
 	// MARK: Private methods
@@ -402,10 +343,10 @@ public final class FileWriter : @unchecked Sendable {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	// Note that the given range of the file has been written, keep the idle watch alive, and return whether the file is
-	//	now fully written.  Must be called with the lock held.  Counting bytes is not enough - writes can arrive out of
-	//	order, so the only way to know the file is whole is to see that the covered ranges join up into one that spans
-	//	it.  Completing is left to complete(), which is what makes it happen only once.
+	// Note that the given range of the file has been written and return whether the file is now fully written.  Must
+	//	be called with the lock held.  Counting bytes is not enough - writes can arrive out of order, so the only way
+	//	to know the file is whole is to see that the covered ranges join up into one that spans it.  Completing is left
+	//	to complete(), which is what makes it happen only once.
 	private func noteWritten(_ range :Range<Int64>) -> Bool {
 		// Absorb any ranges that overlap or touch this one, leaving the rest alone
 		var	lowerBound = range.lowerBound
@@ -425,24 +366,7 @@ public final class FileWriter : @unchecked Sendable {
 		coverage.append(lowerBound ..< upperBound)
 		self.coverage = coverage.sorted(by: { $0.lowerBound < $1.lowerBound })
 
-		// Check coverage
-		let	isComplete = (self.totalByteCount != nil) && isFullyCovered
-
-		// There is progress, so the file is not idle
-		if self.idleTimeout != nil {
-			// Check if there is any more to come
-			if isComplete {
-				// Fully written, so stop watching right now - leaving the countdown armed would let it fire in the
-				//	moment between here and complete() and throw away a file that is entirely there
-				self.idleTimer?.cancel()
-				self.idleTimer = nil
-			} else {
-				// Restart the idle countdown
-				self.idleTimer?.schedule(deadline: .now() + self.idleTimeout!, repeating: .never)
-			}
-		}
-
-		return isComplete
+		return (self.totalByteCount != nil) && isFullyCovered
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -483,8 +407,8 @@ extension FileWriter.Error : CustomStringConvertible, LocalizedError {
 								return ".append cannot be used with staging or a totalByteCount for file \(self.file.path)"
 							case .couldNotOpen:
 								return "Could not open file \(self.file.path)"
-							case .notWriting:
-								return "File \(self.file.path) is no longer being written"
+							case .alreadyComplete:
+								return "File \(self.file.path) is already complete"
 							case .outOfBounds:
 								return "Write lands outside of file \(self.file.path)"
 							case .writeFailed:

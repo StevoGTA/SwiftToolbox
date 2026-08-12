@@ -276,13 +276,13 @@ public extension String {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func subPath(relativeTo path :String) -> String? {
-		// Ensure common root
-		guard hasPrefix(path) else { return nil }
+		// Compare path components
+		let	rootPathComponents = path.pathComponents
+		let	pathComponents = self.pathComponents
+		guard pathComponents.count >= rootPathComponents.count,
+				Array(pathComponents[0 ..< rootPathComponents.count]) == rootPathComponents else { return nil }
 
-		// Get remaining part
-		let	subPath = substring(fromCharacterIndex: path.count)
-
-		return subPath.hasPrefix("/") ? subPath.substring(fromCharacterIndex: 1) : subPath
+		return pathComponents[rootPathComponents.count...].joined(separator: "/")
 	}
 }
 

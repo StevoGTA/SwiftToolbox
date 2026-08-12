@@ -59,10 +59,18 @@ public struct Folder : Equatable, Sendable {
 	public func file(withSubPath subPath :String) -> File { File(self.url.appendingPathComponent(subPath)) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func subPath(for folder :Folder) -> String? { folder.path.subPath(relativeTo: self.path) }
+	public func subPath(for folder :Folder) -> String? { folder.url.subPath(relativeTo: self.url) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func subPath(for file :File) -> String? { file.path.subPath(relativeTo: self.path) }
+	public func subPath(for file :File) -> String? { file.url.subPath(relativeTo: self.url) }
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Resolve a subPath against this folder and give it back in canonical form, or nil if it does not land within
+	//	this folder.  For subPaths from outside the program: what comes back is what to use, so that what was
+	//	checked and what is used are the same thing.
+	public func subPath(resolving subPath :String) -> String? {
+		return self.url.appendingPathComponent(subPath).subPath(relativeTo: self.url)
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

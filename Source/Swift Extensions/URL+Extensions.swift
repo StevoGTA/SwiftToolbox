@@ -69,11 +69,14 @@ public extension URL {
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func subPath(relativeTo url :URL) -> String? {
-		// Setup
-		let	fullPath = self.path
-		let	rootPath = url.path
+		// Compare path components.  Going through the path drops any trailing separator, which a URL otherwise
+		//	carries as a path component of its own, and empty components are what a doubled separator leaves.
+		let	urlPathComponents = url.standardized.path.pathComponents.filter({ !$0.isEmpty })
+		let	pathComponents = self.standardized.path.pathComponents.filter({ !$0.isEmpty })
+		guard pathComponents.count >= urlPathComponents.count,
+				Array(pathComponents[0 ..< urlPathComponents.count]) == urlPathComponents else { return nil }
 
-		return fullPath.hasPrefix(rootPath) ? fullPath.substring(fromCharacterIndex: rootPath.count + 1) : nil
+		return pathComponents[urlPathComponents.count...].joined(separator: "/")
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

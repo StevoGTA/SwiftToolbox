@@ -121,6 +121,13 @@ extension FileManager {
 	public func remove(_ folder :Folder) throws { try removeItem(at: folder.url) }
 
 	//------------------------------------------------------------------------------------------------------------------
+	public func move(_ file :File, to destinationFile :File) throws {
+		// Move
+		guard Darwin.rename(file.path, destinationFile.path) == 0 else
+			{ throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: nil) }
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	func enumerateFolders(in folder :Folder, includingPropertiesForKeys keys: [URLResourceKey]? = nil,
 			enumerationOptions: EnumerationOptions = [], isCancelledProc :IsCancelledProc = { false },
 			folderProc :Folder.SubPathProc) throws {
