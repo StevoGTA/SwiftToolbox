@@ -68,6 +68,16 @@ public extension URL {
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
+	func hasPathExtension(in pathExtensions :Set<String>) -> Bool {
+		// Check path extension
+		let	pathExtension = self.pathExtension.lowercased()
+		guard !pathExtension.isEmpty else { return false }
+
+		return pathExtensions.contains(pathExtension) ||
+				pathExtensions.contains(where: { $0.lowercased() == pathExtension })
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	func subPath(relativeTo url :URL) -> String? {
 		// Compare path components.  Going through the path drops any trailing separator, which a URL otherwise
 		//	carries as a path component of its own, and empty components are what a doubled separator leaves.

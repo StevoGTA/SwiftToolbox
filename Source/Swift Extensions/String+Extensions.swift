@@ -208,17 +208,18 @@ public extension String {
 			}
 	var	pathExtension :String? {
 				// Setup
-				let	components = self.components(separatedBy: ".")
+				guard let lastPathComponent = self.lastPathComponent else { return nil }
+				let	components = lastPathComponent.components(separatedBy: ".")
 
 				return (components.count > 1) ? components.last : nil
 			}
 	var	deletingPathExtension :String {
-				// Split path by "."
-				let	nameComponents = self.components(separatedBy: ".")
+				// Setup
+				guard let pathExtension = self.pathExtension else { return self }
 
-				return (nameComponents.count > 1) ?
-						self.substring(toCharacterIndex: self.count - nameComponents.last!.count - 1) : self
+				return self.substring(toCharacterIndex: self.count - pathExtension.count - 1)
 			}
+	var	isHiddenPath :Bool { self.lastPathComponent?.hasPrefix(".") ?? false }
 
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
@@ -267,6 +268,15 @@ public extension String {
 
 	//------------------------------------------------------------------------------------------------------------------
 	func appending(pathExtension :String) -> String { !pathExtension.isEmpty ? self + "." + pathExtension : self }
+
+	//------------------------------------------------------------------------------------------------------------------
+	func hasPathExtension(in pathExtensions :Set<String>) -> Bool {
+		// Check path extension
+		guard let pathExtension = self.pathExtension?.lowercased() else { return false }
+
+		return pathExtensions.contains(pathExtension) ||
+				pathExtensions.contains(where: { $0.lowercased() == pathExtension })
+	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	func lastPathComponents(_ count :Int) -> [String] { self.pathComponents.suffix(count) }
