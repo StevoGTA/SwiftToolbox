@@ -200,13 +200,15 @@ open class HTTPEndpointClient {
 			self.totalPerformInfosCount = urlRequests.count
 
 			// Check HTTPEndpointRequest type
-			if let fileHTTPEndpointRequest = self.httpEndpointRequest as? FileHTTPEndpointRequest {
-				// FileHTTPEndpointRequest
+			if let httpEndpointRequestProcessURLResults =
+					self.httpEndpointRequest as? HTTPEndpointRequestProcessURLResults {
+				// HTTPEndpointRequestProcessURLResults
 				return urlRequests
 						.map({ HTTPEndpointRequestPerformInfo(httpEndpointRequestInfo: self, urlRequest: $0,
 								urlCompletionProc: {
 									// Process results
-									fileHTTPEndpointRequest.processResults(response: $0, url: $1, error: $2)
+									httpEndpointRequestProcessURLResults.processResults(response: $0, url: $1,
+											error: $2)
 								}) })
 			} else if let streamHTTPEndpointRequest = self.httpEndpointRequest as? StreamHTTPEndpointRequest {
 				// StreamHTTPEndpointRequest
@@ -556,18 +558,6 @@ open class HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func queue(_ fileHTTPEndpointRequest :FileHTTPEndpointRequest, identifier :String = "",
-			priority :Priority = .normal, progressProc :@escaping FileHTTPEndpointRequest.ProgressProc = { _ in },
-			completionProc :@escaping FileHTTPEndpointRequest.CompletionProc) {
-		// Setup
-		fileHTTPEndpointRequest.progressProc = progressProc
-		fileHTTPEndpointRequest.completionProc = completionProc
-
-		// Queue
-		queue(fileHTTPEndpointRequest, identifier: identifier, priority: priority)
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
 	public func queue(_ headHTTPEndpointRequest :HeadHTTPEndpointRequest, identifier :String = "",
 			priority :Priority = .normal, completionProc :@escaping HeadHTTPEndpointRequest.CompletionProc) {
 		// Setup
@@ -780,14 +770,15 @@ open class HTTPEndpointClient {
 									}
 
 					// Run task
-					if let fileHTTPEndpointRequest =
-							httpEndpointRequestPerformInfo.httpEndpointRequest as? FileHTTPEndpointRequest {
-						// FileHTTPEndpointRequest
+					if let httpEndpointRequestProcessURLResults =
+							httpEndpointRequestPerformInfo.httpEndpointRequest as?
+									HTTPEndpointRequestProcessURLResults {
+						// HTTPEndpointRequestProcessURLResults)
 						let	urlSessionDownloadTask = strongSelf.urlSession.downloadTask(with: urlRequest)
 
 						// Register with URLSessionDelegate
 						self?.urlSessionDelegate?.register(task: urlSessionDownloadTask,
-								progressProc: fileHTTPEndpointRequest.progressProc,
+								progressProc: httpEndpointRequestProcessURLResults.progressProc,
 								completionProc: {
 									// Log
 									completionLogProc($0, $2, nil)
