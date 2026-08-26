@@ -225,7 +225,7 @@ public extension String {
 	//------------------------------------------------------------------------------------------------------------------
 	static func allTreeSubPaths(given leafSubPaths :[String]) -> Set<String> {
 		// Setup
-		var	subPaths = Set<String>(!leafSubPaths.isEmpty ? [""] : [])
+		var	subPaths = Set<String>()
 		leafSubPaths.forEach() {
 			// Add all folder subPaths going up the tree
 			var	subPath = $0
