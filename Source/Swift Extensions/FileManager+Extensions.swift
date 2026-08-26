@@ -122,18 +122,37 @@ extension FileManager {
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func move(_ file :File, to destinationFile :File, replacingExisting :Bool = true) throws {
-		// Move
-		let	result =
-					replacingExisting ?
-							Darwin.rename(file.path, destinationFile.path) :
-							Darwin.renamex_np(file.path, destinationFile.path, UInt32(RENAME_EXCL))
-		guard result == 0 else {
-			// Surface an existing destination as the standard file-exists error, everything else as its POSIX error
-			let	posixError = errno
-
-			throw (posixError == EEXIST) ?
+		// Surface an existing destination as the standard file-exists error, everything else as its POSIX error
+		func error(for posixError :Int32) -> Error {
+			// Return error
+			return (posixError == EEXIST) ?
 					CocoaError(.fileWriteFileExists) :
 					NSError(domain: NSPOSIXErrorDomain, code: Int(posixError), userInfo: nil)
+		}
+
+		// Check if replacing existing
+		if replacingExisting {
+			// Move, replacing anything already at the destination
+			guard Darwin.rename(file.path, destinationFile.path) == 0 else { throw error(for: errno) }
+		} else if Darwin.renamex_np(file.path, destinationFile.path, UInt32(RENAME_EXCL)) != 0 {
+			// Exclusive move did not happen - anything other than the filesystem not supporting exclusive rename is
+			//	the outcome
+			let	posixError = errno
+			guard (posixError == ENOTSUP) || (posixError == EINVAL) else { throw error(for: posixError) }
+
+			// Atomically claim the destination name instead, then rename over the placeholder, which stays exclusive
+			//	because competing claims fail from the moment this one succeeds
+			let	fd = Darwin.open(destinationFile.path, O_CREAT | O_EXCL | O_WRONLY, 0o644)
+			guard fd != -1 else { throw error(for: errno) }
+			Darwin.close(fd)
+
+			guard Darwin.rename(file.path, destinationFile.path) == 0 else {
+				// Release the claimed name before surfacing the error
+				let	renameError = errno
+				try? remove(destinationFile)
+
+				throw error(for: renameError)
+			}
 		}
 	}
 
