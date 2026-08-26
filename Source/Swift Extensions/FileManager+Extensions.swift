@@ -121,10 +121,20 @@ extension FileManager {
 	public func remove(_ folder :Folder) throws { try removeItem(at: folder.url) }
 
 	//------------------------------------------------------------------------------------------------------------------
-	public func move(_ file :File, to destinationFile :File) throws {
+	public func move(_ file :File, to destinationFile :File, replacingExisting :Bool = true) throws {
 		// Move
-		guard Darwin.rename(file.path, destinationFile.path) == 0 else
-			{ throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: nil) }
+		let	result =
+					replacingExisting ?
+							Darwin.rename(file.path, destinationFile.path) :
+							Darwin.renamex_np(file.path, destinationFile.path, UInt32(RENAME_EXCL))
+		guard result == 0 else {
+			// Surface an existing destination as the standard file-exists error, everything else as its POSIX error
+			let	posixError = errno
+
+			throw (posixError == EEXIST) ?
+					CocoaError(.fileWriteFileExists) :
+					NSError(domain: NSPOSIXErrorDomain, code: Int(posixError), userInfo: nil)
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
