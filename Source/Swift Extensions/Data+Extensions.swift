@@ -108,6 +108,14 @@ public extension Data {
 
 	var	hexEncodedString :String { map({ String(format: "%02hhx", $0) }).joined() }
 
+	var	base64URLEncodedString :String {
+				// Encode with the url-safe alphabet, no padding
+				return base64EncodedString()
+						.replacingOccurrences(of: "+", with: "-")
+						.replacingOccurrences(of: "/", with: "_")
+						.replacingOccurrences(of: "=", with: "")
+			}
+
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	init?(hexEncodedString string :String) {
@@ -120,6 +128,16 @@ public extension Data {
 
 		// Have bytes
 		self.init(bytes)
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	init?(base64URLEncodedString string :String) {
+		// Restore the standard alphabet and padding
+		var	base64EncodedString =
+					string.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+		base64EncodedString += String(repeating: "=", count: (4 - (base64EncodedString.count % 4)) % 4)
+
+		self.init(base64Encoded: base64EncodedString)
 	}
 
 	// MARK: Instance methods
