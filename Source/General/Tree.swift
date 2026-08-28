@@ -91,26 +91,35 @@ public class TreeBuilder<G : TreeGroup, GInfo : Any, I : TreeItem, IInfo : Any> 
 		} else {
 			// Setup
 			let	groupTracker = GroupTracker(subPath: subPath, info: info)
-			let	folder = subPath.deletingLastPathComponent
+			let	group = subPath.deletingLastPathComponent
 
 			// Add group tracker
 			self.groupTrackerMap[subPath] = groupTracker
 
-			// Check if have GroupTracker for folder
-			if self.groupTrackerMap[folder] == nil {
+			// Check if have GroupTracker for group
+			if self.groupTrackerMap[group] == nil {
 				// Add Group for parent
-				addGroup(at: folder)
+				addGroup(at: group)
 			}
 
 			// Add to parent
-			self.groupTrackerMap[folder]!.add(groupTracker)
+			self.groupTrackerMap[group]!.add(groupTracker)
 		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public func addItem(at path :String, with info :IInfo? = nil) {
+		// Setup
+		let	group = path.deletingLastPathComponent
+
+		// Check if have GroupTracker for group
+		if self.groupTrackerMap[group] == nil {
+			// Add Group
+			addGroup(at: group)
+		}
+
 		// Add item to parent group tracker
-		self.groupTrackerMap[path.deletingLastPathComponent]!.add(path.lastPathComponent!, with: info)
+		self.groupTrackerMap[group]!.add(path.lastPathComponent!, with: info)
 	}
 }
 
