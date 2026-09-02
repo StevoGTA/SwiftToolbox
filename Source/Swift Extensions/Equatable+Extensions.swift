@@ -17,27 +17,34 @@ fileprivate extension Equatable {
 
 // MARK: - Global functions
 //----------------------------------------------------------------------------------------------------------------------
-// Normally would be coalesced into following function, but separate function needed for Xcode 13.4.1
+// Could be coalesced into the function below, but this is needed for Xcode 13.4.1
 func ==<T : Equatable>(lhs :T?, rhs :T?) -> Bool {
-    // Ensure we have values
-    guard let lhs = lhs, let rhs = rhs else { return (lhs == nil) && (rhs == nil) }
-
-    return lhs.isEqual(to: rhs)
+	// Check values
+	switch (lhs, rhs) {
+		case (.none, .none):					return true
+		case (.none, .some), (.some, .none):	return false
+		case (.some(let lhs), .some(let rhs)):	return lhs.isEqual(to: rhs)
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 func ==<T>(lhs: T?, rhs: T?) -> Bool where T: Any {
-	// Ensure we have values (coded to work in Xcode 13.4.1
-	guard let lhs = lhs, let rhs = rhs else { return (lhs == nil) && (rhs == nil) }
+	// Check values
+	let	lhsValue :T, rhsValue :T
+	switch (lhs, rhs) {
+		case (.none, .none):					return true
+		case (.none, .some), (.some, .none):	return false
+		case (.some(let lhs), .some(let rhs)):	lhsValue = lhs; rhsValue = rhs
+	}
 
-	// Check types - Array, [AnyHashable : String]
-    if let lhs = (lhs as? [Any]), let rhs = (rhs as? [Any]) {
+	// Check runtime type
+    if let lhs = (lhsValue as? [Any]), let rhs = (rhsValue as? [Any]) {
 		// Array check
         return (lhs.count == rhs.count) && lhs.elementsEqual(rhs, by: ==)
-	} else if let lhs = (lhs as? [AnyHashable: Any]), let rhs = (rhs as? [AnyHashable: Any]) {
+	} else if let lhs = (lhsValue as? [AnyHashable: Any]), let rhs = (rhsValue as? [AnyHashable: Any]) {
 		// AnyHashable check
 		return (lhs.count == rhs.count) && lhs.allSatisfy({ $1 == rhs[$0] })
-	} else if let lhs = (lhs as? AnyHashable), let rhs = (rhs as? AnyHashable) {
+	} else if let lhs = (lhsValue as? AnyHashable), let rhs = (rhsValue as? AnyHashable) {
 		// Hashable check - covers scalars, Sets, and anything else Hashable
 		return lhs == rhs
 	} else {
