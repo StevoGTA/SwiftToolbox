@@ -36,6 +36,28 @@ public extension HTTPEndpointClient {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+	func queue(_ integerHTTPEndpointRequest :IntegerHTTPEndpointRequest, identifier :String = "",
+			priority :Priority = .normal) async throws -> Int {
+		// Queue and await
+		return try await withCheckedThrowingContinuation() { continuation in
+			// Setup
+			integerHTTPEndpointRequest.completionProc = { _, value, error in
+				// Handle results
+				if value != nil {
+					// Success
+					continuation.resume(returning: value!)
+				} else {
+					// Error
+					continuation.resume(throwing: error ?? HTTPEndpointRequestError.unableToProcessResponseData)
+				}
+			}
+
+			// Queue
+			self.queue(integerHTTPEndpointRequest, identifier: identifier, priority: priority)
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
 	func queue<T>(_ jsonHTTPEndpointRequest :JSONHTTPEndpointRequest<T>, identifier :String = "",
 			priority :Priority = .normal) async throws -> T {
 		// Queue and await

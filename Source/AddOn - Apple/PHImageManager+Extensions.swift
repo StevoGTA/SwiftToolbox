@@ -69,4 +69,43 @@ extension PHImageManager {
 			requestPlayerItem(forVideo: asset, options: options) { continuation.resume(returning: ($0, $1)) }
 		}
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func requestExportSession(forVideoAsset asset :PHAsset, options :PHVideoRequestOptions? = nil, exportPreset :String)
+			async -> (AVAssetExportSession?, [AnyHashable : Any]?) {
+		// Warp to async world...
+		await withCheckedContinuation() { continuation in
+			// Make request
+			requestExportSession(forVideo: asset, options: options, exportPreset: exportPreset)
+					{ continuation.resume(returning: ($0, $1)) }
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - PHAssetResourceManager extension
+extension PHAssetResourceManager {
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func requestData(for assetResource :PHAssetResource, options :PHAssetResourceRequestOptions? = nil) async throws ->
+			Data {
+		// Warp to async world...
+		try await withCheckedThrowingContinuation() { continuation in
+			// Setup
+			var	data = Data()
+
+			// Make request
+			requestData(for: assetResource, options: options, dataReceivedHandler: { data.append($0) }) { error in
+				// Check for error
+				if let error = error {
+					// Error
+					continuation.resume(throwing: error)
+				} else {
+					// Success
+					continuation.resume(returning: data)
+				}
+			}
+		}
+	}
 }
