@@ -14,9 +14,11 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: KeyedArchiveStorage
+@MainActor
 class KeyedArchiveStorage {
 
 	// MARK: Object
+	@MainActor
 	class Object {
 
 		// MARK: Properties
@@ -64,11 +66,14 @@ class KeyedArchiveStorage {
 		load()
 		
 		// Register notifications
-		let	willTerminateNotificationProc :(_ notification :Notification) -> Void = { [unowned self] _ in
-					// Check if needs storage
-					if self.storageTimer != nil {
-						// Save
-						try? self.save();
+		let	willTerminateNotificationProc :@Sendable (_ notification :Notification) -> Void = { [unowned self] _ in
+					// Posted on the main thread
+					MainActor.assumeIsolated() {
+						// Check if needs storage
+						if self.storageTimer != nil {
+							// Save
+							try? self.save();
+						}
 					}
 				}
 #if os(iOS)
@@ -137,6 +142,10 @@ class KeyedArchiveStorage {
 		}
 		
 		// Start timer
-		self.storageTimer = Timer.scheduled(withTimeInterval: self.storageDelay) { [weak self] _ in try? self?.save() }
+		self.storageTimer =
+				Timer.scheduled(withTimeInterval: self.storageDelay) { [weak self] _ in
+					// Fires on the main run loop
+					MainActor.assumeIsolated() { try? self?.save() }
+				}
 	}
 }
