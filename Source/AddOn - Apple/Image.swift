@@ -182,6 +182,37 @@ class Image {
 
 										return nil
 									}
+							var	captureLocalCreationDate :Date? {
+										// Creation date in the timezone at the time it was captured
+										for candidate in
+														[(self.metadata?["xmp"] as? [String : Any])?["CreateDate"] as?
+																String,
+												(self.metadata?["photoshop"] as? [String : Any])?["DateCreated"] as?
+														String] {
+											// Skip empty candidates and camera "0000-00-00..." defaults
+											guard let raw = candidate, !raw.hasPrefix("0000") else { continue }
+
+											// Strip any timezone - a trailing "Z", or a +/- offset after the "T"
+											var	string = raw
+											if string.hasSuffix("Z") { string.removeLast() }
+											if let tIndex = string.firstIndex(of: "T"),
+													let signIndex =
+															string[string.index(after: tIndex)...]
+																	.lastIndex(where: { ($0 == "+") || ($0 == "-") }) {
+												// Have offset
+												string = String(string[..<signIndex])
+											}
+
+											// Parse as local time (with then without fractional seconds)
+											if let date = Image.localMetadataDateFormatter.date(from: string) ??
+													Image.localMetadataDateFormatterNoFractionalSeconds.date(
+															from: string) {
+												return date
+											}
+										}
+
+										return nil
+									}
 
 					lazy	var	cgImage :CGImage? = { [unowned self] in
 										// Check if have CGImage already
