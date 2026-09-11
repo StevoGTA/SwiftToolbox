@@ -61,12 +61,31 @@ extension PHImageManager {
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	func requestPlayerItem(forVideo asset :PHAsset, options: PHVideoRequestOptions? = nil) async ->
-			(AVPlayerItem?, [AnyHashable : Any]?) {
-		// Warp to async wrold
-		await withCheckedContinuation() { continuation in
+	func requestPlayerItem(forVideo asset :PHAsset, options: PHVideoRequestOptions? = nil) async throws ->
+			(playerItem :AVPlayerItem, info :[AnyHashable : Any]?) {
+		// Warp to async world...
+		try await withCheckedThrowingContinuation() { continuation in
 			// Make request
-			requestPlayerItem(forVideo: asset, options: options) { continuation.resume(returning: ($0, $1)) }
+			requestPlayerItem(forVideo: asset, options: options) { playerItem, info in
+				// Check for error
+				if let error = info?[PHImageErrorKey] as? Error {
+					// Error
+					continuation.resume(throwing: error)
+
+					return
+				}
+
+				// Check if cancelled
+				guard !((info?[PHImageCancelledKey] as? Bool) ?? false), let playerItem = playerItem else {
+					// Cancelled
+					continuation.resume(throwing: CancellationError())
+
+					return
+				}
+
+				// Resume continuation
+				continuation.resume(returning: (playerItem, info))
+			}
 		}
 	}
 
