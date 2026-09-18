@@ -218,7 +218,8 @@ class Image {
 										// Check if have CGImage already
 										if (self.cgImageInternal == nil) && (self.cgImageSource != nil) {
 											// Create from source
-											self.cgImageInternal = CGImageSourceCreateImageAtIndex(self.cgImageSource!, 0, nil)
+											self.cgImageInternal =
+													CGImageSourceCreateImageAtIndex(self.cgImageSource!, 0, nil)
 										}
 
 										return self.cgImageInternal
@@ -226,7 +227,8 @@ class Image {
 					lazy	var	orientation :Orientation = { [unowned self] in
 										// Setup
 										let	metadata = self.metadata
-										let	orientation = (metadata?["tiff"] as? [String : Any])?["Orientation"] as? String
+										let	orientation =
+													(metadata?["tiff"] as? [String : Any])?["Orientation"] as? String
 
 										// Check results
 										if let value = Int(orientation) {
@@ -257,10 +259,11 @@ class Image {
 					lazy	var	metadata :[String : Any]? = {
 										// Setup
 										guard let cgImageSource = self.cgImageSource else { return nil }
-										guard let imageMetadata = CGImageSourceCopyMetadataAtIndex(cgImageSource, 0, .none) else
+										guard let imageMetadata =
+												CGImageSourceCopyMetadataAtIndex(cgImageSource, 0, .none) else
 												{ return nil }
-										guard let tags = CGImageMetadataCopyTags(imageMetadata) as? [CGImageMetadataTag] else
-												{ return nil }
+										guard let tags = CGImageMetadataCopyTags(imageMetadata) as? [CGImageMetadataTag]
+												else { return nil }
 
 										// Transmogrify
 										var	metadata = [String : [String : Any]]()
@@ -322,6 +325,9 @@ class Image {
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
 	func scaled(to size :CGSize, scaleMode :ScaleMode) -> Image? {
+		// Preflight
+		guard (size.width >= 1.0) && (size.height >= 1.0) else { return nil }
+
 		// Setup
 		let	cgImage :CGImage
 		let	imageSize :CGSize
@@ -337,13 +343,14 @@ class Image {
 					(wScale < hScale) ?
 							CGSize(width: size.width / hScale, height: initialSize.height) :
 							CGSize(width: initialSize.width, height: size.height / wScale)
-			cgImage =
+			guard let croppedCGImage =
 					self.cgImage!.cropping(
 							to: CGRect(
 									origin:
 											CGPoint(x: (initialSize.width - imageSize.width) * 0.5,
 													y: (initialSize.height - imageSize.height) * 0.5),
-									size: imageSize))!
+									size: imageSize)) else { return nil }
+			cgImage = croppedCGImage
 		} else {
 			// The rest
 			cgImage = self.cgImage!
@@ -381,25 +388,25 @@ class Image {
 				sizeUse = size
 		}
 
-		// Create bitmap data store
-		let	data :UnsafeMutableRawPointer
-		let	cgContext :CGContext
+		// Setup bitmap parameters
+		let	bytesPerPixel :Int
+		let	bitsPerComponent :Int
+		let	colorSpace :CGColorSpace
+		let	bitmapInfo :UInt32
 		switch cgColorSpace.model {
 			case .rgb:
 				// RGB
-				data = malloc(Int(sizeUse.width) * Int(sizeUse.height) * 4)
-				cgContext =
-						CGContext(data: data, width: Int(sizeUse.width), height: Int(sizeUse.height), bitsPerComponent: 8,
-								bytesPerRow: Int(sizeUse.width) * 4, space: cgColorSpace,
-								bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+				bytesPerPixel = 4
+				bitsPerComponent = 8
+				colorSpace = cgColorSpace
+				bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
 
 			case .cmyk:
 				// CMYK
-				data = malloc(Int(sizeUse.width) * Int(sizeUse.height) * 4 * 2)
-				cgContext =
-						CGContext(data: data, width: Int(sizeUse.width), height: Int(sizeUse.height), bitsPerComponent: 16,
-								bytesPerRow: Int(sizeUse.width) * 4 * 2, space: CGColorSpaceCreateDeviceCMYK(),
-								bitmapInfo: CGImageAlphaInfo.none.rawValue)!
+				bytesPerPixel = 8
+				bitsPerComponent = 16
+				colorSpace = CGColorSpaceCreateDeviceCMYK()
+				bitmapInfo = CGImageAlphaInfo.none.rawValue
 
 			default:
 				// Other
@@ -407,6 +414,15 @@ class Image {
 
 				return nil
 		}
+
+		// Create bitmap data store
+		let	data = malloc(Int(sizeUse.width) * Int(sizeUse.height) * bytesPerPixel)!
+		defer { free(data) }
+
+		guard let cgContext =
+				CGContext(data: data, width: Int(sizeUse.width), height: Int(sizeUse.height),
+						bitsPerComponent: bitsPerComponent, bytesPerRow: Int(sizeUse.width) * bytesPerPixel,
+						space: colorSpace, bitmapInfo: bitmapInfo) else { return nil }
 
 		// Check scale mode
 		if scaleMode == .aspectFit {
@@ -477,13 +493,7 @@ class Image {
 							y: (sizeUse.height - scaledImageSize.height) * 0.5)
 		cgContext.draw(cgImage, in: CGRect(origin: origin, size: scaledImageSize))
 
-		// Create new image reference
-		let	image = Image(cgContext.makeImage()!)
-
-		// Cleanup
-		free(data)
-
-		return image
+		return cgContext.makeImage().map({ Image($0) })
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

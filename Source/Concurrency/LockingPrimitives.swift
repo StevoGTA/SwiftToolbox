@@ -42,6 +42,23 @@ public class LockingValue<T> : @unchecked Sendable {
 			return value
 		};
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	public func swap(_ value :T) -> T {
+		// Swap
+		return self.lock.write() {
+			// Setup
+			let	currentValue = self.valueInternal
+
+			// Update value
+			self.valueInternal = value
+
+			// Signal
+			self.semaphore?.signal()
+
+			return currentValue
+		}
+	}
 }
 
 extension LockingValue where T : Equatable {
