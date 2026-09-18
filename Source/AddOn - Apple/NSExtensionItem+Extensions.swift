@@ -471,7 +471,7 @@ extension NSExtensionItem {
 	//------------------------------------------------------------------------------------------------------------------
 	func loadMediaItems(completionProc :@escaping (_ mediaItems :[MediaItem]) -> Void) {
 		// Setup
-		let	attachments = self.attachments!
+		let	attachments = self.attachments ?? []
 
 		// Perform in the background
 		DispatchQueue.global().async() {

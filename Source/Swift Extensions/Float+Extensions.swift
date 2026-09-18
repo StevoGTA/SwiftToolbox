@@ -6,11 +6,21 @@
 //  Copyright © 2025 Stevo Brock. All rights reserved.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
-// MARK: Float Atom extension
+// MARK: Float extension
 public extension Float {
 
 	// MARK: Lifecycle methods
+	//------------------------------------------------------------------------------------------------------------------
+	init?(_ value :Double?) {
+		// Check if value is nil
+		guard value != nil else { return nil }
+
+		self.init(value!)
+	}
+
 	//------------------------------------------------------------------------------------------------------------------
 	init?(_ string :String?, validCharacterSet :CharacterSet? = nil) {
 		// Check if string is nil
