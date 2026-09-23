@@ -17,6 +17,10 @@ extension NSItemProvider {
 	var	bestConcreteImageContentType :UTType?
 			{ NSItemProvider.bestConcreteImageContentType(from: self.registeredContentTypes) }
 
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func hasItemConforming(to contentType :UTType) -> Bool { hasItemConformingToTypeIdentifier(contentType.identifier) }
+
 	// MARK: Class methods
 	//------------------------------------------------------------------------------------------------------------------
 	static func bestConcreteImageContentType(from contentTypes :[UTType]) -> UTType? {

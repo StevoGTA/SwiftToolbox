@@ -7,7 +7,6 @@
 //
 
 import AVFoundation
-import CoreServices
 import UniformTypeIdentifiers
 
 #if os(iOS)
@@ -19,6 +18,7 @@ import UniformTypeIdentifiers
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: NSExtensionItemError
 enum NSExtensionItemError : Error {
+	case couldNotLoad
 	case couldNotIdentifyPhoto
 	case couldNotIdentifyVideoAttachment
 }
@@ -30,8 +30,9 @@ extension NSExtensionItemError : CustomStringConvertible, LocalizedError {
 	public	var	errorDescription :String? {
 						// What are we
 						switch self {
-							case .couldNotIdentifyPhoto: return "Could not identify Photo"
-							case .couldNotIdentifyVideoAttachment: return "Could not identify Video Attachment"
+							case .couldNotLoad:						return "Could not load"
+							case .couldNotIdentifyPhoto:			return "Could not identify Photo"
+							case .couldNotIdentifyVideoAttachment:	return "Could not identify Video Attachment"
 						}
 					}
 }
@@ -44,125 +45,104 @@ extension NSExtensionItem {
 	class MediaItem : Equatable {
 
 		// MARK: Properties
-					let	id = UUID().uuidString
-					
-					var	filename :String?
-					var	image :Image?
-					var	error :Error?
-					var	typeDisplayName :String { self.typeDisplayNameInternal! }
+		let	id = UUID().uuidString
 
-					var	filenameDidChangeProc :(_ filename :String) -> Void = { _ in }
-
-		fileprivate	var	typeDisplayNameInternal :String? { nil }
+		let	typeDisplayName :String
+		let	filename :String
+		let	image :Image?
 
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
-		init() {}
+		init(typeDisplayName :String, filename :String, image :Image?) {
+			// Store
+			self.typeDisplayName = typeDisplayName
+			self.filename = filename
+			self.image = image
+		}
 
 		// MARK: Equatable methods
-		//------------------------------------------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------
 		static func == (lhs :MediaItem, rhs :MediaItem) -> Bool { lhs.id == rhs.id }
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
-	// MARK: - LivePhotoBundle
+	// MARK: - LivePhotoBundleMediaItem
 	class LivePhotoBundleMediaItem : MediaItem {
 
 		// MARK: Properties
-		fileprivate	override	var	typeDisplayNameInternal: String? { "Live Photo" }
+		let	photoData :Data
 
-								var	photoData :Data?
+		let	videoAttachmentFilename :String
+		let	videoAttachmentData :Data
 
-								var	videoAttachmentFilename :String?
-								var	videoAttachmentData :Data?
-
-								var	creationDate :Date?
-								var	modificationDate :Date?
-
-		private					let	itemProvider :NSItemProvider
+		let	creationDate :Date
+		let	modificationDate :Date
 
 		// MARK: Class methods
 		//--------------------------------------------------------------------------------------------------------------
-		static fileprivate func canLoad(itemProvider :NSItemProvider) -> LivePhotoBundleMediaItem? {
+		static fileprivate func canLoad(itemProvider :NSItemProvider) -> Bool {
 			// Check if can load
-			return itemProvider.hasItemConformingToTypeIdentifier("com.apple.private.live-photo-bundle") ?
-					LivePhotoBundleMediaItem(itemProvider: itemProvider) : nil
+			return itemProvider.hasItemConforming(to: .livePhotoBundle)
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		static fileprivate func load(itemProvider :NSItemProvider) async throws -> LivePhotoBundleMediaItem {
+			// Load
+			let	url = try await itemProvider.loadURL()
+
+			// Find files
+			let	urlBasePath = url.deletingPathExtension()
+			var	photoFile :File?
+			var	videoAttachmentFile :File?
+			try FileManager.default.files(in: Folder(url))
+					.forEach() {
+						// Check base path
+						if $0.url.deletingPathExtension() == urlBasePath {
+							// Check extension
+							if ["heic", "jpeg", "jpg", "png", "tif"].contains($0.extension) {
+								// URL is a photo
+								photoFile = $0
+							} else if ["m4v", "mov"].contains($0.extension) {
+								// URL is a video
+								videoAttachmentFile = $0
+							}
+						}
+					}
+
+			// Check results
+			guard let photoFile = photoFile else { throw NSExtensionItemError.couldNotIdentifyPhoto }
+			guard let videoAttachmentFile = videoAttachmentFile else
+				{ throw NSExtensionItemError.couldNotIdentifyVideoAttachment }
+
+			// Load
+			let	photoData = try FileReader.contentsAsData(of: photoFile)
+			let	videoAttachmentFilename =
+						videoAttachmentFile
+								.name
+								.deletingPathExtension
+								.appending(pathExtension: videoAttachmentFile.extension?.lowercased() ?? "")
+			let	videoAttachmentData = try FileReader.contentsAsData(of: videoAttachmentFile)
+
+			return LivePhotoBundleMediaItem(filename: photoFile.name, image: Image(photoData), photoData: photoData,
+					videoAttachmentFilename: videoAttachmentFilename, videoAttachmentData: videoAttachmentData,
+					creationDate: photoFile.creationDate, modificationDate: photoFile.modificationDate)
 		}
 
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
-		private init(itemProvider :NSItemProvider) {
+		init(filename :String, image :Image?, photoData :Data, videoAttachmentFilename :String,
+				videoAttachmentData :Data, creationDate :Date, modificationDate :Date) {
 			// Store
-			self.itemProvider = itemProvider
+			self.photoData = photoData
+
+			self.videoAttachmentFilename = videoAttachmentFilename
+			self.videoAttachmentData = videoAttachmentData
+
+			self.creationDate = creationDate
+			self.modificationDate = modificationDate
 
 			// Do super
-			super.init()
-		}
-
-		// MARK: Instance methods
-		//--------------------------------------------------------------------------------------------------------------
-		fileprivate func load(completionProc :@escaping () -> Void) {
-			// Load
-			_ = self.itemProvider.loadObject(ofClass: URL.self) {
-				// Setup
-				defer { completionProc() }
-
-				// Handle results
-				if let url = $0 {
-					// Catch errors
-					do {
-						// Load files
-						let	urlBasePath = url.deletingPathExtension()
-						var	photoFile :File?
-						var	videoAttachmentFile :File?
-						try FileManager.default.files(in: Folder(url))
-								.forEach() {
-									// Check base path
-									if $0.url.deletingPathExtension() == urlBasePath {
-										// Check extension
-										if ["heic", "jpeg", "jpg", "png", "tif"].contains($0.extension) {
-											// URL is a photo
-											photoFile = $0
-										} else if ["m4v", "mov"].contains($0.extension) {
-											// URL is a video
-											videoAttachmentFile = $0
-										}
-									}
-								}
-
-						// Check results
-						guard photoFile != nil else {
-							// Did not find photo file
-							self.error = NSExtensionItemError.couldNotIdentifyPhoto
-
-							return
-						}
-						guard videoAttachmentFile != nil else {
-							// Did not find video attachment file
-							self.error = NSExtensionItemError.couldNotIdentifyVideoAttachment
-
-							return
-						}
-
-						// Found files
-						self.filename = photoFile!.name
-						self.photoData = try FileReader.contentsAsData(of: photoFile!)
-						self.image = Image(self.photoData!)
-
-						self.videoAttachmentFilename =
-								videoAttachmentFile!.name
-									.deletingPathExtension
-									.appending(pathExtension: videoAttachmentFile!.extension?.lowercased() ?? "")
-						self.videoAttachmentData = try FileReader.contentsAsData(of: videoAttachmentFile!)
-					} catch {
-						// Error
-						self.error = error
-					}
-				} else {
-					// Error
-					self.error = $1
-				}
-			}
+			super.init(typeDisplayName: "Live Photo", filename: filename, image: image)
 		}
 	}
 
@@ -171,167 +151,109 @@ extension NSExtensionItem {
 	class PhotoMediaItem : MediaItem {
 
 		// MARK: Properties
-		fileprivate	override	var	typeDisplayNameInternal :String? { "Photo" }
+		let	data :Data
 
-								var	data :Data?
-								var	creationDate :Date?
-								var	modificationDate :Date?
-
-		private					let	itemProvider :NSItemProvider
+		let	creationDate :Date?
+		let	modificationDate :Date?
 
 		// MARK: Class methods
 		//--------------------------------------------------------------------------------------------------------------
-		static fileprivate func canLoad(itemProvider :NSItemProvider) -> PhotoMediaItem? {
+		static fileprivate func canLoad(itemProvider :NSItemProvider) -> Bool {
 			// Check if can load
-			return itemProvider.hasItemConformingToTypeIdentifier(kUTTypeImage as String) ?
-					PhotoMediaItem(itemProvider: itemProvider) : nil
+			return itemProvider.hasItemConforming(to: .image)
 		}
 
-		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
-		private init(itemProvider :NSItemProvider) {
-			// Store
-			self.itemProvider = itemProvider
-
-			// Do super
-			super.init()
-		}
-
-		// MARK: Instance methods
-		//--------------------------------------------------------------------------------------------------------------
-		fileprivate func load(completionProc :@escaping () -> Void) {
+		static fileprivate func load(itemProvider :NSItemProvider) async throws -> PhotoMediaItem {
 			// Prefer the ORIGINAL file when the provider exposes one via its file URL.  Some sources (notably Finder
 			//	on macOS 26+) hand share extensions a transcoded PNG as the image representation while still exposing
 			//	the untouched original (HEIC, etc.) through "public.file-url" - loading that preserves the real bytes,
 			//	the EXIF/XMP metadata, and the original filename.
-			if self.itemProvider.hasItemConformingToTypeIdentifier(kUTTypeFileURL as String) {
-				// Resolve the original file URL
-				_ = self.itemProvider.loadObject(ofClass: URL.self) { url, _ in
-					// Handle results
-					if let url = url {
-						// Load the untouched original file
-						self.load(fromOriginalFile: File(url))
-
-						completionProc()
-					} else {
-						// Could not resolve the file URL - fall back to the image representation
-						self.loadImageRepresentation(completionProc: completionProc)
-					}
-				}
-			} else {
-				// No file URL - load the image representation directly
-				self.loadImageRepresentation(completionProc: completionProc)
+			if itemProvider.hasItemConforming(to: .fileURL),
+					let url = try? await itemProvider.loadURL() {
+				// Load the untouched original file
+				return try load(fromOriginalFile: File(url))
 			}
+
+			return try await loadImageRepresentation(itemProvider: itemProvider)
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
-		private func load(fromOriginalFile file :File) {
+		static private func load(fromOriginalFile file :File) throws -> PhotoMediaItem {
 			// Access the original (may be security-scoped when delivered by a share)
 			let	url = file.url
 			let	didStartAccess = url.startAccessingSecurityScopedResource()
 			defer { if didStartAccess { url.stopAccessingSecurityScopedResource() } }
 
 			// The original file preserves its real bytes, metadata, and filename
-			self.filename = file.name
-			self.creationDate = file.creationDate
-			self.modificationDate = file.modificationDate
+			let	data = try FileReader.contentsAsData(of: file)
 
-			do {
-				// Load data and create image
-				self.data = try FileReader.contentsAsData(of: file)
-				self.image = Image(self.data!)
-			} catch {
-				// Error
-				self.error = error
-			}
+			return PhotoMediaItem(filename: file.name, image: Image(data), data: data, creationDate: file.creationDate,
+					modificationDate: file.modificationDate)
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
-		private func loadImageRepresentation(completionProc :@escaping () -> Void) {
-			// Load
-			// Determine the most specific concrete image type this provider holds - preserving EXIF/XMP metadata and the
-			//	original filename - instead of transcoding to PNG.
-			let	imageContentType = self.itemProvider.bestConcreteImageContentType
-			let	imageContentTypeIdentifier = imageContentType?.identifier ?? (kUTTypeImage as String)
-			_ = self.itemProvider.loadFileRepresentation(forTypeIdentifier: imageContentTypeIdentifier) {
-				// Handle results
-				if let url = $0 {
-					// Success
-					let	file = File(url)
+		static private func loadImageRepresentation(itemProvider :NSItemProvider) async throws -> PhotoMediaItem {
+			// Determine the most specific concrete image type this provider holds - preserving EXIF/XMP metadata and
+			//	the original filename - instead of transcoding to PNG.
+			let	imageContentType = itemProvider.bestConcreteImageContentType ?? .image
+			let	fileExtension = imageContentType.preferredFilenameExtension
 
-					// Try to preserve the original filename
-					if let suggestedName = self.itemProvider.suggestedName {
-						// Use suggested name with the concrete file extension
-						let	fileExtension = file.extension ?? imageContentType?.preferredFilenameExtension
-						self.filename =
-								(fileExtension != nil) ?
-										suggestedName.deletingPathExtension.appending(pathExtension: fileExtension!) :
-										suggestedName
-					} else {
-						// Fall back to the delivered file's name
-						self.filename = file.name
-					}
+			// Try to preserve the original filename
+			let	suggestedFilename =
+						(itemProvider.suggestedName != nil) ?
+								((fileExtension != nil) ?
+										itemProvider.suggestedName!.deletingPathExtension
+												.appending(pathExtension: fileExtension!) :
+										itemProvider.suggestedName!) :
+								nil
 
-					self.creationDate = file.creationDate
-					self.modificationDate = file.modificationDate
+			// Try as a file first - the file only exists for the duration of the proc, so read it there
+			if let photoMediaItem =
+					try? await itemProvider.loadFileRepresentation(for: imageContentType,
+							proc: { file -> PhotoMediaItem in
+								// Load data
+								let	data = try FileReader.contentsAsData(of: file)
 
-#if os(iOS)
-					// iOS
-					do {
-						// Load data
-						self.data = try Data(contentsOf: url)
-
-						// Create image
-						self.image = Image(self.data!)
-					} catch {
-						// Error
-						self.error = error
-					}
-#endif
+								// Create image
+								var	image = Image(data)
 #if os(macOS)
-					// macOS
-					do {
-						// Load data
-						self.data = try FileReader.contentsAsData(of: file)
-
-						// Create image - try loading directly
-						self.image = Image(self.data!)
-
-						// Check if succeeded
-						if self.image == nil {
-							// Try loading as a PLIST
-							if let image = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(self.data!) as? NSImage {
-								// Loaded as NSImage
-								self.image = Image(image)
-							}
-						}
-					} catch {
-						// Error
-						self.error = error
-					}
+								// Check if succeeded
+								if image.cgImage == nil,
+										let nsImage = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as?
+												NSImage {
+									// Loaded as PLIST
+									image = Image(nsImage)
+								}
 #endif
 
-					// Call completion
-					completionProc()
-				} else {
-					// Could not load as file
-					_ = $1
-					_ = self.itemProvider.loadDataRepresentation(forTypeIdentifier: imageContentTypeIdentifier) {
-						// Handle results
-						if let data = $0 {
-							// Success
-							self.data = data
+								return PhotoMediaItem(filename: suggestedFilename ?? file.name, image: image,
+										data: data, creationDate: file.creationDate,
+										modificationDate: file.modificationDate)
+							}) {
 
-							self.image = Image(self.data!)
-						} else {
-							// Error
-							self.error = $1
-						}
-
-						completionProc()
-					}
-				}
+				return photoMediaItem
 			}
+
+			// Could not load as file - load as data (no file to read dates from)
+			let	data = try await itemProvider.loadDataRepresentation(for: imageContentType)
+
+			return PhotoMediaItem(
+					filename: suggestedFilename ?? "Untitled".appending(pathExtension: fileExtension ?? ""),
+					image: Image(data), data: data, creationDate: nil, modificationDate: nil)
+		}
+
+		// MARK: Lifecycle methods
+		//--------------------------------------------------------------------------------------------------------------
+		init(filename :String, image :Image?, data :Data, creationDate :Date?, modificationDate :Date?) {
+			// Store
+			self.data = data
+
+			self.creationDate = creationDate
+			self.modificationDate = modificationDate
+
+			// Do super
+			super.init(typeDisplayName: "Photo", filename: filename, image: image)
 		}
 	}
 
@@ -340,60 +262,34 @@ extension NSExtensionItem {
 	class URLMediaItem : MediaItem {
 
 		// MARK: Properties
-		fileprivate	override	var	typeDisplayNameInternal :String? { "Photo" }
-
-								var	data :Data?
-
-		private					let	itemProvider :NSItemProvider
+		let	data :Data
 
 		// MARK: Class methods
 		//--------------------------------------------------------------------------------------------------------------
-		static fileprivate func canLoad(itemProvider :NSItemProvider) -> URLMediaItem? {
+		static fileprivate func canLoad(itemProvider :NSItemProvider) -> Bool {
 			// Check if can load
-			return itemProvider.hasItemConformingToTypeIdentifier(kUTTypeURL as String) ?
-					URLMediaItem(itemProvider: itemProvider) : nil
+			return itemProvider.hasItemConforming(to: .url)
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		static fileprivate func load(itemProvider :NSItemProvider) async throws -> URLMediaItem {
+			// Load
+			let	url = try await itemProvider.loadURL()
+
+			// Retrieve
+			let	(data, _) = try await URLSession.shared.data(from: url)
+
+			return URLMediaItem(filename: url.lastPathComponent, image: Image(data), data: data)
 		}
 
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
-		private init(itemProvider :NSItemProvider) {
+		init(filename :String, image :Image?, data :Data) {
 			// Store
-			self.itemProvider = itemProvider
+			self.data = data
 
 			// Do super
-			super.init()
-		}
-
-		// MARK: Instance methods
-		//--------------------------------------------------------------------------------------------------------------
-		fileprivate func load(completionProc :@escaping () -> Void) {
-			// Load
-			_ = self.itemProvider.loadObject(ofClass: URL.self) {
-				// Handle results
-				if let url = $0 {
-					// Success
-					let urlSession = URLSession(configuration: .default, delegate: nil, delegateQueue: nil)
-					let	dataTask =
-								urlSession.dataTask(with: url) { data, response, error in
-									// Store
-									self.data = data
-
-									self.filename = url.lastPathComponent
-									self.image = (data != nil) ? Image(data!) : nil
-									self.error = error
-
-									// Call completion
-									completionProc()
-								}
-					dataTask.resume()
-				} else {
-					// Error
-					self.error = $1
-
-					// Call completion
-					completionProc()
-				}
-			}
+			super.init(typeDisplayName: "Photo", filename: filename, image: image)
 		}
 	}
 
@@ -402,112 +298,177 @@ extension NSExtensionItem {
 	class VideoMediaItem : MediaItem {
 
 		// MARK: Properties
-		fileprivate	override	var	typeDisplayNameInternal :String? { "Video" }
+		let	file :File
 
-								var	file :File?
-								var	creationDate :Date?
-
-		private					let	itemProvider :NSItemProvider
+		let	creationDate :Date?
 
 		// MARK: Class methods
 		//--------------------------------------------------------------------------------------------------------------
-		static fileprivate func canLoad(itemProvider :NSItemProvider) -> VideoMediaItem? {
+		static fileprivate func canLoad(itemProvider :NSItemProvider) -> Bool {
 			// Check if can load
-			return (itemProvider.hasItemConformingToTypeIdentifier(kUTTypeVideo as String) ||
-							itemProvider.hasItemConformingToTypeIdentifier(AVFileType.mov.rawValue) ||
-							itemProvider.hasItemConformingToTypeIdentifier(AVFileType.mp4.rawValue) ||
-							itemProvider.hasItemConformingToTypeIdentifier(AVFileType.m4v.rawValue)) ?
-					VideoMediaItem(itemProvider: itemProvider) : nil
+			return itemProvider.hasItemConforming(to: .video) || itemProvider.hasItemConforming(to: .quickTimeMovie) ||
+					itemProvider.hasItemConforming(to: .mpeg4Movie) || itemProvider.hasItemConforming(to: .m4v)
+		}
+
+		//--------------------------------------------------------------------------------------------------------------
+		static fileprivate func load(itemProvider :NSItemProvider) async throws -> VideoMediaItem {
+			// Load
+			let	url = try await itemProvider.loadURL()
+
+			// Setup
+			let	file = File(url)
+
+			let	asset = AVURLAsset(url: url)
+			let	duration = try await asset.load(.duration)
+
+			var	creationDate :Date?
+			if let creationDateMetadataItem = try? await asset.load(.creationDate) {
+				// Have metadata item
+				creationDate = try? await creationDateMetadataItem.load(.dateValue)
+			}
+
+			let	assetImageGenerator = AVAssetImageGenerator(asset: asset)
+			assetImageGenerator.appliesPreferredTrackTransform = true
+
+			let	cgImage =
+						try? await assetImageGenerator.image(
+								at: CMTime(value: duration.value / 2, timescale: duration.timescale)).image
+
+			return VideoMediaItem(filename: file.name, image: cgImage.map({ Image($0) }), file: file,
+					creationDate: creationDate)
 		}
 
 		// MARK: Lifecycle methods
 		//--------------------------------------------------------------------------------------------------------------
-		private init(itemProvider :NSItemProvider) {
+		init(filename :String, image :Image?, file :File, creationDate :Date?) {
 			// Store
-			self.itemProvider = itemProvider
+			self.file = file
+			self.creationDate = creationDate
 
 			// Do super
-			super.init()
-		}
-
-		// MARK: Instance methods
-		//--------------------------------------------------------------------------------------------------------------
-		fileprivate func load(completionProc :@escaping () -> Void) {
-			// Load
-			_ = self.itemProvider.loadObject(ofClass: URL.self) {
-				// Setup
-				defer { completionProc() }
-
-				// Handle results
-				if let url = $0 {
-					// Success
-					self.file = File(url)
-
-					let	asset = AVAsset(url: url)
-					let	assetDuration = asset.duration
-					self.creationDate = asset.creationDate?.dateValue
-
-					let	assetImageGenerator = AVAssetImageGenerator(asset: asset)
-					assetImageGenerator.appliesPreferredTrackTransform = true
-
-					self.filename = self.file!.name
-
-					if let cgImage =
-							try? assetImageGenerator.copyCGImage(
-									at: CMTime(value: assetDuration.value / 2, timescale: assetDuration.timescale),
-							 		actualTime: nil) {
-						// Was able to generate image
-						self.image = Image(cgImage)
-					}
-				} else {
-					// Error
-					self.error = $1
-				}
-			}
+			super.init(typeDisplayName: "Video", filename: filename, image: image)
 		}
 	}
 
 	// MARK: Instance methods
 	//------------------------------------------------------------------------------------------------------------------
-	func loadMediaItems(completionProc :@escaping (_ mediaItems :[MediaItem]) -> Void) {
+	func loadMediaItems() async -> (mediaItems :[MediaItem], errors :[Error]) {
 		// Setup
 		let	attachments = self.attachments ?? []
 
-		// Perform in the background
-		DispatchQueue.global().async() {
-			// Setup
-			let	remainingMediaItemsCount = LockingNumeric<Int>()
-			var	mediaItems = [MediaItem]()
-			attachments.forEach() {
-				// Check what can be loaded
-				if let photoMediaItem = PhotoMediaItem.canLoad(itemProvider: $0) {
-					// Can load as PhotoMediaItem
-					remainingMediaItemsCount.add(1)
-					mediaItems.append(photoMediaItem)
-					photoMediaItem.load() { remainingMediaItemsCount.subtract(1) }
-				} else if let videoMediaItem = VideoMediaItem.canLoad(itemProvider: $0) {
-					// Can load as VideoMediaItem
-					remainingMediaItemsCount.add(1)
-					mediaItems.append(videoMediaItem)
-					videoMediaItem.load() { remainingMediaItemsCount.subtract(1) }
-				} else if let livePhotoBundleMediaItem = LivePhotoBundleMediaItem.canLoad(itemProvider: $0) {
-					// Can load as LivePhotoBundleMediaItem
-					remainingMediaItemsCount.add(1)
-					mediaItems.append(livePhotoBundleMediaItem)
-					livePhotoBundleMediaItem.load() { remainingMediaItemsCount.subtract(1) }
-				} else if let urlMediaItem = URLMediaItem.canLoad(itemProvider: $0) {
-					// Can load as URLMediaItem
-					remainingMediaItemsCount.add(1)
-					mediaItems.append(urlMediaItem)
-					urlMediaItem.load() { remainingMediaItemsCount.subtract(1) }
+		return await withTaskGroup(of: (Int, Result<MediaItem, Error>?).self) { taskGroup in
+			// Add a task per attachment
+			attachments.enumerated().forEach() { index, itemProvider in
+				// Add task
+				taskGroup.addTask() {
+					// Catch errors
+					do {
+						// Check what can be loaded
+						if PhotoMediaItem.canLoad(itemProvider: itemProvider) {
+							// Can load as PhotoMediaItem
+							return (index, .success(try await PhotoMediaItem.load(itemProvider: itemProvider)))
+						} else if VideoMediaItem.canLoad(itemProvider: itemProvider) {
+							// Can load as VideoMediaItem
+							return (index, .success(try await VideoMediaItem.load(itemProvider: itemProvider)))
+						} else if LivePhotoBundleMediaItem.canLoad(itemProvider: itemProvider) {
+							// Can load as LivePhotoBundleMediaItem
+							return (index,
+									.success(try await LivePhotoBundleMediaItem.load(itemProvider: itemProvider)))
+						} else if URLMediaItem.canLoad(itemProvider: itemProvider) {
+							// Can load as URLMediaItem
+							return (index, .success(try await URLMediaItem.load(itemProvider: itemProvider)))
+						} else {
+							// Not something we load
+							return (index, nil)
+						}
+					} catch {
+						// Error
+						return (index, .failure(error))
+					}
 				}
 			}
 
-			// Wait for all to be loaded
-			remainingMediaItemsCount.wait()
+			// Collect
+			var	resultsByIndex = [Int : Result<MediaItem, Error>]()
+			for await (index, result) in taskGroup {
+				// Store
+				resultsByIndex[index] = result
+			}
 
-			// Switch to main queue
-			DispatchQueue.main.async() { completionProc(mediaItems) }
+			// Compose in attachment order
+			var	mediaItems = [MediaItem]()
+			var	errors = [Error]()
+			for index in 0..<attachments.count {
+				// Check result
+				switch resultsByIndex[index] {
+					case .success(let mediaItem)?:	mediaItems.append(mediaItem)
+					case .failure(let error)?:		errors.append(error)
+					case nil:						break
+				}
+			}
+
+			return (mediaItems, errors)
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - NSItemProvider extension
+fileprivate extension NSItemProvider {
+
+	// MARK: Instance methods
+	//------------------------------------------------------------------------------------------------------------------
+	func loadURL() async throws -> URL {
+		// Warp to async world...
+		try await withCheckedThrowingContinuation() { continuation in
+			// Load
+			_ = loadObject(ofClass: URL.self) { url, error in
+				// Handle results
+				if let url = url {
+					// Success
+					continuation.resume(returning: url)
+				} else {
+					// Error
+					continuation.resume(throwing: error ?? NSExtensionItemError.couldNotLoad)
+				}
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func loadFileRepresentation<T>(for contentType :UTType, proc :@escaping (_ file :File) throws -> T) async throws
+			-> T {
+		// Warp to async world...
+		try await withCheckedThrowingContinuation() { continuation in
+			// Load
+			_ = loadFileRepresentation(forTypeIdentifier: contentType.identifier) { url, error in
+				// Handle results
+				if let url = url {
+					// Success - process while the file exists
+					continuation.resume(with: Result(catching: { try proc(File(url)) }))
+				} else {
+					// Error
+					continuation.resume(throwing: error ?? NSExtensionItemError.couldNotLoad)
+				}
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+	func loadDataRepresentation(for contentType :UTType) async throws -> Data {
+		// Warp to async world...
+		try await withCheckedThrowingContinuation() { continuation in
+			// Load
+			_ = loadDataRepresentation(forTypeIdentifier: contentType.identifier) { data, error in
+				// Handle results
+				if let data = data {
+					// Success
+					continuation.resume(returning: data)
+				} else {
+					// Error
+					continuation.resume(throwing: error ?? NSExtensionItemError.couldNotLoad)
+				}
+			}
 		}
 	}
 }
