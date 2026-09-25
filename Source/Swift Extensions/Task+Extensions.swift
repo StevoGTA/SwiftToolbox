@@ -24,3 +24,28 @@ public extension Task where Failure == Error {
 		}
 	}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// MARK: - Free functions
+public func withRetries<T>(count :Int = 3, _ proc :() async throws -> T) async throws -> T {
+	// Try a few times
+	var	lastError :Error?
+	for _ in 1...count {
+		// Check cancelled
+		try Task.checkCancellation()
+
+		// Try
+		do {
+			// Perform
+			return try await proc()
+		} catch is CancellationError {
+			// Cancelled
+			throw CancellationError()
+		} catch {
+			// Note error
+			lastError = error
+		}
+	}
+
+	throw lastError!
+}
