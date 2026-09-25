@@ -6,6 +6,8 @@
 //  Copyright © 2025 Stevo Brock. All rights reserved.
 //
 
+import Foundation
+
 //----------------------------------------------------------------------------------------------------------------------
 // MARK: Task extension
 public extension Task where Failure == Error {
