@@ -320,7 +320,7 @@ open class HTTPEndpointClient {
 			// Process results
 			if response != nil {
 				// Have a response
-				let	httpEndpointStatus = HTTPEndpointStatus(rawValue: response!.statusCode)!
+				let	httpEndpointStatus = HTTPEndpointStatus(code: response!.statusCode)
 				if httpEndpointStatus.isSuccess {
 					// Success
 					self.dataCompletionProc!(response, data, nil)
@@ -344,14 +344,13 @@ open class HTTPEndpointClient {
 			// Process results
 			if response != nil {
 				// Have a response
-				let	statusCode = response!.statusCode
-				if statusCode == HTTPEndpointStatus.ok.rawValue {
+				let	httpEndpointStatus = HTTPEndpointStatus(code: response!.statusCode)
+				if httpEndpointStatus == .ok {
 					// Success
 					self.urlCompletionProc!(response, url, nil)
 				} else {
 					// Some other response
-					self.urlCompletionProc!(response, nil,
-							HTTPEndpointStatusError(status: HTTPEndpointStatus(rawValue: statusCode)!))
+					self.urlCompletionProc!(response, nil, HTTPEndpointStatusError(status: httpEndpointStatus))
 				}
 			} else {
 				// Error

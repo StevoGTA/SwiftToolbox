@@ -77,7 +77,7 @@ fileprivate class ServerResponder : HTTPServerResponder {
 
 			return worker.eventLoop.newSucceededFuture(
 					result:
-							HTTPResponse(status: HTTPResponseStatus(statusCode: responseStatus.rawValue),
+							HTTPResponse(status: HTTPResponseStatus(statusCode: responseStatus.code),
 									headers: HTTPHeaders(responseHeaders ?? []),
 									body: responseBody?.data ?? HTTPBody()))
 		} catch {
@@ -88,7 +88,7 @@ fileprivate class ServerResponder : HTTPServerResponder {
 
 			return worker.eventLoop.newSucceededFuture(
 					result:
-							HTTPResponse(status: HTTPResponseStatus(statusCode: httpEndpointError.status.rawValue),
+							HTTPResponse(status: HTTPResponseStatus(statusCode: httpEndpointError.status.code),
 									body: jsonData))
 		}
     }

@@ -123,7 +123,7 @@ public class VaporHTTPServer : HTTPServer {
 								performInfo: (pathComponents, urlComponents.queryItemsMap, headers),
 								bodyData: bodyData)
 
-			return Response(status: HTTPResponseStatus(statusCode: responseStatus.rawValue),
+			return Response(status: HTTPResponseStatus(statusCode: responseStatus.code),
 					headers: HTTPHeaders(responseHeaders ?? []),
 					body: (responseBody != nil) ? Response.Body(data: responseBody!.data) : .empty)
 		} catch {
@@ -132,7 +132,7 @@ public class VaporHTTPServer : HTTPServer {
 			let	jsonBody = ["error": httpEndpointError.message]
 			let	jsonData = try! JSONSerialization.data(withJSONObject: jsonBody, options: [])
 
-			return Response(status: HTTPResponseStatus(statusCode: httpEndpointError.status.rawValue),
+			return Response(status: HTTPResponseStatus(statusCode: httpEndpointError.status.code),
 					body: Response.Body(data: jsonData))
 		}
 	}
