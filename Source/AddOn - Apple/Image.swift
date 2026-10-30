@@ -88,10 +88,10 @@ class Image {
 		static	let	upMirrored = Orientation.topRight
 		static	let	down = Orientation.bottomRight
 		static	let	downMirrored = Orientation.bottomLeft
-		static	let	rightMirrored = Orientation.leftTop
-		static	let	left = Orientation.rightTop
-		static	let	leftMirrored = Orientation.rightBottom
-		static	let	right = Orientation.leftBottom
+		static	let	leftMirrored = Orientation.leftTop
+		static	let	right = Orientation.rightTop
+		static	let	rightMirrored = Orientation.rightBottom
+		static	let	left = Orientation.leftBottom
 	}
 
 	enum StorageType {
@@ -437,13 +437,19 @@ class Image {
 
 		// Adjust context based on orientation
 		switch self.orientation {
+			case .topRight:
+				// Up Mirrored - flip, then as Up
+				cgContext.concatenate(CGAffineTransform(translationX: sizeUse.width, y: 0.0).scaledBy(x: -1.0, y: 1.0))
+				fallthrough
+
 			case .topLeft:
 				// Up - nothing to do
 				break
 
-			case .topRight:
-				// Up Mirrored
-				fatalError("Image - unimplemented \"topRight\" when scaling")
+			case .bottomLeft:
+				// Down Mirrored - flip, then as Down
+				cgContext.concatenate(CGAffineTransform(translationX: sizeUse.width, y: 0.0).scaledBy(x: -1.0, y: 1.0))
+				fallthrough
 
 			case .bottomRight:
 				// Down
@@ -453,12 +459,13 @@ class Image {
 						CGAffineTransform(translationX: (-sizeUse.height * 0.5) * sizeUse.width / sizeUse.height,
 								y: (-sizeUse.width * 0.5) * sizeUse.height / sizeUse.width))
 
-			case .bottomLeft:
-				// Down Mirrored
-				fatalError("Image - unimplemented \"bottomLeft\" when scaling")
+			case .leftTop:
+				// Left Mirrored - flip, then as Right
+				cgContext.concatenate(CGAffineTransform(translationX: sizeUse.width, y: 0.0).scaledBy(x: -1.0, y: 1.0))
+				fallthrough
 
 			case .rightTop:
-				// Left
+				// Right
 				cgContext.concatenate(CGAffineTransform(translationX: sizeUse.width * 0.5, y: sizeUse.height * 0.5))
 				cgContext.concatenate(CGAffineTransform(rotationAngle: -.pi / 2.0))
 				cgContext.concatenate(
@@ -468,11 +475,12 @@ class Image {
 				scaledImageSize = CGSize(width: scaledImageSize.height, height: scaledImageSize.width)
 
 			case .rightBottom:
-				// Left Mirrored
-				fatalError("Image - unimplemented \"rightBottom\" when scaling")
+				// Right Mirrored - flip, then as Left
+				cgContext.concatenate(CGAffineTransform(translationX: sizeUse.width, y: 0.0).scaledBy(x: -1.0, y: 1.0))
+				fallthrough
 
 			case .leftBottom:
-				// Right
+				// Left
 				cgContext.concatenate(CGAffineTransform(translationX: sizeUse.width * 0.5, y: sizeUse.height * 0.5))
 				cgContext.concatenate(CGAffineTransform(rotationAngle: .pi / 2.0))
 				cgContext.concatenate(
@@ -481,10 +489,6 @@ class Image {
 
 				scaledImageSize = CGSize(width: scaledImageSize.height, height: scaledImageSize.width)
 				break;
-
-			case .leftTop:
-				// Right Mirrored
-				fatalError("Image - unimplemented \"leftTop\" when scaling")
 		}
 
 		// Draw image

@@ -91,23 +91,18 @@ extension NSExtensionItem {
 			let	url = try await itemProvider.loadURL()
 
 			// Find files
-			let	urlBasePath = url.deletingPathExtension()
 			var	photoFile :File?
 			var	videoAttachmentFile :File?
-			try FileManager.default.files(in: Folder(url))
-					.forEach() {
-						// Check base path
-						if $0.url.deletingPathExtension() == urlBasePath {
-							// Check extension
-							if ["heic", "jpeg", "jpg", "png", "tif"].contains($0.extension) {
-								// URL is a photo
-								photoFile = $0
-							} else if ["m4v", "mov"].contains($0.extension) {
-								// URL is a video
-								videoAttachmentFile = $0
-							}
-						}
-					}
+			try FileManager.default.files(in: Folder(url)).forEach() {
+				// Check extension
+				if ["heic", "jpeg", "jpg", "png", "tif"].contains($0.extension?.lowercased()) {
+					// URL is a photo
+					photoFile = $0
+				} else if ["m4v", "mov"].contains($0.extension?.lowercased()) {
+					// URL is a video
+					videoAttachmentFile = $0
+				}
+			}
 
 			// Check results
 			guard let photoFile = photoFile else { throw NSExtensionItemError.couldNotIdentifyPhoto }
