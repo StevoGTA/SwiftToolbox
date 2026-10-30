@@ -266,6 +266,7 @@ open class HTTPEndpointClient {
 
 		// MARK: Properties
 						let	urlRequest :URLRequest
+						let	transportTask = LockingValue<HTTPTransportTask?>(nil)
 
 						var	httpEndpointRequest :HTTPEndpointRequest
 								{ self.httpEndpointRequestInfo.httpEndpointRequest }
@@ -313,7 +314,11 @@ open class HTTPEndpointClient {
 		}
 
 		//--------------------------------------------------------------------------------------------------------------
-		func cancel() { self.httpEndpointRequestInfo.httpEndpointRequest.cancel() }
+		func cancel() {
+			// Cancel
+			self.httpEndpointRequestInfo.httpEndpointRequest.cancel()
+			self.transportTask.value?.cancel()
+		}
 
 		//--------------------------------------------------------------------------------------------------------------
 		func processResults(response :HTTPURLResponse?, data :Data?, error :Error?) {
@@ -359,106 +364,6 @@ open class HTTPEndpointClient {
 		}
 	}
 
-	//------------------------------------------------------------------------------------------------------------------
-	// MARK: URLSessionDelegate
-	private final class URLSessionDelegate : NSObject, Foundation.URLSessionDelegate, URLSessionDataDelegate,
-			URLSessionDownloadDelegate {
-
-		// MARK: Types
-		typealias DataProc = (_ data :Data) -> Void
-		typealias ProgressProc = (_ progress :Double) -> Void
-		typealias CompletionProc = (_ response :HTTPURLResponse?, _ url :URL?, _ error :Error?) -> Void
-
-		// MARK: Info
-		private struct Info {
-
-			// MARK: Properties
-			let	redirectBody :Data?
-
-			let	dataProc :DataProc?
-			let	progressProc :ProgressProc?
-			let	completionProc :CompletionProc?
-		}
-
-		// MARK: Properties
-		private	let	taskMap = LockingDictionary<URLSessionTask, Info>()
-
-		// MARK: URLSessionDelegate methods
-		//--------------------------------------------------------------------------------------------------------------
-		func urlSession(_ session :URLSession, task :URLSessionTask, didCompleteWithError error :Error?) {
-			// Retrieve info
-			if let info = self.taskMap.value(for: task), let completionProc = info.completionProc {
-				// Call proc
-				completionProc(task.response as? HTTPURLResponse, nil, task.error)
-			}
-
-			// Cleanup
-			self.taskMap.remove(task)
-		}
-
-		// MARK: URLSessionDataDelegate methods
-		//--------------------------------------------------------------------------------------------------------------
-		func urlSession(_ session :URLSession, dataTask :URLSessionDataTask, didReceive data :Data) {
-			// Retrieve info
-			if let info = self.taskMap.value(for: dataTask), let dataProc = info.dataProc {
-				// Call proc
-				dataProc(data)
-			}
-		}
-
-		//--------------------------------------------------------------------------------------------------------------
-		func urlSession(_ session :URLSession, task :URLSessionTask,
-				willPerformHTTPRedirection response :HTTPURLResponse, newRequest request :URLRequest,
-				completionHandler :@escaping (_ request :URLRequest?) -> Void) {
-			// Setup
-			var	requestUse = request
-
-			// Retrieve info
-			if let info = self.taskMap.value(for: task), info.redirectBody != nil {
-				// Update request
-				requestUse.httpBody = info.redirectBody
-			}
-
-			// Call completion handler
-			completionHandler(requestUse)
-		}
-
-		// MARK: URLSessionDownloadDelegate methods
-		//--------------------------------------------------------------------------------------------------------------
-		func urlSession(_ session :URLSession, downloadTask :URLSessionDownloadTask, didWriteData bytesWritten :Int64,
-				totalBytesWritten :Int64, totalBytesExpectedToWrite :Int64) {
-			// Retrieve info
-			if let info = self.taskMap.value(for: downloadTask), let progressProc = info.progressProc {
-				// Call proc
-				progressProc(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
-			}
-		}
-
-		//--------------------------------------------------------------------------------------------------------------
-		func urlSession(_ session :URLSession, downloadTask :URLSessionDownloadTask,
-				didFinishDownloadingTo location :URL) {
-			// Retrieve info
-			if let info = self.taskMap.value(for: downloadTask), let completionProc = info.completionProc {
-				// Call proc
-				completionProc(downloadTask.response as? HTTPURLResponse, location, downloadTask.error)
-			}
-
-			// Cleanup
-			self.taskMap.remove(downloadTask)
-		}
-
-		// MARK: Instance methods
-		//--------------------------------------------------------------------------------------------------------------
-		fileprivate func register(task :URLSessionTask, redirectBody :Data? = nil, dataProc :DataProc? = nil,
-				progressProc :ProgressProc? = nil, completionProc :CompletionProc? = nil) {
-			// Add to map
-			self.taskMap.set(
-					Info(redirectBody: redirectBody, dataProc: dataProc, progressProc: progressProc,
-							completionProc: completionProc),
-					for: task)
-		}
-	}
-
 	// MARK: Properties
 	static	public	var	logProc :(_ messages :[String]) -> Void = { $0.forEach() { NSLog("%@", $0) } }
 
@@ -467,8 +372,7 @@ open class HTTPEndpointClient {
 			private	let	serverPrefix :String
 			private	let	options :Options
 			private	let	maximumURLLength :Int
-			private	let	urlSession :URLSession
-			private	let	urlSessionDelegate :URLSessionDelegate?
+			private	let	transport :HTTPTransport
 			private	let	maximumConcurrentURLRequests :Int
 
 			private	let	updateActiveHTTPEndpointRequestPerformInfosLock = Lock()
@@ -480,54 +384,24 @@ open class HTTPEndpointClient {
 	// MARK: Lifecycle methods
 	//------------------------------------------------------------------------------------------------------------------
 	public init(serverPrefix :String, options :Options = [], maximumURLLength :Int = 1024,
-			urlSession :URLSession? = nil, maximumConcurrentURLRequests :Int? = nil) {
-		// Setup
-		let	urlSessionConfiguration = urlSession?.configuration ?? .default
-
+			transport :HTTPTransport = URLSessionHTTPTransport(), maximumConcurrentURLRequests :Int? = nil) {
 		// Store
 		self.serverPrefix = serverPrefix
 		self.options = options
 		self.maximumURLLength = maximumURLLength
-		if urlSession != nil {
-			// Was given URLSession
-			self.urlSessionDelegate = nil
-			self.urlSession = urlSession!
-			self.maximumConcurrentURLRequests =
-					maximumConcurrentURLRequests ?? urlSessionConfiguration.httpMaximumConnectionsPerHost
-		} else {
-			// Was not given URLSession
-			self.urlSessionDelegate = URLSessionDelegate()
-			self.urlSession =
-					URLSession(configuration: .default, delegate: self.urlSessionDelegate!, delegateQueue: nil)
-			self.maximumConcurrentURLRequests =
-					maximumConcurrentURLRequests ?? urlSessionConfiguration.httpMaximumConnectionsPerHost
-		}
+		self.transport = transport
+		self.maximumConcurrentURLRequests = maximumConcurrentURLRequests ?? transport.maximumConcurrentRequests
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
 	public init(scheme :String, hostName :String, port :Int? = nil, options :Options = [], maximumURLLength :Int = 1024,
-			urlSession :URLSession? = nil, maximumConcurrentURLRequests :Int? = nil) {
-		// Setup
-		let	urlSessionConfiguration = urlSession?.configuration ?? .default
-
+			transport :HTTPTransport = URLSessionHTTPTransport(), maximumConcurrentURLRequests :Int? = nil) {
 		// Store
 		self.serverPrefix = (port != nil) ? "\(scheme)://\(hostName):\(port!)" : "\(scheme)://\(hostName)"
 		self.options = options
 		self.maximumURLLength = maximumURLLength
-		if urlSession != nil {
-			// Was given URLSession
-			self.urlSessionDelegate = nil
-			self.urlSession = urlSession!
-			self.maximumConcurrentURLRequests =
-					maximumConcurrentURLRequests ?? urlSessionConfiguration.httpMaximumConnectionsPerHost
-		} else {
-			// Was not given URLSession
-			self.urlSessionDelegate = URLSessionDelegate()
-			self.urlSession =
-					URLSession(configuration: .default, delegate: self.urlSessionDelegate!, delegateQueue: nil)
-			self.maximumConcurrentURLRequests =
-					maximumConcurrentURLRequests ?? urlSessionConfiguration.httpMaximumConnectionsPerHost
-		}
+		self.transport = transport
+		self.maximumConcurrentURLRequests = maximumConcurrentURLRequests ?? transport.maximumConcurrentRequests
 	}
 
 	// MARK: Instance methods
@@ -769,116 +643,82 @@ open class HTTPEndpointClient {
 									}
 
 					// Run task
+					let	transportTask :HTTPTransportTask
 					if let httpEndpointRequestProcessURLResults =
 							httpEndpointRequestPerformInfo.httpEndpointRequest as?
 									HTTPEndpointRequestProcessURLResults {
-						// HTTPEndpointRequestProcessURLResults)
-						let	urlSessionDownloadTask = strongSelf.urlSession.downloadTask(with: urlRequest)
+						// HTTPEndpointRequestProcessURLResults
+						transportTask =
+								strongSelf.transport.perform(urlRequest,
+										progressProc: httpEndpointRequestProcessURLResults.progressProc,
+										completionProc: {
+											// Log
+											completionLogProc($0, $2, nil)
 
-						// Register with URLSessionDelegate
-						self?.urlSessionDelegate?.register(task: urlSessionDownloadTask,
-								progressProc: httpEndpointRequestProcessURLResults.progressProc,
-								completionProc: {
-									// Log
-									completionLogProc($0, $2, nil)
+											// Transition to finished
+											httpEndpointRequestPerformInfo.transition(to: .finished)
 
-									// Transition to finished
-									httpEndpointRequestPerformInfo.transition(to: .finished)
+											// Check if cancelled
+											if !httpEndpointRequestPerformInfo.isCancelled {
+												// Process results
+												httpEndpointRequestPerformInfo.processResults(response: $0, url: $1,
+														error: $2)
+											}
 
-									// Check if cancelled
-									if !httpEndpointRequestPerformInfo.isCancelled {
-										// Process results
-										httpEndpointRequestPerformInfo.processResults(response: $0, url: $1, error: $2)
-									}
-
-									// Update
-									strongSelf.updateHTTPEndpointRequestPerformInfos()
-								})
-
-						// Resume
-						urlSessionDownloadTask.resume()
+											// Update
+											strongSelf.updateHTTPEndpointRequestPerformInfos()
+										})
 					} else if let streamHTTPEndpointRequest =
 							httpEndpointRequestPerformInfo.httpEndpointRequest as? StreamHTTPEndpointRequest {
 						// StreamHTTPEndpointRequest
-						let	urlSessionDataTask = strongSelf.urlSession.dataTask(with: urlRequest)
+						transportTask =
+								strongSelf.transport.perform(urlRequest, dataProc: streamHTTPEndpointRequest.dataProc,
+										completionProc: {
+											// Log
+											completionLogProc($0, $1, nil)
 
-						// Register with URLSessionDelegate
-						self?.urlSessionDelegate?.register(task: urlSessionDataTask,
-								dataProc: streamHTTPEndpointRequest.dataProc,
-								completionProc: {
-									// Log
-									completionLogProc($0, $2, nil)
+											// Transition to finished
+											httpEndpointRequestPerformInfo.transition(to: .finished)
 
-									// Transition to finished
-									httpEndpointRequestPerformInfo.transition(to: .finished)
+											// Check if cancelled
+											if !httpEndpointRequestPerformInfo.isCancelled {
+												// Process results
+												httpEndpointRequestPerformInfo.processResults(response: $0, url: nil,
+														error: $1)
+											}
 
-									// Check if cancelled
-									if !httpEndpointRequestPerformInfo.isCancelled {
-										// Process results
-										httpEndpointRequestPerformInfo.processResults(response: $0, url: $1, error: $2)
-									}
-
-									// Update
-									strongSelf.updateHTTPEndpointRequestPerformInfos()
-								})
-
-						// Resume
-						urlSessionDataTask.resume()
+											// Update
+											strongSelf.updateHTTPEndpointRequestPerformInfos()
+										})
 					} else {
-						// Check if have URLSessionDelegate
-						if let urlSessionDelegate = self?.urlSessionDelegate {
-							// Create Data Task
-							let	urlSessionDataTask = strongSelf.urlSession.dataTask(with: urlRequest)
+						// Data
+						let	httpEndpointRequest = httpEndpointRequestPerformInfo.httpEndpointRequest
+						transportTask =
+								strongSelf.transport.perform(urlRequest,
+										redirectBody:
+												httpEndpointRequest.options.contains(.deferBodyUntilRedirect) ?
+														httpEndpointRequest.bodyData : nil,
+										completionProc: {
+											// Log
+											completionLogProc($0, $2, $1)
 
-							// Register with URLSessionDelegate
-							let	httpEndpointRequest = httpEndpointRequestPerformInfo.httpEndpointRequest
-							var	data :Data? = nil
-							urlSessionDelegate.register(task: urlSessionDataTask,
-									redirectBody:
-											httpEndpointRequest.options.contains(.deferBodyUntilRedirect) ?
-													httpEndpointRequest.bodyData : nil,
-									dataProc: { data = (data != nil) ? data! + $0 : $0 },
-									completionProc: {
-										// Log
-										completionLogProc($0, $2, data)
+											// Transition to finished
+											httpEndpointRequestPerformInfo.transition(to: .finished)
 
-										// Transition to finished
-										httpEndpointRequestPerformInfo.transition(to: .finished)
+											// Check if cancelled
+											if !httpEndpointRequestPerformInfo.isCancelled {
+												// Process results
+												httpEndpointRequestPerformInfo.processResults(response: $0, data: $1,
+														error: $2)
+											}
 
-										// Check if cancelled
-										if !httpEndpointRequestPerformInfo.isCancelled {
-											// Process results
-											httpEndpointRequestPerformInfo.processResults(response: $0, data: data,
-													error: $2)
-										}
-
-										// Update
-										strongSelf.updateHTTPEndpointRequestPerformInfos()
-									})
-
-							// Resume
-							urlSessionDataTask.resume()
-						} else {
-							// Let's go
-							strongSelf.urlSession.dataTask(with: urlRequest, completionHandler: {
-								// Log
-								completionLogProc($1 as? HTTPURLResponse, $2, $0 ?? Data())
-
-								// Transition to finished
-								httpEndpointRequestPerformInfo.transition(to: .finished)
-
-								// Check if cancelled
-								if !httpEndpointRequestPerformInfo.isCancelled {
-									// Process results
-									httpEndpointRequestPerformInfo.processResults(response: $1 as? HTTPURLResponse,
-											data: $0, error: $2)
-								}
-
-								// Update
-								strongSelf.updateHTTPEndpointRequestPerformInfos()
-							}).resume()
-						}
+											// Update
+											strongSelf.updateHTTPEndpointRequestPerformInfos()
+										})
 					}
+
+					// Store task so cancel can stop it
+					httpEndpointRequestPerformInfo.transportTask.set(transportTask)
 				}
 			}
 		}
