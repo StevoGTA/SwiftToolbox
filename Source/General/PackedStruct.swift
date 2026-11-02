@@ -215,12 +215,20 @@ struct PackedStruct {
 
 						case "f":
 							// float
-// TODO
+							guard let subdata = data.subdata(fromIndex: index, length: 4) else
+									{ throw Error.insufficientData }
+
+							values.append(Float32(bitPattern:
+									(endianness == .big) ? subdata.asUInt32BE! : subdata.asUInt32LE!))
 							index += 4
 
 						case "d":
 							// double
-// TODO
+							guard let subdata = data.subdata(fromIndex: index, length: 8) else
+									{ throw Error.insufficientData }
+
+							values.append(Float64(bitPattern:
+									(endianness == .big) ? subdata.asUInt64BE! : subdata.asUInt64LE!))
 							index += 8
 
 						case "s":
