@@ -111,7 +111,7 @@ public extension String {
         let paddingRight = padding / 2
         guard paddingRight > 0 else { return " " + self }
 
-        let paddingLeft = (padding % 2 == 0) ? paddingRight : paddingRight + 1
+        let paddingLeft = ((padding & 1) == 0) ? paddingRight : paddingRight + 1
 
         return " ".withCString() { String(format: "%\(paddingLeft)s\(self)%\(paddingRight)s", $0, $0) }
 	}
