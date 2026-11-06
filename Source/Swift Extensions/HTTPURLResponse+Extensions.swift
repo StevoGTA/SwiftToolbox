@@ -63,9 +63,9 @@ extension HTTPURLResponse {
 	//------------------------------------------------------------------------------------------------------------------
 	static func contentRangeHeader(for units :String, start :Int64, length :Int64, size :Int64) -> (String, String) {
 		// Return info
-		return (size > 0) ?
+		return (length > 0) ?
 				("Content-Range", "\(units) \(start)-\(start + length - 1)/\(size)") :
-				("Content-Range", "\(units) */0")
+				("Content-Range", "\(units) */\(size)")
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
